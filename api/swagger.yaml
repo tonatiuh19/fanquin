@@ -1,0 +1,1223 @@
+openapi: 3.1.0
+info:
+  title: FanQuin API
+  description: |
+    Social fantasy football platform — quinielas, team ownership, leaderboards.
+
+    ## Authentication
+    Most protected routes require a `Bearer` session token in the `Authorization` header.
+    Tokens are obtained from `POST /api/auth/verify-code` and stored client-side
+    (e.g., `localStorage` key `fanquin_session`).
+  version: 1.0.0
+  contact:
+    name: FanQuin
+    url: https://fanquin.com
+
+servers:
+  - url: /api
+    description: Current deployment
+
+tags:
+  - name: Health
+    description: Service health check
+  - name: Auth
+    description: OTP-based passwordless authentication
+  - name: Competitions
+    description: Competition and fixture data (public)
+  - name: Venues
+    description: Stadium / venue data (public)
+  - name: Profile
+    description: Authenticated user profile
+  - name: Groups
+    description: Fantasy groups — create, join, manage
+  - name: Predictions
+    description: Match score predictions
+  - name: Live
+    description: Live match data and on-demand sync from football-data.org
+
+# ─────────────────────────────────────────────────────────────────
+# REUSABLE SCHEMAS
+# ─────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: hex96 # 48-byte random token as hex string
+
+  schemas:
+    # ── Generic wrappers ─────────────────────────────────────────
+    ApiSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+
+    ApiError:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+        error:
+          type: string
+
+    # ── Auth ─────────────────────────────────────────────────────
+    SendCodeRequest:
+      type: object
+      required: [identifier]
+      properties:
+        identifier:
+          type: string
+          format: email
+          example: felix@example.com
+        delivery_method:
+          type: string
+          enum: [email]
+          default: email
+
+    SendCodeResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiSuccess"
+        - type: object
+          properties:
+            message:
+              type: string
+            debug_code:
+              type: integer
+              description: Only present in development mode
+
+    VerifyCodeRequest:
+      type: object
+      required: [identifier, code]
+      properties:
+        identifier:
+          type: string
+          format: email
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          example: "482910"
+        first_name:
+          type: string
+          description: Required for new users only
+        last_name:
+          type: string
+          description: Required for new users only
+        phone:
+          type: string
+          description: Optional, for new users only
+        country:
+          type: string
+          description: Optional, for new users only
+
+    VerifyCodeResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiSuccess"
+        - type: object
+          required: [sessionToken, user]
+          properties:
+            sessionToken:
+              type: string
+              description: Opaque 96-char hex token. Store in localStorage.
+            user:
+              $ref: "#/components/schemas/UserProfile"
+
+    ValidateSessionResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiSuccess"
+        - type: object
+          required: [user]
+          properties:
+            user:
+              $ref: "#/components/schemas/UserProfile"
+
+    # ── User ─────────────────────────────────────────────────────
+    UserProfile:
+      type: object
+      required: [id, username, locale, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        locale:
+          type: string
+          example: en
+        created_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        locale:
+          type: string
+
+    # ── Competition ───────────────────────────────────────────────
+    Competition:
+      type: object
+      required: [id, name, type, season]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        short_name:
+          type: string
+          nullable: true
+        type:
+          type: string
+        season:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+
+    # ── Team ─────────────────────────────────────────────────────
+    Team:
+      type: object
+      required: [id, competition_id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        competition_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        short_name:
+          type: string
+          nullable: true
+        country_code:
+          type: string
+          nullable: true
+        flag_url:
+          type: string
+          format: uri
+          nullable: true
+        group_label:
+          type: string
+          nullable: true
+        tier:
+          type: integer
+          nullable: true
+        is_placeholder:
+          type: boolean
+
+    # ── Venue ─────────────────────────────────────────────────────
+    Venue:
+      type: object
+      required: [id, name, city, country]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        capacity:
+          type: integer
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+
+    # ── Match ─────────────────────────────────────────────────────
+    Match:
+      type: object
+      required: [id, competition_id, stage, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        competition_id:
+          type: string
+          format: uuid
+        match_number:
+          type: integer
+          nullable: true
+        stage:
+          type: string
+          example: group
+        match_date:
+          type: string
+          format: date-time
+          nullable: true
+        prediction_lock:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [scheduled, live, finished, cancelled]
+        home_team:
+          $ref: "#/components/schemas/Team"
+        away_team:
+          $ref: "#/components/schemas/Team"
+        venue:
+          $ref: "#/components/schemas/Venue"
+        home_score:
+          type: integer
+          nullable: true
+        away_score:
+          type: integer
+          nullable: true
+
+    # ── Group ─────────────────────────────────────────────────────
+    Group:
+      type: object
+      required: [id, name, competition_id, mode, owner_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        invite_code:
+          type: string
+        competition_id:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          enum: [casual, friends, league, competitive, global]
+        draft_type:
+          type: string
+          enum: [snake, random, tier_balanced]
+        owner_id:
+          type: string
+          format: uuid
+        max_members:
+          type: integer
+        member_count:
+          type: integer
+        is_active:
+          type: boolean
+
+    CreateGroupRequest:
+      type: object
+      required: [name, competition_id, mode]
+      properties:
+        name:
+          type: string
+        competition_id:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          enum: [casual, friends, league, competitive, global]
+        draft_type:
+          type: string
+          enum: [snake, random, tier_balanced]
+          default: snake
+        max_members:
+          type: integer
+          default: 50
+
+    JoinGroupRequest:
+      type: object
+      required: [invite_code]
+      properties:
+        invite_code:
+          type: string
+
+    # ── Leaderboard ───────────────────────────────────────────────
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        total_points:
+          type: integer
+        prediction_pts:
+          type: integer
+        ownership_pts:
+          type: integer
+        current_streak:
+          type: integer
+        elo_rating:
+          type: integer
+
+    # ── Team Ownership ────────────────────────────────────────────
+    TeamOwnership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        team:
+          $ref: "#/components/schemas/Team"
+        draft_pick:
+          type: integer
+          nullable: true
+        total_pts:
+          type: integer
+        wins_pts:
+          type: integer
+        goals_pts:
+          type: integer
+        clean_sheet_pts:
+          type: integer
+
+    # ── Predictions ───────────────────────────────────────────────
+    SubmitPredictionRequest:
+      type: object
+      required: [group_id, match_id, predicted_home, predicted_away]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        predicted_home:
+          type: integer
+          minimum: 0
+        predicted_away:
+          type: integer
+          minimum: 0
+
+    Prediction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        predicted_home:
+          type: integer
+        predicted_away:
+          type: integer
+        result:
+          type: string
+          enum: [pending, exact, correct_winner, wrong]
+        points_earned:
+          type: integer
+          nullable: true
+        upset_pts:
+          type: integer
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+
+    LiveMatchPrediction:
+      type: object
+      description: A single group's prediction for a match.
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        group_name:
+          type: string
+        predicted_home:
+          type: integer
+          nullable: true
+        predicted_away:
+          type: integer
+          nullable: true
+        result:
+          type: string
+          nullable: true
+          enum: [pending, exact, correct_winner, goal_difference, wrong]
+        points_earned:
+          type: integer
+          nullable: true
+
+    LivePageData:
+      type: object
+      description: Full data payload for the Live page.
+      properties:
+        live:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+          description: Matches currently in progress.
+        upcoming:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+          description: Next 20 scheduled matches.
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+          description: Last 20 completed matches.
+        my_active_groups:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              competition_id:
+                type: string
+                format: uuid
+          description: User's active groups for this competition (only when authenticated).
+        last_synced_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the competition was last synced from football-data.org.
+        competition:
+          allOf:
+            - $ref: "#/components/schemas/Competition"
+          nullable: true
+
+    SyncResult:
+      type: object
+      description: Summary of a sync-matches operation.
+      properties:
+        matches_checked:
+          type: integer
+          description: Total matches returned by football-data.org.
+        matches_updated:
+          type: integer
+          description: Matches whose status or score changed in the DB.
+        predictions_scored:
+          type: integer
+          description: Pending predictions that were evaluated and awarded points.
+        ownership_points_awarded:
+          type: integer
+          description: Team-ownership point transactions created.
+
+# ─────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────
+paths:
+  # ── Health ───────────────────────────────────────────────────
+  /ping:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+
+  # ── Auth ─────────────────────────────────────────────────────  /auth/check-email:
+    get:
+      tags: [Auth]
+      summary: Check if a user exists by email
+      description: Used by the sign-up/sign-in UI to decide whether to show the profile form.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Check result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      exists:
+                        type: boolean
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /auth/check-username:
+    get:
+      tags: [Auth]
+      summary: Check if a username is available
+      description: Returns whether the given username is not yet taken. Used for real-time availability feedback in the sign-up form.
+      parameters:
+        - in: query
+          name: username
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9_]{3,30}$"
+      responses:
+        "200":
+          description: Availability result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      available:
+                        type: boolean
+        "400":
+          description: Invalid username format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /auth/send-code:
+    post:
+      tags: [Auth]
+      summary: Send a 6-digit OTP to the provided email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCodeRequest"
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendCodeResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/verify-code:
+    post:
+      tags: [Auth]
+      summary: Verify the OTP and obtain a session token
+      description: |
+        On first sign-in, a new user account and profile are created automatically.
+        A welcome email is sent to new users.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyCodeRequest"
+      responses:
+        "200":
+          description: Verification successful — session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyCodeResponse"
+        "401":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/validate:
+    get:
+      tags: [Auth]
+      summary: Validate a session token and return the current user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Session is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateSessionResponse"
+        "401":
+          description: Missing, invalid, or expired session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current session
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+
+  # ── Live Page ────────────────────────────────────────────────
+  /live:
+    get:
+      tags: [Live]
+      summary: Get live page data (reads DB only)
+      description: |
+        Returns matches grouped into three bands: live, upcoming (next 20), and recent (last 20 completed).
+        Optionally enriches each match with the authenticated user's predictions across their active groups.
+        This endpoint never calls an external API — it only reads the database.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: competition_id
+          schema:
+            type: string
+            format: uuid
+          description: Scope results to a specific competition. Defaults to the first active competition.
+      responses:
+        "200":
+          description: Live page data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LivePageData"
+
+  /sync-matches:
+    post:
+      tags: [Live]
+      summary: Pull latest match data from football-data.org and update DB
+      description: |
+        Calls the football-data.org API for the target competition, updates match statuses and scores,
+        scores any pending predictions for newly-completed matches, and awards ownership points.
+        Rate-limited to once per 5 minutes per competition.
+        Requires authentication.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                competition_id:
+                  type: string
+                  format: uuid
+                  description: Competition to sync. Defaults to the first active competition.
+      responses:
+        "200":
+          description: Sync result summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SyncResult"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limit — synced less than 5 minutes ago
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: External API error or DB update failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  # ── Competitions ─────────────────────────────────────────────
+  /competitions:
+    get:
+      tags: [Competitions]
+      summary: List all active competitions
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Competition"
+
+  /competitions/{id}/teams:
+    get:
+      tags: [Competitions]
+      summary: List teams for a competition
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Team"
+
+  /competitions/{id}/matches:
+    get:
+      tags: [Competitions]
+      summary: List matches for a competition
+      description: Returns matches with embedded home/away team and venue objects.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: stage
+          schema:
+            type: string
+            example: group
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [scheduled, live, finished, cancelled]
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Match"
+
+  # ── Venues ───────────────────────────────────────────────────
+  /venues:
+    get:
+      tags: [Venues]
+      summary: List all venues
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Venue"
+
+  # ── Profile ──────────────────────────────────────────────────
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Get the authenticated user's profile
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+    patch:
+      tags: [Profile]
+      summary: Update the authenticated user's profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserProfile"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+  # ── Groups ───────────────────────────────────────────────────
+  /groups:
+    get:
+      tags: [Groups]
+      summary: List groups the authenticated user belongs to
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Group"
+
+    post:
+      tags: [Groups]
+      summary: Create a new group
+      description: The authenticated user becomes the group owner and is automatically joined as admin.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/join:
+    post:
+      tags: [Groups]
+      summary: Join a group by invite code
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinGroupRequest"
+      responses:
+        "201":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          group_id:
+                            type: string
+                            format: uuid
+                          group_name:
+                            type: string
+        "404":
+          description: Invalid invite code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Group full or already a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}:
+    get:
+      tags: [Groups]
+      summary: Get group details (member only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/leaderboard:
+    get:
+      tags: [Groups]
+      summary: Get the group leaderboard (member only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Leaderboard entries sorted by total_points descending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LeaderboardEntry"
+
+  /groups/{id}/ownership:
+    get:
+      tags: [Groups]
+      summary: Get team ownership / draft results (member only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Ownership rows sorted by draft_pick
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/TeamOwnership"
+
+  /groups/{id}/predictions:
+    get:
+      tags: [Predictions]
+      summary: Get the authenticated user's predictions for a group (member only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Group ID
+      responses:
+        "200":
+          description: Success — predictions with embedded match data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Prediction"
+
+  # ── Predictions ───────────────────────────────────────────────
+  /predictions:
+    post:
+      tags: [Predictions]
+      summary: Submit or update a score prediction (before lock)
+      description: |
+        Upserts on `(group_id, user_id, match_id)`.
+        Returns 409 if the match prediction window is closed or the match has already started.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPredictionRequest"
+      responses:
+        "201":
+          description: Prediction saved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Prediction"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Prediction window closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"

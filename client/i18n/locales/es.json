@@ -1,0 +1,705 @@
+{
+  "logo": {
+    "tagline": "Arma tu equipo. Gana con tu gente."
+  },
+  "nav": {
+    "home": "Inicio",
+    "groupHub": "Mi Grupo",
+    "live": "En Vivo",
+    "scoring": "Puntuación",
+    "matchPulse": "Pulso del partido",
+    "openDemoHub": "Abrir demo",
+    "myGroups": "Mis Grupos",
+    "signOut": "Cerrar sesión",
+    "signIn": "Iniciar sesión",
+    "createGroup": "Crear grupo",
+    "profile": "Mi Perfil"
+  },
+  "footer": {
+    "description": "FanQuin convierte cada jornada en un ritual compartido con grupos privados, posesión de equipos, rivalidades y rankings en tiempo real.",
+    "worldCupMode": "Modo lanzamiento Copa del Mundo 2026",
+    "layoutActive": "Layout activo en todas las rutas",
+    "links": {
+      "worldCupCrew": "World Cup Crew",
+      "privateGroups": "Grupos privados",
+      "liveMoments": "Momentos en vivo",
+      "scoringEngine": "Motor de puntuación"
+    }
+  },
+  "mobileNav": {
+    "home": "Inicio",
+    "hub": "Grupo",
+    "live": "En Vivo",
+    "groups": "Grupos"
+  },
+  "index": {
+    "badge": "FIFA Copa del Mundo 2026 — Ya en vivo",
+    "hero": {
+      "title": "Posee equipos. Predice partidos. Domina el ranking.",
+      "description": "Arma una quiniela con amigos, familia, compañeros de clase o colegas en minutos. Predice marcadores, posee selecciones nacionales, desbloquea boosts y ve la rivalidad desenvolverse en tiempo real. FanQuin arranca con la Copa del Mundo 2026 y se expande a todas las ligas y deportes.",
+      "ctaPrimary": "Crea tu grupo ahora",
+      "ctaSecondary": "Ver cómo funciona la puntuación",
+      "joinPlaceholder": "¿Tienes un código? Pégalo aquí",
+      "joinButton": "Unirse"
+    },
+    "stats": [
+      {
+        "label": "Tamaños de grupo soportados",
+        "value": "5+",
+        "note": "Amigos, salones, oficinas"
+      },
+      {
+        "label": "Capas de puntuación",
+        "value": "6",
+        "note": "Predicciones, posesión, boosts"
+      },
+      {
+        "label": "Siempre activo",
+        "value": "24/7",
+        "note": "Swings en vivo cada jornada"
+      }
+    ],
+    "matchdayPulse": {
+      "title": "Pulso de jornada",
+      "subtitle": "World Cup Crew · 8 jugadores · modo mediano",
+      "badge": "Ciclo en vivo listo"
+    },
+    "previewCards": {
+      "leaderboard": {
+        "title": "Cambio en el ranking",
+        "description": "Un gol de México sube a Leo al primer lugar y genera un +12 de swing por posesión."
+      },
+      "weeklyDuel": {
+        "title": "Duelo semanal",
+        "description": "Maya vs Leo mantiene un trofeo semanal en juego aunque la tabla se extienda."
+      },
+      "streakReward": {
+        "title": "Recompensa de racha",
+        "description": "Cuatro aciertos seguidos desbloquean seguro de racha para la siguiente jornada."
+      },
+      "whatIf": {
+        "title": "Motor ¿qué pasaría si...?",
+        "description": "Una capa de escenarios en vivo explica cómo cada gol cambia la historia del grupo."
+      }
+    },
+    "ownershipDraft": "Draft de posesión",
+    "boostBalance": "Balance de boosts",
+    "boostMexico": "Boost de underdog disponible para México vs Japón",
+    "boostUSA": "Token de puntos dobles recomendado para USA vs Países Bajos",
+    "pillarsSection": "Por qué FanQuin es diferente",
+    "pillars": [
+      {
+        "title": "Tu propia quiniela, en minutos",
+        "description": "Crea un grupo privado, invita a amigos o familia y empieza a predecir marcadores al instante. Sin hojas de cálculo, sin confusión."
+      },
+      {
+        "title": "Posee una selección nacional",
+        "description": "El draft de serpiente o la asignación aleatoria le da a cada jugador una bandera por la que luchar: los triunfos de tu equipo te dan puntos en todo el torneo."
+      },
+      {
+        "title": "Rivalidad que duele",
+        "description": "Los duelos 1v1 semanales y los swings del ranking en vivo mantienen a todos emocionalmente comprometidos, incluso cuando la tabla se alarga."
+      },
+      {
+        "title": "Boosts y rachas",
+        "description": "Los boosts de underdog, los tokens de puntos dobles y las recompensas de racha dan a cada jornada una razón nueva para importar."
+      }
+    ],
+    "groupModesSection": "Un modo para cada grupo",
+    "startMode": "Comenzar",
+    "groupModes": [
+      {
+        "title": "Casual — Amigos y Familia",
+        "audience": "2–5 jugadores",
+        "description": "Predicciones simples y equipos asignados al azar. Perfecto para el WhatsApp familiar o una rondita de la oficina.",
+        "features": [
+          "Link de invitación en un tap",
+          "Sorteo aleatorio de equipos",
+          "Ganador semanal"
+        ]
+      },
+      {
+        "title": "Modo Amigos",
+        "audience": "6–12 jugadores",
+        "description": "Draft de serpiente, bonos de upset, rachas y rivalidades semanales 1v1. Aquí vive el banter.",
+        "features": [
+          "Draft de serpiente",
+          "Rivalidades semanales",
+          "Boosts y rachas"
+        ]
+      },
+      {
+        "title": "Liga y Salón de Clases",
+        "audience": "13–100 jugadores",
+        "description": "Ranking ELO, niveles de equipos balanceados, modo superviviente y extensiones de bracket para escuelas, oficinas y grupos grandes.",
+        "features": [
+          "Equipos balanceados por nivel",
+          "Ranking ELO",
+          "Brackets superviviente"
+        ]
+      }
+    ],
+    "scoringSection": "Motor de puntuación",
+    "scoringLayers": [
+      {
+        "title": "Precisión de predicción",
+        "value": "+8 máx",
+        "description": "Marcador exacto, ganador correcto y margen de goles se acumulan limpiamente."
+      },
+      {
+        "title": "Recompensas de posesión",
+        "value": "+4 a +12",
+        "description": "Victorias, goles y momentos especiales del equipo alimentan tu total de grupo privado."
+      },
+      {
+        "title": "Bonus de upset",
+        "value": "Dinámico",
+        "description": "Los pronósticos de bajo porcentaje pagan más para que los grupos no converjan en elecciones seguras y aburridas."
+      },
+      {
+        "title": "Racha + boosts",
+        "value": "Impulso",
+        "description": "Los aciertos consecutivos y los tokens con tiempo crean ventanas de remontar reales."
+      }
+    ],
+    "retentionSection": "Hecho para volverse viral en tu grupo",
+    "engagementLoops": [
+      {
+        "title": "Comparte en un tap",
+        "description": "Los links de invitación privados funcionan directo desde WhatsApp, iMessage o cualquier chat grupal. No hace falta descargar ninguna app para unirse."
+      },
+      {
+        "title": "Cada jornada es una historia nueva",
+        "description": "Los bonos de upset, los cambios de líder y las rachas rotas generan momentos compartibles que jalan a todos de vuelta al chat."
+      },
+      {
+        "title": "Nadie se queda atrás",
+        "description": "Los resets semanales y las mini-recompensas mantienen a los jugadores en último lugar enganchados en todo el torneo."
+      }
+    ],
+    "productDirection": {
+      "badge": "Copa del Mundo 2026 → y más allá",
+      "title": "Empieza con el Mundial. Quédate para todas las ligas que siguen.",
+      "description": "FanQuin arranca con la Copa del Mundo 2026 y se expande a Champions League, Premier League, Liga MX, NBA y más. El mismo motor social — predicciones, posesión, rivalidades, boosts — impulsa cada competición.",
+      "values": [
+        {
+          "title": "🏆 Posee tu equipo",
+          "description": "Cada jugador obtiene una selección nacional que apoyar. Los goles y triunfos de tu equipo son tus puntos."
+        },
+        {
+          "title": "⚔️ Rivalidades semanales",
+          "description": "Los duelos 1v1 se reinician cada semana. Hasta el último lugar puede vengarse — y el grupo lo sabe."
+        },
+        {
+          "title": "🔥 Rachas & boosts",
+          "description": "Los aciertos consecutivos desbloquean power-ups. Los tokens con tiempo y los boosts de underdog crean ventanas reales para remontar."
+        },
+        {
+          "title": "🌍 Cualquier grupo, cualquier tamaño",
+          "description": "Desde duelos de 2 jugadores hasta salones de 100 personas. Las reglas del juego se adaptan automáticamente al tamaño del grupo."
+        }
+      ]
+    }
+  },
+  "groupHub": {
+    "badge": "Centro de comando del grupo privado",
+    "title": "World Cup Crew",
+    "membersBadge": "8 miembros · modo mediano",
+    "description": "Este hub combina predicciones de grupo privado, posesión de equipos por draft de serpiente, resets de rivalidad y swings en tiempo real en una experiencia de jornada.",
+    "summaryCards": {
+      "prize": {
+        "label": "Premio en juego",
+        "value": "Derechos de fanfarronear + drops semanales"
+      },
+      "streak": {
+        "label": "Mejor racha",
+        "value": "Maya tiene 4 aciertos seguidos"
+      },
+      "boosts": {
+        "label": "Boosts activos",
+        "value": "2 boosts de underdog sin usar"
+      }
+    },
+    "countdown": {
+      "title": "Cuenta regresiva al partido inaugural",
+      "subtitle": "Inicio de la FIFA Copa del Mundo 2026 en América del Norte",
+      "inviteNote": "El flujo de invitación está estructurado para links compartibles, recordatorios y recompensas de reset semanal.",
+      "days": "días",
+      "hours": "horas",
+      "minutes": "min",
+      "seconds": "seg"
+    },
+    "leaderboard": {
+      "title": "Tabla de posiciones en vivo",
+      "subtitle": "Los cambios de ranking combinan predicciones, posesión y rachas.",
+      "updated": "Actualizado tras cada gol",
+      "thisMatchday": "esta jornada"
+    },
+    "streaks": {
+      "+4 streak": "+4 de racha",
+      "+2 streak": "+2 de racha",
+      "Underdog hit": "Acierto de underdog",
+      "Double points ready": "Puntos dobles listos"
+    },
+    "rivalry": {
+      "title": "Rivalidad semanal",
+      "subtitle": "El duelo cara a cara mantiene la tabla viva.",
+      "vs": "vs",
+      "winnerNote": "El ganador desbloquea un cofre de reset semanal con seguro de racha para la próxima jornada."
+    },
+    "scoringPulse": {
+      "title": "Pulso de puntuación",
+      "subtitle": "Reglas modulares activas para este tamaño de grupo.",
+      "rules": [
+        { "label": "Marcador exacto", "value": "+8 pts" },
+        { "label": "Ganador correcto", "value": "+3 pts" },
+        { "label": "Diferencia de goles", "value": "+2 pts" },
+        { "label": "Bonus victoria de equipo", "value": "+4 pts" },
+        { "label": "Pronóstico upset", "value": "+5 a +12" },
+        { "label": "Token de power-up", "value": "Doble o underdog" }
+      ]
+    },
+    "predictionSlate": {
+      "title": "Pizarra de predicciones",
+      "subtitle": "Las tarjetas de partido fusionan predicciones con swings de posesión.",
+      "openLive": "Abrir ruta en vivo",
+      "yourPick": "Tu pronóstico",
+      "ownershipImpact": "Impacto de posesión"
+    },
+    "fixtures": [
+      {
+        "match": "México vs Japón",
+        "stage": "Partido de rivalidad inaugural",
+        "kickoff": "Cierre de predicciones en 18h",
+        "prediction": "México 2 - 1 Japón",
+        "ownershipBoost": "+6 si México gana"
+      },
+      {
+        "match": "Argentina vs Senegal",
+        "stage": "Alerta de upset",
+        "kickoff": "Cierre de predicciones en 1d 4h",
+        "prediction": "Argentina con portería a cero",
+        "ownershipBoost": "+9 de swing de upset si Senegal empata"
+      },
+      {
+        "match": "USA vs Países Bajos",
+        "stage": "Definidor del duelo semanal",
+        "kickoff": "Cierre de predicciones en 2d 1h",
+        "prediction": "Ambos equipos marcan",
+        "ownershipBoost": "Boost de puntos dobles disponible"
+      }
+    ],
+    "whatIf": {
+      "title": "Simulador ¿qué pasaría si...?",
+      "subtitle": "Los insights contextuales hacen que cada evento en vivo se sienta personal.",
+      "scenarios": {
+        "mexicoGoal": {
+          "label": "Gol de México",
+          "title": "Si México marca primero",
+          "impact": "Leo sube al 1er lugar y gana +12 de posesión; Maya baja 4 puntos.",
+          "badge": "Swing de posesión",
+          "summary": [
+            "La probabilidad de cambio de líder sube al 78%.",
+            "El duelo de rivalidad gira a favor de Leo por 9 puntos.",
+            "El boost de underdog sigue disponible para Cam."
+          ]
+        },
+        "japanEqualizer": {
+          "label": "Empate de Japón",
+          "title": "Si Japón empata tras el descanso",
+          "impact": "Cam desbloquea el bonus de upset y sube del 3er al 2do lugar.",
+          "badge": "Bonus de upset",
+          "summary": [
+            "El cofre de reset semanal se llena al 90%.",
+            "Maya aún lidera a menos que Argentina pierda más tarde.",
+            "Dos rachas se rompen, abriendo la tabla."
+          ]
+        },
+        "cleanSheet": {
+          "label": "Portería a cero de Argentina",
+          "title": "Si Argentina mantiene la portería a cero",
+          "impact": "Maya extiende la ventaja con +5 de posesión y preserva una racha de 4 aciertos.",
+          "badge": "Racha asegurada",
+          "summary": [
+            "Solo el 11% del grupo pronosticó una victoria sin goles en contra.",
+            "El token de puntos dobles se aprovecha mejor en USA vs Países Bajos.",
+            "El margen de rivalidad vs Leo se amplía a 14 puntos."
+          ]
+        }
+      }
+    },
+    "draftBoard": {
+      "title": "Tablero de posesión de equipos",
+      "subtitle": "El draft de serpiente crea identidad y apuesta emocional.",
+      "entries": [
+        "Argentina — Maya R.",
+        "México — Leo V.",
+        "Japón — Cam G.",
+        "Francia — Nadia T.",
+        "USA — Chris J.",
+        "Marruecos — June P.",
+        "Senegal — Dani A.",
+        "Países Bajos — Iris K."
+      ]
+    },
+    "engagementLoop": {
+      "title": "Ciclo de engagement",
+      "subtitle": "Diseñado para invitaciones, recordatorios de retención y regreso diario.",
+      "insights": [
+        {
+          "title": "Impulso de invitación",
+          "description": "3 amigos inactivos pueden reincorporarse con links de una sola tap y posiciones de draft asignadas."
+        },
+        {
+          "title": "Recuperación semanal",
+          "description": "Los jugadores rezagados aún persiguen mini recompensas y victorias de rivalidad aunque la tabla se estire."
+        },
+        {
+          "title": "Hooks de notificación",
+          "description": "Listo para recordatorios de cierres de predicción, cambios de ranking y oportunidades de power-up."
+        },
+        {
+          "title": "Expansión de liga",
+          "description": "Las tarjetas de reglas son modulares, así que el mismo shell puede impulsar otros torneos y deportes."
+        }
+      ]
+    }
+  },
+  "placeholder": {
+    "exploreHub": "Explorar el demo hub",
+    "returnHome": "Volver a la página principal",
+    "routeLive": "Ruta activa y lista",
+    "routeExpand": "El siguiente paso puede expandir esta ruta sin cambiar la estructura de navegación.",
+    "routes": {
+      "groups": {
+        "badge": "Grupos privados",
+        "title": "Crea, únete y gestiona círculos de predicción personalizados",
+        "description": "Esta ruta ya está conectada al shell compartido de FanQuin. El siguiente paso puede expandir la configuración de grupos, permisos de invitación y modos de juego configurables sin cambiar la estructura de navegación.",
+        "highlights": [
+          "Paquetes de puntuación configurables para grupos pequeños, medianos y grandes.",
+          "Crecimiento por invitación con links privados, recordatorios y listas de espera.",
+          "Punto de entrada para configurar el draft de serpiente o asignación aleatoria de equipos."
+        ]
+      },
+      "live": {
+        "badge": "Momentos en vivo",
+        "title": "El pulso en tiempo real está listo para un desarrollo más profundo",
+        "description": "Usa esta ruta para notificaciones en vivo, oscilaciones minuto a minuto y escenarios más ricos vinculados a datos de eventos reales.",
+        "highlights": [
+          "Movimientos de ranking tras cada gol, tarjeta o pitido final.",
+          "Simulador de escenarios para comparar posibles resultados antes de que ocurran.",
+          "Estructura lista para notificaciones de cierres de predicción y alertas de rivalidad."
+        ]
+      },
+      "scoring": {
+        "badge": "Motor de puntuación",
+        "title": "El sistema de puntuación es modular por diseño",
+        "description": "Esta ruta puede evolucionar al constructor detallado de puntuación, mostrando cómo se combinan marcadores exactos, posesión, rachas y boosts por modo de grupo.",
+        "highlights": [
+          "Plantillas de reglas para pools de torneos, modos superviviente y liga.",
+          "Desglose transparente de cada punto ganado o perdido por partido.",
+          "Controles de admin para ajustar recompensas de upset y disponibilidad de power-ups."
+        ]
+      }
+    }
+  },
+  "createGroup": {
+    "back": "Volver",
+    "backStep": "Paso anterior",
+    "nextButton": "Continuar",
+    "createButton": "Crear quiniela",
+    "stepOf": "{{current}} de {{total}}",
+    "step1": {
+      "title": "Elige el tipo de quiniela",
+      "subtitle": "Selecciona el modo que mejor se adapte a tu grupo. Puedes cambiar la configuración más tarde."
+    },
+    "step2": {
+      "title": "Configura tu grupo",
+      "subtitle": "Dale un nombre a tu quiniela y ajusta las reglas.",
+      "nameLabel": "Nombre del grupo",
+      "namePlaceholder": "ej. Cuatro Fantásticos, Quiniela Oficina 2026",
+      "nameRequired": "El nombre del grupo es obligatorio.",
+      "nameMin": "El nombre debe tener al menos 3 caracteres.",
+      "nameMax": "El nombre no puede superar 60 caracteres.",
+      "competitionLabel": "Competición",
+      "competitionRequired": "Por favor selecciona una competición.",
+      "loadingCompetitions": "Cargando competiciones…",
+      "noCompetitions": "No se encontraron competiciones activas.",
+      "draftLabel": "Asignación de equipos",
+      "maxMembersLabel": "Máximo de participantes"
+    },
+    "step3": {
+      "title": "Revisa tu quiniela",
+      "subtitle": "Todo lo que aparece a continuación se usará para crear tu grupo. Haz clic en crear cuando estés listo.",
+      "nameLabel": "Nombre del grupo",
+      "modeLabel": "Modo",
+      "competitionLabel": "Competición",
+      "draftLabel": "Tipo de draft",
+      "maxMembersLabel": "Máx. participantes",
+      "members": "participantes"
+    },
+    "step4": {
+      "title": "¡Tu quiniela está lista!",
+      "subtitle": "{{name}} está lista. Comparte el enlace o el código con tu grupo.",
+      "inviteLinkTitle": "Enlace de invitación",
+      "inviteCodeLabel": "O comparte este código",
+      "membersNote": "Hasta {{max}} participantes pueden unirse con este enlace o código.",
+      "cta": "Ir a mis grupos"
+    },
+    "modes": {
+      "casual": {
+        "title": "Casual",
+        "description": "Predicciones simples y equipos al azar. Perfecto para familia y sorteos rápidos de oficina."
+      },
+      "friends": {
+        "title": "Amigos",
+        "description": "Draft de serpiente, bonos por upset, rachas y rivalidades semanales. Hecho para el grupo de chat."
+      },
+      "league": {
+        "title": "Liga",
+        "description": "Ranking ELO, niveles de equipo balanceados, modo supervivencia y brackets para escuelas y oficinas."
+      },
+      "competitive": {
+        "title": "Competitivo",
+        "description": "Reglas completas, rankings en vivo, vidas en modo supervivencia y puntuación estricta para jugadores serios."
+      }
+    }
+  },
+  "auth": {
+    "emailTitle": "Inicia sesión para continuar",
+    "emailSubtitle": "Ingresa tu correo y verificaremos si tienes una cuenta.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tú@ejemplo.com",
+    "emailInvalid": "Por favor ingresa un correo válido.",
+    "continue": "Continuar",
+    "sendCode": "Enviar código de verificación",
+    "sendCodeError": "No se pudo enviar el código. Inténtalo de nuevo.",
+    "profileTitle": "Crea tu cuenta",
+    "profileSubtitle": "Cuéntanos un poco sobre ti para comenzar.",
+    "firstName": "Nombre",
+    "firstNamePlaceholder": "Alex",
+    "lastName": "Apellido",
+    "lastNamePlaceholder": "Johnson",
+    "phone": "Teléfono",
+    "phonePlaceholder": "+52 55 0000 0000",
+    "country": "País",
+    "countryPlaceholder": "México",
+    "username": "Nombre de usuario",
+    "usernamePlaceholder": "tu_usuario",
+    "usernameHint": "3–30 caracteres · minúsculas, números, guiones bajos",
+    "usernameTaken": "Nombre de usuario no disponible",
+    "usernameAvailable": "¡Disponible!",
+    "usernameChecking": "Verificando...",
+    "profileRequired": "Todos los campos son obligatorios.",
+    "profileSaveError": "Error al guardar el perfil. Inténtalo de nuevo.",
+    "otpTitle": "Ingresa tu código",
+    "otpSubtitle": "Enviamos un código de 6 dígitos a {{email}}.",
+    "otpLabel": "Código de un solo uso",
+    "otpInvalid": "Por favor ingresa el código completo de 6 dígitos.",
+    "otpWrong": "Código incorrecto. Inténtalo de nuevo.",
+    "verify": "Verificar y continuar",
+    "changeEmail": "Usar otro correo",
+    "back": "Volver"
+  },
+  "notFound": {
+    "badge": "Ruta no encontrada",
+    "title": "Esta página de jornada aún no existe.",
+    "description": "El layout de FanQuin está activo, pero esta ruta no ha sido creada. Usa una de las rutas disponibles abajo.",
+    "backHome": "Volver al inicio",
+    "openHub": "Abrir el hub de grupo"
+  },
+  "profile": {
+    "badge": "Cuenta",
+    "title": "Mi Perfil",
+    "personalInfo": "Información personal",
+    "displayName": "Nombre para mostrar",
+    "displayNamePlaceholder": "Cómo aparecerás en los rankings",
+    "displayNameMax": "Máximo 60 caracteres",
+    "username": "Nombre de usuario",
+    "usernameMin": "Mínimo 3 caracteres",
+    "usernameMax": "Máximo 30 caracteres",
+    "usernameInvalid": "Solo letras minúsculas, números y guiones bajos",
+    "required": "Requerido",
+    "saveChanges": "Guardar cambios",
+    "saved": "¡Guardado!",
+    "saveError": "Error al guardar. Inténtalo de nuevo.",
+    "memberSince": "Miembro desde {{date}}"
+  },
+  "myGroups": {
+    "badge": "Tus grupos",
+    "title": "Mis Grupos",
+    "welcome": "Bienvenido, {{name}}",
+    "newGroup": "Nuevo grupo",
+    "emptyTitle": "Sin grupos aún",
+    "emptySubtitle": "Crea tu primer grupo e invita a tus amigos a competir.",
+    "createFirst": "Crear un grupo",
+    "openGroup": "Abrir grupo",
+    "signInTitle": "Inicia sesión para ver tus grupos",
+    "signInSubtitle": "Crea un grupo o inicia sesión para acceder a tus quinielas.",
+    "joinTitle": "¿Tienes un código de invitación?",
+    "joinPlaceholder": "Ingresa el código",
+    "joinButton": "Unirse al grupo",
+    "joinInvalid": "El código debe tener 8 caracteres.",
+    "joinNotFound": "Código de invitación inválido o expirado."
+  },
+  "groupPage": {
+    "backToGroups": "Mis Grupos",
+    "owner": "Propietario",
+    "members": "miembros",
+    "settings": "Configuración",
+    "settingsTitle": "Configuración del grupo",
+    "settingsSubtitle": "Actualiza los datos de tu grupo. Solo disponible antes de iniciar el draft.",
+    "settingsNameLabel": "Nombre del grupo",
+    "settingsMaxMembersLabel": "Máximo de miembros",
+    "settingsSave": "Guardar cambios",
+    "settingsSaved": "¡Guardado!",
+    "settingsSaveError": "Error al guardar. Inténtalo de nuevo.",
+    "settingsLockedHint": "La configuración solo se puede cambiar mientras el grupo está en espera.",
+    "leaderboard": "Clasificación",
+    "noScores": "Sin puntuaciones aún. Las predicciones comienzan cuando inicie el torneo.",
+    "anonymous": "Jugador",
+    "you": "(tú)",
+    "streak": "{{n}} partidos seguidos",
+    "invite": "Invitar amigos",
+    "inviteCode": "Código de invitación",
+    "copyLink": "Copiar enlace de invitación",
+    "copied": "¡Copiado!",
+    "quickActions": "Acciones rápidas",
+    "createAnother": "Crear otro grupo",
+    "allMyGroups": "Todos mis grupos",
+    "notFound": "Grupo no encontrado o no eres miembro.",
+    "startGroup": "Iniciar grupo",
+    "startGroupConfirm": "Esto iniciará la fase de draft. Los miembros podrán elegir equipos. ¿Continuar?",
+    "groupStarted": "¡Grupo iniciado!",
+    "startError": "Error al iniciar el grupo. Inténtalo de nuevo.",
+    "status": {
+      "waiting": "En espera",
+      "draft": "Draft abierto",
+      "active": "En vivo",
+      "completed": "Finalizado"
+    },
+    "statusHint": {
+      "waiting": "Invita miembros, luego inicia el draft cuando todos estén listos.",
+      "draft": "El snake draft está abierto — los miembros están eligiendo equipos.",
+      "active": "¡La competición está en vivo! Predice partidos para ganar puntos.",
+      "completed": "Esta quiniela ha terminado."
+    },
+    "snakeExplain": "Cómo funciona el snake draft",
+    "snakeExplainIntro": "Cada miembro elige exactamente un equipo por ronda. El orden de selección \"serpentea\" de ida y vuelta para que nadie siempre elija primero ni último.",
+    "snakeExplainRule1": "Rondas impares (1, 3, 5…): el orden va de primero a último — 1º, 2º, 3º…",
+    "snakeExplainRule2": "Rondas pares (2, 4, 6…): el orden se invierte — último, penútimo…",
+    "snakeExplainRule3": "Esto se repite hasta que todos los equipos hayan sido asignados.",
+    "snakeExplainExLabel": "Ejemplo con 3 jugadores (A, B, C)",
+    "snakeExplainExRow1": "Ronda 1 →   A elige · B elige · C elige",
+    "snakeExplainExRow2": "Ronda 2 ↩   C elige · B elige · A elige",
+    "snakeExplainExRow3": "Ronda 3 →   A elige · B elige · C elige",
+    "snakeExplainFair": "El jugador que elige último en una ronda elige primero en la siguiente, eliminando cualquier ventaja de posición permanente."
+  },
+  "draft": {
+    "title": "Sala de Draft",
+    "badge": "Draft en vivo",
+    "round": "Ronda {{n}}",
+    "pickNumber": "Selección #{{n}}",
+    "yourTurn": "¡Tu turno!",
+    "waitingFor": "Esperando a {{name}}...",
+    "timeLeft": "{{time}} restante",
+    "available": "Equipos disponibles",
+    "picksMade": "Selecciones realizadas",
+    "noPicks": "Sin selecciones aún.",
+    "search": "Buscar equipos...",
+    "tier": "Nivel {{n}}",
+    "confirmPick": "¿Elegir {{name}}?",
+    "confirmPickBody": "Una vez confirmado no podrás cambiar tu selección.",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "pickError": "No se pudo enviar la selección. Inténtalo de nuevo.",
+    "draftComplete": "¡Draft completado!",
+    "draftCompleteBody": "Todos los equipos han sido asignados. ¡La competición está en vivo!",
+    "goToGroup": "Ir al grupo",
+    "draftOrder": "Orden de draft",
+    "yourPicks": "Tus selecciones",
+    "boardTitle": "Tablero de draft",
+    "notYourTurn": "Aún no es tu turno",
+    "autoAssigned": "Equipos asignados automáticamente",
+    "autoAssignedBody": "Como elegiste el tipo de draft {{type}}, todos los equipos fueron distribuidos automáticamente. ¡El grupo está en vivo!"
+  },
+  "join": {
+    "joining": "Uniéndose al grupo...",
+    "signInTitle": "Inicia sesión para unirte",
+    "signInBody": "Necesitas una cuenta para unirte a este grupo. Inicia sesión o crea una — solo tarda un minuto.",
+    "signIn": "Iniciar sesión para unirme",
+    "alreadyMember": "¡Ya eres miembro de este grupo!",
+    "goToGroup": "Ir al grupo",
+    "success": "¡Te uniste a {{name}}!",
+    "full": "Este grupo está lleno.",
+    "invalid": "Este enlace de invitación no es válido o ha expirado.",
+    "error": "No se pudo unir. Inténtalo de nuevo."
+  },
+  "seo": {
+    "siteName": "FanQuin",
+    "defaultTitle": "FanQuin – Elige tu equipo. Compite con tu grupo.",
+    "defaultDescription": "FanQuin convierte cada jornada en un ritual compartido con grupos privados, propiedad de equipos, rivalidades y clasificaciones en tiempo real.",
+    "home": {
+      "title": "FanQuin – Grupos de predicciones para el Mundial 2026",
+      "description": "Crea o únete a un grupo privado del Mundial 2026, elige tu equipo y compite con amigos en tiempo real."
+    },
+    "myGroups": {
+      "title": "Mis Grupos",
+      "description": "Ve y gestiona todos tus grupos de FanQuin."
+    },
+    "createGroup": {
+      "title": "Crear un Grupo",
+      "description": "Configura tu propio grupo privado del Mundial 2026 en minutos."
+    },
+    "profile": {
+      "title": "Mi Perfil",
+      "description": "Gestiona tu perfil, nombre de usuario y preferencias en FanQuin."
+    },
+    "draft": {
+      "title": "Draft",
+      "description": "Elige los equipos del Mundial 2026 en el draft en vivo."
+    },
+    "join": {
+      "title": "Unirse a un Grupo",
+      "description": "Has sido invitado a un grupo de FanQuin. Acepta la invitación y empieza a competir."
+    },
+    "groupHub": {
+      "title": "World Cup Crew",
+      "description": "Explora el hub del grupo FanQuin para el Mundial 2026 con clasificaciones, fixtures y estadísticas."
+    },
+    "group": {
+      "titleTemplate": "Grupo {{name}}",
+      "descriptionTemplate": "Grupo fantasia Mundial 2026 {{name}} en FanQuin – clasificación, propiedad de equipos y rivalidades en vivo."
+    },
+    "notFound": {
+      "title": "Página No Encontrada",
+      "description": "La página que buscas no existe o ha sido movida."
+    }
+  },
+  "live": {
+    "pageTitle": "En Vivo",
+    "pageDescription": "Partidos en vivo y resultados para tus grupos de FanQuin.",
+    "title": "En Vivo",
+    "subtitle": "FIFA Copa del Mundo 2026",
+    "lastSynced": "Última actualización",
+    "sync": "Sincronizar",
+    "syncing": "Sincronizando...",
+    "syncDone": "Sincronización completa",
+    "matchesUpdated": "partidos actualizados",
+    "predsScored": "predicciones puntuadas",
+    "showingForGroups": "Mostrando pronósticos de",
+    "noActiveGroups": "Aún no tienes grupos activos para esta competición. Únete o crea uno para ver tus pronósticos aquí.",
+    "signInToSeeGroups": "Inicia sesión para ver tus predicciones de grupo junto a cada partido.",
+    "tabLive": "En Vivo",
+    "tabUpcoming": "Próximos",
+    "tabResults": "Resultados",
+    "noLive": "No hay partidos en curso ahora mismo.",
+    "noUpcoming": "No hay partidos programados próximamente.",
+    "noResults": "Aún no hay resultados recientes.",
+    "liveLabel": "EN VIVO",
+    "completedLabel": "FT",
+    "noPrediction": "Sin pronóstico enviado",
+    "pending": "Pendiente",
+    "pts": "pts"
+  }
+}

@@ -1,0 +1,693 @@
+{
+  "logo": {
+    "tagline": "Own a team. Compete with your crew."
+  },
+  "nav": {
+    "home": "Home",
+    "groupHub": "Group Hub",
+    "live": "Live",
+    "scoring": "Scoring",
+    "matchPulse": "Match pulse",
+    "openDemoHub": "Open demo hub",
+    "myGroups": "My Groups",
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "createGroup": "Create group",
+    "profile": "My Profile"
+  },
+  "footer": {
+    "description": "FanQuin turns every matchday into a shared ritual with private groups, team ownership, rivalry resets, and live ranking swings.",
+    "worldCupMode": "World Cup 2026 launch mode",
+    "layoutActive": "Shared layout active across routes",
+    "links": {
+      "worldCupCrew": "World Cup crew",
+      "privateGroups": "Private groups",
+      "liveMoments": "Live moments",
+      "scoringEngine": "Scoring engine"
+    }
+  },
+  "mobileNav": {
+    "home": "Home",
+    "hub": "Hub",
+    "live": "Live",
+    "groups": "Groups"
+  },
+  "index": {
+    "badge": "FIFA World Cup 2026 — Now Live",
+    "hero": {
+      "title": "Own teams. Predict matches. Dominate the leaderboard.",
+      "description": "Start a quiniela with friends, family, classmates, or coworkers in minutes. Pick scores, own national teams, unlock boosts, and watch the rivalry unfold in real time. FanQuin launches with the FIFA World Cup 2026 and expands into every major league and sport.",
+      "ctaPrimary": "Start your group now",
+      "ctaSecondary": "See how scoring works",
+      "joinPlaceholder": "Have a code? Paste it here",
+      "joinButton": "Join"
+    },
+    "stats": [
+      {
+        "label": "Group sizes supported",
+        "value": "5+",
+        "note": "Friends, classrooms, offices"
+      },
+      {
+        "label": "Scoring layers",
+        "value": "6",
+        "note": "Picks, ownership, boosts"
+      },
+      {
+        "label": "Always on",
+        "value": "24/7",
+        "note": "Live swings every matchday"
+      }
+    ],
+    "matchdayPulse": {
+      "title": "Matchday pulse",
+      "subtitle": "World Cup Crew · 8 players · medium mode",
+      "badge": "Live loop ready"
+    },
+    "previewCards": {
+      "leaderboard": {
+        "title": "Leaderboard swing",
+        "description": "A Mexico opener moves Leo to first and triggers a +12 ownership swing."
+      },
+      "weeklyDuel": {
+        "title": "Weekly duel",
+        "description": "Maya vs Leo keeps a weekly trophy in play even if the season table stretches."
+      },
+      "streakReward": {
+        "title": "Streak reward",
+        "description": "Four straight hits unlock streak insurance for the next slate."
+      },
+      "whatIf": {
+        "title": "What-if engine",
+        "description": "A live scenario layer explains how every goal changes the group story."
+      }
+    },
+    "ownershipDraft": "Ownership draft",
+    "boostBalance": "Boost balance",
+    "boostMexico": "Underdog boost available for Mexico vs Japan",
+    "boostUSA": "Double points token recommended for USA vs Netherlands",
+    "pillarsSection": "Why FanQuin hits different",
+    "pillars": [
+      {
+        "title": "Your own quiniela, in minutes",
+        "description": "Create a private group, invite friends or family, and start predicting match scores right away. No spreadsheets, no confusion."
+      },
+      {
+        "title": "Own a national team",
+        "description": "Snake draft or random assignment gives every player a flag to fight for — your team's wins score you points all tournament long."
+      },
+      {
+        "title": "Rivalry that stings",
+        "description": "Weekly 1v1 matchups and live leaderboard swings keep every player emotionally invested, even when the season table stretches."
+      },
+      {
+        "title": "Boosts and streaks",
+        "description": "Underdog boosts, double-point tokens, and streak rewards give every matchday a fresh reason to care."
+      }
+    ],
+    "groupModesSection": "A mode for every crew",
+    "startMode": "Start",
+    "groupModes": [
+      {
+        "title": "Casual — Friends & Family",
+        "audience": "2–5 players",
+        "description": "Simple picks and random team assignment. Perfect for a family WhatsApp group or a quick office sweep.",
+        "features": ["One-tap invite link", "Random team draw", "Weekly winner"]
+      },
+      {
+        "title": "Friends Mode",
+        "audience": "6–12 players",
+        "description": "Snake draft ownership, upset bonuses, streaks, and 1v1 weekly rivalries. This is where the banter lives.",
+        "features": ["Snake draft", "Weekly rivalries", "Boosts & streaks"]
+      },
+      {
+        "title": "League & Classroom",
+        "audience": "13–100 players",
+        "description": "ELO ranking, balanced team tiers, survivor mode, and bracket extensions for schools, offices, and big groups.",
+        "features": ["Balanced team tiers", "ELO ranking", "Survivor brackets"]
+      }
+    ],
+    "scoringSection": "Scoring engine",
+    "scoringLayers": [
+      {
+        "title": "Prediction accuracy",
+        "value": "+8 max",
+        "description": "Exact score, correct winner, and goal margin stack cleanly."
+      },
+      {
+        "title": "Ownership rewards",
+        "value": "+4 to +12",
+        "description": "Wins, goals, and special team moments feed into your private-group total."
+      },
+      {
+        "title": "Upset bonus",
+        "value": "Dynamic",
+        "description": "Low-percentage picks pay more so groups do not converge into safe, boring choices."
+      },
+      {
+        "title": "Streak + boosts",
+        "value": "Momentum",
+        "description": "Consecutive hits and timed tokens produce real comeback windows."
+      }
+    ],
+    "retentionSection": "Built to go viral in your group chat",
+    "engagementLoops": [
+      {
+        "title": "Share in one tap",
+        "description": "Private invite links work straight from WhatsApp, iMessage, or any group chat. No app download required to join."
+      },
+      {
+        "title": "Every matchday is a new story",
+        "description": "Upset bonuses, leaderboard flips, and streak breaks generate shareable moments that pull everyone back into the chat."
+      },
+      {
+        "title": "No one gets left behind",
+        "description": "Weekly resets and micro-win rewards keep trailing players engaged all tournament long — even from last place."
+      }
+    ],
+    "productDirection": {
+      "badge": "World Cup 2026 → and beyond",
+      "title": "Start with the World Cup. Stay for every league that follows.",
+      "description": "FanQuin launches with FIFA World Cup 2026 and expands into Champions League, Premier League, Liga MX, NBA, and more. The same social engine — predictions, ownership, rivalries, boosts — powers every competition.",
+      "values": [
+        {
+          "title": "🏆 Own your team",
+          "description": "Every player gets a national team to cheer for. Your team's goals and wins are your points."
+        },
+        {
+          "title": "⚔️ Weekly rivalries",
+          "description": "1v1 matchups reset every week. Even last place can get revenge — and the group chat knows it."
+        },
+        {
+          "title": "🔥 Streaks & boosts",
+          "description": "Consecutive correct picks unlock power-ups. Timed tokens and underdog boosts create real comeback windows."
+        },
+        {
+          "title": "🌍 Any group, any size",
+          "description": "2-player showdowns to 100-person classrooms. Game rules automatically adapt to your group size."
+        }
+      ]
+    }
+  },
+  "groupHub": {
+    "badge": "Private group command center",
+    "title": "World Cup Crew",
+    "membersBadge": "8 members • medium mode",
+    "description": "This hub blends private group predictions, snake draft team ownership, rivalry resets, and real-time \"what-if\" swings into one matchday experience.",
+    "summaryCards": {
+      "prize": {
+        "label": "Prize pool mood",
+        "value": "Bragging rights + weekly drops"
+      },
+      "streak": {
+        "label": "Best streak",
+        "value": "Maya holds 4 straight hits"
+      },
+      "boosts": {
+        "label": "Boosts live",
+        "value": "2 underdog boosts unplayed"
+      }
+    },
+    "countdown": {
+      "title": "Opening match countdown",
+      "subtitle": "FIFA World Cup 2026 kick-off in North America",
+      "inviteNote": "Invite flow is structured for share links, reminder nudges, and weekly reset rewards.",
+      "days": "days",
+      "hours": "hrs",
+      "minutes": "min",
+      "seconds": "sec"
+    },
+    "leaderboard": {
+      "title": "Live leaderboard",
+      "subtitle": "Ranking shifts combine predictions, ownership, and streaks.",
+      "updated": "Updated after every goal event",
+      "thisMatchday": "this matchday"
+    },
+    "streaks": {
+      "+4 streak": "+4 streak",
+      "+2 streak": "+2 streak",
+      "Underdog hit": "Underdog hit",
+      "Double points ready": "Double points ready"
+    },
+    "rivalry": {
+      "title": "Weekly rivalry",
+      "subtitle": "Head-to-head micro reward keeps the table alive.",
+      "vs": "vs",
+      "winnerNote": "Winner unlocks a weekly reset chest with streak insurance for the next slate."
+    },
+    "scoringPulse": {
+      "title": "Scoring pulse",
+      "subtitle": "Modular rules active for this group size.",
+      "rules": [
+        { "label": "Exact score", "value": "+8 pts" },
+        { "label": "Correct winner", "value": "+3 pts" },
+        { "label": "Goal difference", "value": "+2 pts" },
+        { "label": "Team win bonus", "value": "+4 pts" },
+        { "label": "Upset pick", "value": "+5 to +12" },
+        { "label": "Power-up token", "value": "Double or underdog" }
+      ]
+    },
+    "predictionSlate": {
+      "title": "Prediction slate",
+      "subtitle": "Match cards fuse predictions with ownership swings.",
+      "openLive": "Open live route",
+      "yourPick": "Your pick",
+      "ownershipImpact": "Ownership impact"
+    },
+    "fixtures": [
+      {
+        "match": "Mexico vs Japan",
+        "stage": "Opening rivalry match",
+        "kickoff": "Prediction lock in 18h",
+        "prediction": "Mexico 2 - 1 Japan",
+        "ownershipBoost": "+6 if Mexico win"
+      },
+      {
+        "match": "Argentina vs Senegal",
+        "stage": "Upset watch",
+        "kickoff": "Prediction lock in 1d 4h",
+        "prediction": "Argentina clean sheet",
+        "ownershipBoost": "+9 upset swing if Senegal draw"
+      },
+      {
+        "match": "USA vs Netherlands",
+        "stage": "Weekly duel decider",
+        "kickoff": "Prediction lock in 2d 1h",
+        "prediction": "Both teams score",
+        "ownershipBoost": "Double points boost available"
+      }
+    ],
+    "whatIf": {
+      "title": "What-if simulator",
+      "subtitle": "Contextual insights make every live event feel personal.",
+      "scenarios": {
+        "mexicoGoal": {
+          "label": "Mexico goal",
+          "title": "If Mexico score first",
+          "impact": "Leo jumps to 1st and gains +12 from ownership, Maya drops by 4.",
+          "badge": "Ownership swing",
+          "summary": [
+            "Leader change probability rises to 78%.",
+            "Rivalry matchup flips in Leo's favor by 9 points.",
+            "Underdog boost remains available for Cam."
+          ]
+        },
+        "japanEqualizer": {
+          "label": "Japan equalizer",
+          "title": "If Japan equalize after halftime",
+          "impact": "Cam unlocks the upset bonus and climbs from 3rd to 2nd.",
+          "badge": "Upset bonus",
+          "summary": [
+            "Weekly reset chest fills to 90%.",
+            "Maya still leads unless Argentina lose later tonight.",
+            "Two streaks break, opening the leaderboard."
+          ]
+        },
+        "cleanSheet": {
+          "label": "Argentina clean sheet",
+          "title": "If Argentina hold a clean sheet",
+          "impact": "Maya extends the lead with +5 ownership and preserves a 4-pick streak.",
+          "badge": "Streak secured",
+          "summary": [
+            "Only 11% of the group picked a scoreless win.",
+            "Double points token becomes best used on USA vs Netherlands.",
+            "Rivalry margin vs Leo widens to 14 points."
+          ]
+        }
+      }
+    },
+    "draftBoard": {
+      "title": "Team ownership board",
+      "subtitle": "Snake draft creates identity and emotional stakes.",
+      "entries": [
+        "Argentina — Maya R.",
+        "Mexico — Leo V.",
+        "Japan — Cam G.",
+        "France — Nadia T.",
+        "USA — Chris J.",
+        "Morocco — June P.",
+        "Senegal — Dani A.",
+        "Netherlands — Iris K."
+      ]
+    },
+    "engagementLoop": {
+      "title": "Engagement loop",
+      "subtitle": "Built for invites, retention nudges, and daily matchday return.",
+      "insights": [
+        {
+          "title": "Invite momentum",
+          "description": "3 dormant friends can rejoin with one-tap share links and seeded draft spots."
+        },
+        {
+          "title": "Weekly catch-up",
+          "description": "Trailing players still chase micro rewards and rivalry wins even when the season table stretches."
+        },
+        {
+          "title": "Notification hooks",
+          "description": "Ready for reminders on lock deadlines, rank swings, and power-up opportunities."
+        },
+        {
+          "title": "League expansion",
+          "description": "Rule cards are modular, so the same shell can power other tournaments and sports."
+        }
+      ]
+    }
+  },
+  "placeholder": {
+    "exploreHub": "Explore the demo hub",
+    "returnHome": "Return to the homepage",
+    "routeLive": "Route is live and ready",
+    "routeExpand": "Next pass can expand this route without changing the navigation structure.",
+    "routes": {
+      "groups": {
+        "badge": "Private groups",
+        "title": "Create, join, and scale custom prediction circles",
+        "description": "This route is already wired into the shared FanQuin shell. Next pass can expand group setup, invite permissions, and configurable game modes without changing the navigation structure.",
+        "highlights": [
+          "Configurable scoring packs for small, medium, and large groups.",
+          "Invite-first growth with private links, reminders, and waitlists.",
+          "Draft setup entry point for snake order or random team assignment."
+        ]
+      },
+      "live": {
+        "badge": "Live moments",
+        "title": "Real-time match pulse is ready for deeper buildout",
+        "description": "Use this route next for live notifications, minute-by-minute swings, and richer what-if scenarios tied to real event data.",
+        "highlights": [
+          "Rank movement stream after every goal, card, or final whistle.",
+          "Scenario simulator to compare possible outcomes before they happen.",
+          "Notification-ready structure for deadline and rivalry alerts."
+        ]
+      },
+      "scoring": {
+        "badge": "Scoring engine",
+        "title": "The scoring system is modular by design",
+        "description": "This route can evolve into the detailed scoring builder, showing how exact scores, ownership, streaks, and boosts combine per group mode.",
+        "highlights": [
+          "Rule templates for tournament pools, survivor modes, and league play.",
+          "Transparent breakdown of every point won or lost per match.",
+          "Admin controls to tune upset rewards and power-up availability."
+        ]
+      }
+    }
+  },
+  "notFound": {
+    "badge": "Route not found",
+    "title": "This matchday page does not exist yet.",
+    "description": "The shared FanQuin layout is active, but this route has not been created. Use one of the live routes below instead.",
+    "backHome": "Back to homepage",
+    "openHub": "Open the group hub"
+  },
+  "createGroup": {
+    "back": "Back",
+    "backStep": "Previous step",
+    "nextButton": "Continue",
+    "createButton": "Create quiniela",
+    "stepOf": "{{current}} of {{total}}",
+    "step1": {
+      "title": "Choose your quiniela type",
+      "subtitle": "Pick the mode that fits your crew. You can always change settings later."
+    },
+    "step2": {
+      "title": "Set up your group",
+      "subtitle": "Give your quiniela a name and configure the rules.",
+      "nameLabel": "Group name",
+      "namePlaceholder": "e.g. World Cup Crew, Office Pool 2026",
+      "nameRequired": "Group name is required.",
+      "nameMin": "Name must be at least 3 characters.",
+      "nameMax": "Name cannot exceed 60 characters.",
+      "competitionLabel": "Competition",
+      "competitionRequired": "Please select a competition.",
+      "loadingCompetitions": "Loading competitions…",
+      "noCompetitions": "No active competitions found.",
+      "draftLabel": "Team assignment",
+      "maxMembersLabel": "Maximum members"
+    },
+    "step3": {
+      "title": "Review your quiniela",
+      "subtitle": "Everything below will be used to create your group. Click create when you're ready.",
+      "nameLabel": "Group name",
+      "modeLabel": "Mode",
+      "competitionLabel": "Competition",
+      "draftLabel": "Draft type",
+      "maxMembersLabel": "Max members",
+      "members": "members"
+    },
+    "step4": {
+      "title": "Your quiniela is live!",
+      "subtitle": "{{name}} is ready. Share the invite link or code with your crew.",
+      "inviteLinkTitle": "Invite link",
+      "inviteCodeLabel": "Or share this code",
+      "membersNote": "Up to {{max}} members can join with this link or code.",
+      "cta": "Go to my groups"
+    },
+    "modes": {
+      "casual": {
+        "title": "Casual",
+        "description": "Simple picks and random team assignment. Perfect for family and quick office sweeps."
+      },
+      "friends": {
+        "title": "Friends",
+        "description": "Snake draft ownership, upset bonuses, streaks, and weekly rivalries. Built for banter."
+      },
+      "league": {
+        "title": "League",
+        "description": "ELO ranking, balanced team tiers, survivor mode, and brackets for schools and offices."
+      },
+      "competitive": {
+        "title": "Competitive",
+        "description": "Full rules, live rankings, survivor lives, and stricter scoring for serious players."
+      }
+    }
+  },
+  "auth": {
+    "emailTitle": "Sign in to continue",
+    "emailSubtitle": "Enter your email and we'll check if you have an account.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "emailInvalid": "Please enter a valid email address.",
+    "continue": "Continue",
+    "sendCode": "Send verification code",
+    "sendCodeError": "Couldn't send the code. Please try again.",
+    "profileTitle": "Create your account",
+    "profileSubtitle": "Tell us a bit about yourself to get started.",
+    "firstName": "First name",
+    "firstNamePlaceholder": "Alex",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Johnson",
+    "phone": "Phone",
+    "phonePlaceholder": "+1 555 000 0000",
+    "country": "Country",
+    "countryPlaceholder": "Mexico",
+    "username": "Username",
+    "usernamePlaceholder": "your_username",
+    "usernameHint": "3–30 chars · lowercase letters, numbers, underscores",
+    "usernameTaken": "Username already taken",
+    "usernameAvailable": "Available!",
+    "usernameChecking": "Checking...",
+    "profileRequired": "All fields are required.",
+    "profileSaveError": "Failed to save profile. Please try again.",
+    "otpTitle": "Enter your code",
+    "otpSubtitle": "We sent a 6-digit code to {{email}}.",
+    "otpLabel": "One-time code",
+    "otpInvalid": "Please enter the complete 6-digit code.",
+    "otpWrong": "Incorrect code. Please try again.",
+    "verify": "Verify & continue",
+    "changeEmail": "Use a different email",
+    "back": "Go back"
+  },
+  "profile": {
+    "badge": "Account",
+    "title": "My Profile",
+    "personalInfo": "Personal information",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "How you appear in leaderboards",
+    "displayNameMax": "Max 60 characters",
+    "username": "Username",
+    "usernameMin": "Minimum 3 characters",
+    "usernameMax": "Maximum 30 characters",
+    "usernameInvalid": "Only lowercase letters, numbers, and underscores",
+    "required": "Required",
+    "saveChanges": "Save changes",
+    "saved": "Saved!",
+    "saveError": "Failed to save. Please try again.",
+    "memberSince": "Member since {{date}}"
+  },
+  "myGroups": {
+    "badge": "Your groups",
+    "title": "My Groups",
+    "welcome": "Welcome back, {{name}}",
+    "newGroup": "New group",
+    "emptyTitle": "No groups yet",
+    "emptySubtitle": "Create your first group and invite your friends to compete.",
+    "createFirst": "Create a group",
+    "openGroup": "Open group",
+    "signInTitle": "Sign in to see your groups",
+    "signInSubtitle": "Create a group or sign in to access your quinielas.",
+    "joinTitle": "Have an invite code?",
+    "joinPlaceholder": "Enter invite code",
+    "joinButton": "Join group",
+    "joinInvalid": "Code must be 8 characters.",
+    "joinNotFound": "Invalid or expired invite code."
+  },
+  "groupPage": {
+    "backToGroups": "My Groups",
+    "owner": "Owner",
+    "members": "members",
+    "settings": "Settings",
+    "settingsTitle": "Group settings",
+    "settingsSubtitle": "Update your group details. Only available before the draft starts.",
+    "settingsNameLabel": "Group name",
+    "settingsMaxMembersLabel": "Max members",
+    "settingsSave": "Save changes",
+    "settingsSaved": "Saved!",
+    "settingsSaveError": "Failed to save. Please try again.",
+    "settingsLockedHint": "Settings can only be changed while the group is waiting.",
+    "leaderboard": "Leaderboard",
+    "noScores": "No scores yet. Predictions start once the tournament begins.",
+    "anonymous": "Player",
+    "you": "(you)",
+    "streak": "{{n}} match streak",
+    "invite": "Invite friends",
+    "inviteCode": "Invite code",
+    "copyLink": "Copy invite link",
+    "copied": "Copied!",
+    "quickActions": "Quick actions",
+    "createAnother": "Create another group",
+    "allMyGroups": "All my groups",
+    "notFound": "Group not found or you are not a member.",
+    "startGroup": "Start group",
+    "startGroupConfirm": "This will begin the draft phase. Members will be able to pick teams. Continue?",
+    "groupStarted": "Group started!",
+    "startError": "Failed to start group. Please try again.",
+    "status": {
+      "waiting": "Waiting",
+      "draft": "Draft open",
+      "active": "Live",
+      "completed": "Ended"
+    },
+    "statusHint": {
+      "waiting": "Invite members, then start the draft when everyone is in.",
+      "draft": "Snake draft is open — members are picking teams.",
+      "active": "Competition is live! Predict matches to earn points.",
+      "completed": "This quiniela has ended."
+    },
+    "snakeExplain": "How snake draft works",
+    "snakeExplainIntro": "Every member picks exactly one team per round. The pick order \"snakes\" back and forth so no one always picks first or last.",
+    "snakeExplainRule1": "Odd rounds (1, 3, 5…): picks flow in order — 1st, 2nd, 3rd…",
+    "snakeExplainRule2": "Even rounds (2, 4, 6…): the order reverses — last, second-to-last…",
+    "snakeExplainRule3": "This repeats until every team has been assigned.",
+    "snakeExplainExLabel": "Example with 3 players (A, B, C)",
+    "snakeExplainExRow1": "Round 1 →   A picks · B picks · C picks",
+    "snakeExplainExRow2": "Round 2 ↩   C picks · B picks · A picks",
+    "snakeExplainExRow3": "Round 3 →   A picks · B picks · C picks",
+    "snakeExplainFair": "The player who picks last in one round picks first in the next — eliminating any permanent positional advantage."
+  },
+  "draft": {
+    "title": "Draft Room",
+    "badge": "Live Draft",
+    "round": "Round {{n}}",
+    "pickNumber": "Pick #{{n}}",
+    "yourTurn": "Your pick!",
+    "waitingFor": "Waiting for {{name}} to pick...",
+    "timeLeft": "{{time}} left",
+    "available": "Available Teams",
+    "picksMade": "Picks made",
+    "noPicks": "No picks yet.",
+    "search": "Search teams...",
+    "tier": "Tier {{n}}",
+    "confirmPick": "Pick {{name}}?",
+    "confirmPickBody": "Once confirmed you cannot change your pick.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "pickError": "Could not submit pick. Try again.",
+    "draftComplete": "Draft complete!",
+    "draftCompleteBody": "All teams have been assigned. The competition is now live!",
+    "goToGroup": "Go to group",
+    "draftOrder": "Draft order",
+    "yourPicks": "Your picks",
+    "boardTitle": "Draft board",
+    "notYourTurn": "It's not your turn yet",
+    "autoAssigned": "Teams were auto-assigned",
+    "autoAssignedBody": "Since you chose {{type}} draft, all teams were distributed automatically. The group is now live!"
+  },
+  "join": {
+    "joining": "Joining group...",
+    "signInTitle": "Sign in to join",
+    "signInBody": "You need an account to join this group. Sign in or create one — it only takes a minute.",
+    "signIn": "Sign in to join",
+    "alreadyMember": "You're already in this group!",
+    "goToGroup": "Go to group",
+    "success": "You joined {{name}}!",
+    "full": "This group is full.",
+    "invalid": "This invite link is invalid or has expired.",
+    "error": "Could not join. Please try again."
+  },
+  "seo": {
+    "siteName": "FanQuin",
+    "defaultTitle": "FanQuin – Own a team. Compete with your crew.",
+    "defaultDescription": "FanQuin turns every matchday into a shared ritual with private groups, team ownership, rivalry resets, and live ranking swings.",
+    "home": {
+      "title": "FanQuin – World Cup 2026 Fantasy Groups",
+      "description": "Create or join a private World Cup 2026 group, draft your team, and compete with friends in real time."
+    },
+    "myGroups": {
+      "title": "My Groups",
+      "description": "View and manage all your FanQuin fantasy groups."
+    },
+    "createGroup": {
+      "title": "Create a Group",
+      "description": "Set up your own private World Cup 2026 fantasy group in minutes."
+    },
+    "profile": {
+      "title": "My Profile",
+      "description": "Manage your FanQuin profile, username, and preferences."
+    },
+    "draft": {
+      "title": "Draft",
+      "description": "Pick your World Cup 2026 teams in the live draft."
+    },
+    "join": {
+      "title": "Join a Group",
+      "description": "You've been invited to join a FanQuin group. Accept your invite and start competing."
+    },
+    "groupHub": {
+      "title": "World Cup Crew",
+      "description": "Explore the FanQuin World Cup 2026 group hub with live standings, fixtures, and team stats."
+    },
+    "group": {
+      "titleTemplate": "{{name}} Group",
+      "descriptionTemplate": "Fantasy World Cup 2026 group {{name}} on FanQuin – leaderboard, team ownership, and live rivalries."
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The page you're looking for doesn't exist or has been moved."
+    }
+  },
+  "live": {
+    "pageTitle": "Live",
+    "pageDescription": "Live match fixtures and results for FanQuin groups.",
+    "title": "En Vivo",
+    "subtitle": "FIFA World Cup 2026",
+    "lastSynced": "Last synced",
+    "sync": "Sync now",
+    "syncing": "Syncing...",
+    "syncDone": "Sync complete",
+    "matchesUpdated": "matches updated",
+    "predsScored": "predictions scored",
+    "showingForGroups": "Showing picks for",
+    "noActiveGroups": "No active groups for this competition yet. Join or start one to see your picks here.",
+    "signInToSeeGroups": "Sign in to see your group predictions alongside each match.",
+    "tabLive": "Live",
+    "tabUpcoming": "Upcoming",
+    "tabResults": "Results",
+    "noLive": "No matches in progress right now.",
+    "noUpcoming": "No upcoming matches scheduled.",
+    "noResults": "No recent results yet.",
+    "liveLabel": "LIVE",
+    "completedLabel": "FT",
+    "noPrediction": "No prediction submitted",
+    "pending": "Pending",
+    "pts": "pts"
+  }
+}

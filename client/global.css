@@ -1,0 +1,237 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import "react-phone-number-input/style.css";
+
+@font-face {
+  font-family: "Squartiqa";
+  src: url("/Squartiqa.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Squartiqa";
+  src: url("/SquartiqaBold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 42% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 225 34% 11%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 226 34% 10%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 157 95% 47%;
+    --primary-foreground: 224 45% 10%;
+
+    --secondary: 223 24% 16%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 223 24% 16%;
+    --muted-foreground: 217 16% 70%;
+
+    --accent: 259 88% 69%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 224 21% 21%;
+    --input: 224 21% 21%;
+    --ring: 157 95% 47%;
+
+    --brand: 157 95% 47%;
+    --brand-strong: 168 84% 44%;
+    --brand-alt: 259 88% 69%;
+    --surface: 225 31% 13%;
+    --surface-strong: 225 28% 17%;
+    --success: 157 72% 44%;
+    --warning: 42 96% 61%;
+
+    --radius: 1.25rem;
+
+    --sidebar-background: 226 36% 9%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 157 95% 47%;
+    --sidebar-primary-foreground: 224 45% 10%;
+    --sidebar-accent: 223 24% 16%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 224 21% 18%;
+    --sidebar-ring: 157 95% 47%;
+  }
+
+  .dark {
+    --background: 225 46% 6%;
+    --foreground: 210 40% 96%;
+    --card: 225 35% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 226 35% 9%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 157 95% 47%;
+    --primary-foreground: 224 45% 10%;
+    --secondary: 223 24% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 223 24% 14%;
+    --muted-foreground: 217 16% 70%;
+    --accent: 259 88% 69%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 224 21% 18%;
+    --input: 224 21% 18%;
+    --ring: 157 95% 47%;
+    --brand: 157 95% 47%;
+    --brand-strong: 168 84% 44%;
+    --brand-alt: 259 88% 69%;
+    --surface: 225 31% 11%;
+    --surface-strong: 225 28% 15%;
+    --success: 157 72% 44%;
+    --warning: 42 96% 61%;
+    --sidebar-background: 226 36% 8%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 157 95% 47%;
+    --sidebar-primary-foreground: 224 45% 10%;
+    --sidebar-accent: 223 24% 14%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 224 21% 18%;
+    --sidebar-ring: 157 95% 47%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top, rgba(65, 255, 175, 0.18), transparent 28%),
+      radial-gradient(
+        circle at 85% 10%,
+        rgba(136, 92, 255, 0.18),
+        transparent 22%
+      ),
+      linear-gradient(180deg, rgba(12, 18, 38, 0.98), rgba(9, 12, 24, 1));
+    font-feature-settings:
+      "ss01" 1,
+      "cv02" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: hsl(var(--brand) / 0.28);
+    color: hsl(var(--foreground));
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre,
+  code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--brand) / 0.8),
+      hsl(var(--brand-alt) / 0.8)
+    );
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply border border-white/10 bg-white/5 shadow-panel backdrop-blur-2xl;
+  }
+
+  .soft-card {
+    @apply border border-white/10 bg-surface/80 shadow-panel backdrop-blur-xl;
+  }
+
+  .section-label {
+    @apply rounded-full border border-brand/20 bg-brand/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-brand;
+  }
+}
+
+/* ── react-phone-number-input dark theme ─────────────────────────── */
+.phone-input-dark .PhoneInput {
+  @apply flex items-center gap-2;
+}
+
+.phone-input-dark .PhoneInputCountrySelect {
+  @apply h-10 rounded-xl border border-white/15 bg-white/5 px-2 text-sm text-white;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: none;
+  min-width: 3.5rem;
+}
+
+.phone-input-dark .PhoneInputCountrySelect:focus {
+  @apply outline-none border-brand/50;
+}
+
+.phone-input-dark .PhoneInputCountrySelect:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.phone-input-dark .PhoneInputCountrySelectArrow {
+  display: none;
+}
+
+.phone-input-dark .PhoneInputCountryIcon {
+  @apply w-6 h-auto overflow-hidden rounded-sm;
+}
+
+.phone-input-dark .PhoneInputCountryIcon--border {
+  box-shadow: none;
+}
+
+.phone-input-dark .PhoneInputInput {
+  @apply flex-1 h-10 rounded-xl border border-white/15 bg-white/5 px-3 text-sm text-white placeholder:text-foreground/30;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.phone-input-dark .PhoneInputInput:focus {
+  @apply border-brand/50;
+}
+
+.phone-input-dark .PhoneInputInput:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
