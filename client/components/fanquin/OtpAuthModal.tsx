@@ -11,10 +11,7 @@ import {
   X,
 } from "lucide-react";
 import axios from "axios";
-import PhoneInput, {
-  getCountries,
-  isValidPhoneNumber,
-} from "react-phone-number-input";
+import PhoneInput, { getCountries } from "react-phone-number-input";
 import type { Country as CountryCode } from "react-phone-number-input";
 import {
   Dialog,
@@ -164,12 +161,16 @@ export function OtpAuthModal({
   };
 
   // Step 2 (new user): profile submitted → send OTP
+  // Simple phone check: non-empty and at least 7 digits after the + prefix
+  const isPhoneValid = (val: string) =>
+    /^\+[0-9]{7,}$/.test(val.replace(/[\s\-().]/g, ""));
+
   const handleProfileContinue = async () => {
     if (
       !firstName.trim() ||
       !lastName.trim() ||
       !phone ||
-      !isValidPhoneNumber(phone) ||
+      !isPhoneValid(phone) ||
       !country ||
       !username.trim() ||
       usernameStatus !== "available"
@@ -466,7 +467,7 @@ export function OtpAuthModal({
                     !firstName.trim() ||
                     !lastName.trim() ||
                     !phone ||
-                    !isValidPhoneNumber(phone) ||
+                    !isPhoneValid(phone) ||
                     !country ||
                     usernameStatus !== "available"
                   }

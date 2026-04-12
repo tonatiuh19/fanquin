@@ -22,7 +22,6 @@ import { store } from "./store";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { bootstrapAuth } from "./store/slices/authSlice";
 import { AppShell } from "./components/fanquin/app-shell";
-import { PlaceholderPage } from "./components/fanquin/page-placeholder";
 import GroupHub from "./pages/GroupHub";
 import CreateGroup from "./pages/CreateGroup";
 import Index from "./pages/Index";
@@ -35,6 +34,7 @@ import JoinPage from "./pages/JoinPage";
 import LivePage from "./pages/LivePage";
 import ScoringPage from "./pages/ScoringPage";
 import LegalDocPage from "./pages/LegalDocPage";
+import FaqPage from "./pages/FaqPage";
 import { useTranslation } from "react-i18next";
 
 const queryClient = new QueryClient();
@@ -107,6 +107,7 @@ const App = () => {
                     path="/terms"
                     element={<LegalDocPage type="terms" />}
                   />
+                  <Route path="/faq" element={<FaqPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

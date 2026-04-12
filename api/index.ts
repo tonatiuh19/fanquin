@@ -5752,6 +5752,86 @@ export function createApp() {
     }
   });
 
+  // ── Support Cases ─────────────────────────────────────────
+  app.post(
+    "/api/support/cases",
+    requireAuth,
+    async (req: AuthenticatedRequest, res) => {
+      const { category, subject, message } = req.body as {
+        category?: string;
+        subject?: string;
+        message?: string;
+      };
+
+      const validCategories = [
+        "account",
+        "group",
+        "predictions",
+        "scoring",
+        "technical",
+        "billing",
+        "other",
+      ];
+      if (!category || !validCategories.includes(category)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid category" });
+      }
+      if (
+        !subject ||
+        typeof subject !== "string" ||
+        subject.trim().length < 3 ||
+        subject.trim().length > 200
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Subject must be between 3 and 200 characters",
+          });
+      }
+      if (
+        !message ||
+        typeof message !== "string" ||
+        message.trim().length < 10 ||
+        message.trim().length > 5000
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Message must be between 10 and 5000 characters",
+          });
+      }
+
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data, error } = await supabase
+          .from("support_cases")
+          .insert({
+            user_id: req.userId,
+            category,
+            subject: subject.trim(),
+            message: message.trim(),
+          })
+          .select()
+          .single();
+
+        if (error || !data) {
+          return res
+            .status(500)
+            .json({ success: false, message: "Failed to submit support case" });
+        }
+
+        return res.status(201).json({ success: true, data });
+      } catch {
+        return res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    },
+  );
+
   return app;
 }
 

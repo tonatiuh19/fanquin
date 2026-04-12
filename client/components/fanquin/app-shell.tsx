@@ -102,10 +102,10 @@ export function AppShell() {
       ];
 
   const footerLinks = [
-    { label: t("footer.links.worldCupCrew"), to: "/groups/world-cup-crew" },
     { label: t("footer.links.privateGroups"), to: "/groups" },
     { label: t("footer.links.liveMoments"), to: "/live" },
     { label: t("footer.links.scoringEngine"), to: "/scoring" },
+    { label: t("footer.links.faq"), to: "/faq" },
   ];
 
   const toggleLang = async () => {
@@ -322,11 +322,6 @@ export function AppShell() {
                   {item.label}
                 </Link>
               ))}
-              <span className="text-foreground/40">
-                {location.pathname === "/"
-                  ? t("footer.worldCupMode")
-                  : t("footer.layoutActive")}
-              </span>
             </div>
             <button
               type="button"

@@ -17,13 +17,11 @@
   },
   "footer": {
     "description": "FanQuin turns every matchday into a shared ritual with private groups, team ownership, rivalry resets, and live ranking swings.",
-    "worldCupMode": "World Cup 2026 launch mode",
-    "layoutActive": "Shared layout active across routes",
     "links": {
-      "worldCupCrew": "World Cup crew",
       "privateGroups": "Private groups",
       "liveMoments": "Live moments",
-      "scoringEngine": "Scoring engine"
+      "scoringEngine": "Scoring engine",
+      "faq": "FAQ & Support"
     },
     "gamblingDisclaimer": "FanQuin is a free-to-play prediction game for entertainment purposes only. No real money, no wagering."
   },
@@ -443,6 +441,159 @@
     "description": "The shared FanQuin layout is active, but this route has not been created. Use one of the live routes below instead.",
     "backHome": "Back to homepage",
     "openHub": "Open the group hub"
+  },
+  "faq": {
+    "seo": {
+      "title": "FAQ & Support \u00b7 FanQuin",
+      "description": "Find answers to common questions about FanQuin and submit a support case if you need help."
+    },
+    "badge": "Help Center",
+    "title": "FAQ & Support",
+    "subtitle": "Answers to the most common questions \u2014 and a direct line to our team when you need more.",
+    "searchPlaceholder": "Search questions\u2026",
+    "noResults": "No questions match your search.",
+    "sections": [
+      {
+        "key": "howItWorks",
+        "label": "How it works",
+        "items": [
+          {
+            "q": "What is FanQuin?",
+            "a": "FanQuin is a free-to-play social prediction platform. You create or join private groups with friends, pick match scores, own national teams through a live draft, and compete on a live leaderboard \u2014 all for bragging rights, no money involved."
+          },
+          {
+            "q": "How do I create a group?",
+            "a": "Hit \"Start your group now\" on the home page, choose a competition and mode, configure your scoring, and share the invite link or code. Your group is live in under a minute."
+          },
+          {
+            "q": "How do I join a group?",
+            "a": "Get an invite code from the group admin and paste it in the \"Have a code?\" box on the home page, or open the direct invite link."
+          },
+          {
+            "q": "Is FanQuin free?",
+            "a": "Yes, 100% free. There are no premium tiers, no in-app purchases, and absolutely no real money or wagering involved."
+          }
+        ]
+      },
+      {
+        "key": "scoring",
+        "label": "Scoring",
+        "items": [
+          {
+            "q": "How are points calculated?",
+            "a": "Points depend on your group mode. In Friends mode (the default): exact scoreline = +5 pts, correct winner = +3 pts, correct goal difference = +2 pts. Bonus criteria like BTTS or clean sheet stack on top."
+          },
+          {
+            "q": "What are bonus predictions?",
+            "a": "On each match the group admin can enable up to 5 bonus criteria: Both Teams To Score, total goals over/under, half-time result, full-time winner (standalone), or clean sheet. A correct bonus prediction earns extra points."
+          },
+          {
+            "q": "When do predictions lock?",
+            "a": "Each match has its own lock time (kickoff). You cannot submit or edit a prediction after the match starts."
+          },
+          {
+            "q": "What is streak scoring?",
+            "a": "Hit a consecutive correct-winner streak and earn bonus points every match after the threshold. The exact threshold and bonus depend on your group\u2019s scoring config."
+          }
+        ]
+      },
+      {
+        "key": "teams",
+        "label": "Teams & Draft",
+        "items": [
+          {
+            "q": "What is team ownership?",
+            "a": "Each player in a group \"owns\" one or more national teams. Every time your team wins, scores goals, or keeps a clean sheet, you earn ownership points on top of your prediction score."
+          },
+          {
+            "q": "How does the snake draft work?",
+            "a": "All group members join a live draft room. Players pick teams in turns; the order reverses every round (snake order). The draft locks when all spots are filled."
+          },
+          {
+            "q": "What is balanced tier assignment?",
+            "a": "The system groups teams by strength (tiers 1\u20134) and distributes them so every player gets a fair mix of strong and weak teams. No live room needed."
+          },
+          {
+            "q": "Can I change my team after the draft?",
+            "a": "No. Once the draft is completed the assignments are locked for the duration of the competition."
+          }
+        ]
+      },
+      {
+        "key": "groups",
+        "label": "Groups",
+        "items": [
+          {
+            "q": "How many members can a group have?",
+            "a": "The group admin sets the max member cap during creation (default 20, max 50 in league mode)."
+          },
+          {
+            "q": "Can I be in multiple groups?",
+            "a": "Yes. You can join or create as many groups as you like for the same or different competitions."
+          },
+          {
+            "q": "How do I invite people?",
+            "a": "Share your group\u2019s invite link or 6-character code. Anyone with the link can join as long as the group isn\u2019t full."
+          },
+          {
+            "q": "What happens if the admin leaves?",
+            "a": "Currently the group remains active. Admin transfer is on the roadmap for a future release."
+          }
+        ]
+      },
+      {
+        "key": "account",
+        "label": "Account & Technical",
+        "items": [
+          {
+            "q": "How do I sign in?",
+            "a": "FanQuin uses passwordless OTP login. Enter your email, receive a 6-digit code, enter it, and you\u2019re in. No password to remember."
+          },
+          {
+            "q": "Can I change my username?",
+            "a": "Yes, from your Profile page. Usernames must be 3\u201330 characters, lowercase letters, numbers, and underscores only."
+          },
+          {
+            "q": "How do I delete my account?",
+            "a": "Contact us at privacidad@fanquin.com with the subject \"Ejercicios de Derechos ARCO\" and we will process your deletion request within 20 business days."
+          },
+          {
+            "q": "FanQuin isn\u2019t loading \u2014 what do I do?",
+            "a": "Try a hard refresh (Cmd/Ctrl + Shift + R), clear your browser cache, or try a different browser. If the issue persists, submit a support case below."
+          }
+        ]
+      }
+    ],
+    "support": {
+      "title": "Contact Support",
+      "subtitle": "Can\u2019t find what you\u2019re looking for? Submit a case and we\u2019ll get back to you.",
+      "guestTitle": "Sign in to submit a case",
+      "guestSubtitle": "You need to be signed in to contact support. Create an account or sign in \u2014 it\u2019s free and takes 30 seconds.",
+      "guestCta": "Sign in",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category",
+      "categories": {
+        "account": "Account",
+        "group": "Group",
+        "predictions": "Predictions",
+        "scoring": "Scoring",
+        "technical": "Technical",
+        "billing": "Billing",
+        "other": "Other"
+      },
+      "subject": "Subject",
+      "subjectPlaceholder": "Brief description of your issue",
+      "message": "Message",
+      "messagePlaceholder": "Describe your issue in detail\u2026",
+      "submit": "Submit case",
+      "submitting": "Submitting\u2026",
+      "successTitle": "Case submitted!",
+      "successMessage": "We\u2019ve received your support case and will reply to your email within 24\u201348 hours.",
+      "submitAnother": "Submit another case",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "subjectMin": "Subject must be at least 3 characters",
+      "messageMin": "Message must be at least 10 characters"
+    }
   },
   "createGroup": {
     "back": "Back",

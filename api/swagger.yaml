@@ -2090,3 +2090,38 @@ paths:
           $ref: "#/components/schemas/ApiError"
         "404":
           $ref: "#/components/schemas/ApiError"
+
+  # ── Support Cases ────────────────────────────────────────────
+  /api/support/cases:
+    post:
+      tags: [Support]
+      summary: Submit a support case
+      description: Authenticated users can submit a support case. Returns the created case record.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, subject, message]
+              properties:
+                category:
+                  type: string
+                  enum: [account, group, predictions, scoring, technical, billing, other]
+                subject:
+                  type: string
+                  minLength: 3
+                  maxLength: 200
+                message:
+                  type: string
+                  minLength: 10
+                  maxLength: 5000
+      responses:
+        "201":
+          description: Support case created
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "401":
+          $ref: "#/components/schemas/ApiError"

@@ -383,3 +383,34 @@ export interface LegalDocument {
 }
 
 export type GetLegalDocResponse = ApiSuccess<LegalDocument>;
+
+// ── Support Cases ──────────────────────────────────────────────
+export type SupportCaseCategory =
+  | "account"
+  | "group"
+  | "predictions"
+  | "scoring"
+  | "technical"
+  | "billing"
+  | "other";
+
+export type SupportCaseStatus = "open" | "in_review" | "resolved" | "closed";
+
+export interface SupportCase {
+  id: string;
+  user_id: string;
+  category: SupportCaseCategory;
+  subject: string;
+  message: string;
+  status: SupportCaseStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSupportCaseRequest {
+  category: SupportCaseCategory;
+  subject: string;
+  message: string;
+}
+
+export type CreateSupportCaseResponse = ApiSuccess<SupportCase>;

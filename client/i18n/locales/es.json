@@ -17,13 +17,11 @@
   },
   "footer": {
     "description": "FanQuin convierte cada jornada en un ritual compartido con grupos privados, posesión de equipos, rivalidades y rankings en tiempo real.",
-    "worldCupMode": "Modo lanzamiento Copa del Mundo 2026",
-    "layoutActive": "Layout activo en todas las rutas",
     "links": {
-      "worldCupCrew": "World Cup Crew",
       "privateGroups": "Grupos privados",
       "liveMoments": "Momentos en vivo",
-      "scoringEngine": "Motor de puntuación"
+      "scoringEngine": "Motor de puntuación",
+      "faq": "FAQ y Soporte"
     },
     "gamblingDisclaimer": "FanQuin es un juego de predicciones gratuito solo con fines de entretenimiento. Sin dinero real, sin apuestas."
   },
@@ -436,6 +434,159 @@
           "Controles de admin para ajustar recompensas de upset y disponibilidad de power-ups."
         ]
       }
+    }
+  },
+  "faq": {
+    "seo": {
+      "title": "FAQ y Soporte · FanQuin",
+      "description": "Encuentra respuestas a las preguntas más frecuentes sobre FanQuin y envía un caso de soporte si necesitas ayuda."
+    },
+    "badge": "Centro de Ayuda",
+    "title": "FAQ y Soporte",
+    "subtitle": "Respuestas a las preguntas más frecuentes y contacto directo con nuestro equipo cuando lo necesites.",
+    "searchPlaceholder": "Buscar preguntas…",
+    "noResults": "Ninguna pregunta coincide con tu búsqueda.",
+    "sections": [
+      {
+        "key": "howItWorks",
+        "label": "Cómo funciona",
+        "items": [
+          {
+            "q": "¿Qué es FanQuin?",
+            "a": "FanQuin es una plataforma de predicciones sociales gratuita. Crea o únete a grupos privados con amigos, predice resultados, posee equipos nacionales mediante un draft en vivo y compite en un marcador en tiempo real — todo por derechos de fanfarronear, sin dinero de por medio."
+          },
+          {
+            "q": "¿Cómo creo un grupo?",
+            "a": "Haz clic en \"Crea tu grupo ahora\" en la página principal, elige una competición y modo, configura tu puntuación y comparte el enlace o código de invitación. Tu grupo queda en vivo en menos de un minuto."
+          },
+          {
+            "q": "¿Cómo me uno a un grupo?",
+            "a": "Obtén un código de invitación del administrador del grupo y pégalo en el cuadro \"¿Tienes código?\" en la página principal, o abre el enlace de invitación directa."
+          },
+          {
+            "q": "¿FanQuin es gratis?",
+            "a": "Sí, 100% gratis. No hay niveles premium, ni compras en la aplicación, ni dinero real ni apuestas."
+          }
+        ]
+      },
+      {
+        "key": "scoring",
+        "label": "Puntuación",
+        "items": [
+          {
+            "q": "¿Cómo se calculan los puntos?",
+            "a": "Los puntos dependen del modo de tu grupo. En modo Amigos (predeterminado): marcador exacto = +5 pts, ganador correcto = +3 pts, diferencia de goles correcta = +2 pts. Los criterios de bonus como AMBAS anotan o portero a cero se suman encima."
+          },
+          {
+            "q": "¿Qué son las predicciones de bonus?",
+            "a": "En cada partido el administrador puede activar hasta 5 criterios: Ambas anotan, goles totales más/menos, resultado al descanso, ganador final (independiente) o portero a cero. Una predicción de bonus correcta suma puntos extra."
+          },
+          {
+            "q": "¿Cuándo cierran las predicciones?",
+            "a": "Cada partido tiene su propio tiempo de cierre (el pitido inicial). No puedes enviar ni editar una predicción después de que empiece el partido."
+          },
+          {
+            "q": "¿Qué es la puntuación por racha?",
+            "a": "Acierta al ganador de forma consecutiva y gana puntos bonus en cada partido tras el umbral. El umbral y el bonus exactos dependen de la configuración de puntuación de tu grupo."
+          }
+        ]
+      },
+      {
+        "key": "teams",
+        "label": "Equipos y Draft",
+        "items": [
+          {
+            "q": "¿Qué es la posesión de equipos?",
+            "a": "Cada jugador en un grupo \"posee\" uno o más equipos nacionales. Cada vez que tu equipo gana, anota goles o deja la portero a cero, ganas puntos de posesión además de tu puntuación de predicción."
+          },
+          {
+            "q": "¿Cómo funciona el draft serpiente?",
+            "a": "Todos los miembros del grupo se unen a una sala de draft en vivo. Los jugadores eligen equipos por turnos; el orden se invierte cada ronda (orden serpiente). El draft se bloquea cuando se llenan todos los lugares."
+          },
+          {
+            "q": "¿Qué es la asignación por niveles balanceados?",
+            "a": "El sistema agrupa los equipos por fortaleza (niveles 1–4) y los distribuye equitativamente para que cada jugador reciba una mezcla justa de equipos fuertes y débiles. No se necesita sala en vivo."
+          },
+          {
+            "q": "¿Puedo cambiar mi equipo después del draft?",
+            "a": "No. Una vez completado el draft las asignaciones quedan bloqueadas durante la competición."
+          }
+        ]
+      },
+      {
+        "key": "groups",
+        "label": "Grupos",
+        "items": [
+          {
+            "q": "¿Cuántos miembros puede tener un grupo?",
+            "a": "El administrador del grupo establece el límite máximo de miembros durante la creación (predeterminado 20, máximo 50 en modo liga)."
+          },
+          {
+            "q": "¿Puedo estar en varios grupos?",
+            "a": "Sí. Puedes unirte o crear tantos grupos como quieras para la misma o diferentes competiciones."
+          },
+          {
+            "q": "¿Cómo invito personas?",
+            "a": "Comparte el enlace de invitación o el código de 6 caracteres de tu grupo. Cualquiera con el enlace puede unirse siempre que el grupo no esté lleno."
+          },
+          {
+            "q": "¿Qué pasa si el administrador se va?",
+            "a": "Actualmente el grupo permanece activo. La transferencia de administrador está en la hoja de ruta para una futura versión."
+          }
+        ]
+      },
+      {
+        "key": "account",
+        "label": "Cuenta y Técnico",
+        "items": [
+          {
+            "q": "¿Cómo inicio sesión?",
+            "a": "FanQuin usa inicio de sesión sin contraseña con OTP. Ingresa tu correo, recibe un código de 6 dígitos, ingrésalo y listo. Sin contraseñas que recordar."
+          },
+          {
+            "q": "¿Puedo cambiar mi nombre de usuario?",
+            "a": "Sí, desde tu página de Perfil. Los nombres de usuario deben tener 3–30 caracteres: solo letras minúsculas, números y guiones bajos."
+          },
+          {
+            "q": "¿Cómo elimino mi cuenta?",
+            "a": "Contáctanos en privacidad@fanquin.com con el asunto \"Ejercicios de Derechos ARCO\" y procesaremos tu solicitud de eliminación en 20 días hábiles."
+          },
+          {
+            "q": "FanQuin no carga — ¿qué hago?",
+            "a": "Prueba una actualización forzada (Cmd/Ctrl + Shift + R), limpia el caché del navegador o prueba con un navegador diferente. Si el problema persiste, envía un caso de soporte abajo."
+          }
+        ]
+      }
+    ],
+    "support": {
+      "title": "Contactar Soporte",
+      "subtitle": "¿No encuentras lo que buscas? Envía un caso y te respondemos.",
+      "guestTitle": "Inicia sesión para enviar un caso",
+      "guestSubtitle": "Necesitas iniciar sesión para contactar soporte. Crea una cuenta o inicia sesión — es gratis y toma 30 segundos.",
+      "guestCta": "Iniciar sesión",
+      "category": "Categoría",
+      "categoryPlaceholder": "Selecciona una categoría",
+      "categories": {
+        "account": "Cuenta",
+        "group": "Grupo",
+        "predictions": "Predicciones",
+        "scoring": "Puntuación",
+        "technical": "Técnico",
+        "billing": "Facturación",
+        "other": "Otro"
+      },
+      "subject": "Asunto",
+      "subjectPlaceholder": "Breve descripción de tu problema",
+      "message": "Mensaje",
+      "messagePlaceholder": "Describe tu problema en detalle…",
+      "submit": "Enviar caso",
+      "submitting": "Enviando…",
+      "successTitle": "¡Caso enviado!",
+      "successMessage": "Hemos recibido tu caso de soporte y responderemos a tu correo en 24–48 horas.",
+      "submitAnother": "Enviar otro caso",
+      "errorGeneric": "Algo salió mal. Por favor intenta de nuevo.",
+      "subjectMin": "El asunto debe tener al menos 3 caracteres",
+      "messageMin": "El mensaje debe tener al menos 10 caracteres"
     }
   },
   "createGroup": {
