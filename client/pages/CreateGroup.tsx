@@ -84,7 +84,6 @@ interface ModeOption {
   key: GroupMode;
   icon: React.ReactNode;
   color: string;
-  audience: string;
 }
 
 const MODE_OPTIONS: ModeOption[] = [
@@ -92,25 +91,21 @@ const MODE_OPTIONS: ModeOption[] = [
     key: "casual",
     icon: <Sparkles className="h-5 w-5" />,
     color: "text-amber-400",
-    audience: "2 – 5 players",
   },
   {
     key: "friends",
     icon: <Flame className="h-5 w-5" />,
     color: "text-brand",
-    audience: "6 – 12 players",
   },
   {
     key: "league",
     icon: <Trophy className="h-5 w-5" />,
     color: "text-violet-400",
-    audience: "13 – 100 players",
   },
   {
     key: "competitive",
     icon: <Crown className="h-5 w-5" />,
     color: "text-rose-400",
-    audience: "Any size",
   },
 ];
 
@@ -198,7 +193,7 @@ function StepMode() {
                   {t(`createGroup.modes.${opt.key}.title`)}
                 </p>
                 <p className="mt-0.5 text-xs text-foreground/[0.5]">
-                  {opt.audience}
+                  {t(`createGroup.modes.${opt.key}.audience`)}
                 </p>
                 <p className="mt-2 text-sm text-foreground/[0.65]">
                   {t(`createGroup.modes.${opt.key}.description`)}
@@ -602,7 +597,7 @@ function StepReview() {
             className="ml-2 underline underline-offset-2"
             onClick={() => dispatch(clearError())}
           >
-            dismiss
+            {t("createGroup.step4.dismiss")}
           </button>
         </div>
       )}

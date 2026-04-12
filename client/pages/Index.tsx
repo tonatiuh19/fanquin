@@ -280,7 +280,9 @@ export default function Index() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-brand/20 bg-brand/10">
                   <Lock className="h-5 w-5 text-brand" />
                 </div>
-                <span className="section-label">{t("index.privateDesign.badge")}</span>
+                <span className="section-label">
+                  {t("index.privateDesign.badge")}
+                </span>
               </div>
               <h2 className="font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">
                 {t("index.privateDesign.title")}
@@ -291,7 +293,11 @@ export default function Index() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              {(t("index.privateDesign.steps", { returnObjects: true }) as Array<{ label: string; desc: string }>).map((step, i) => {
+              {(
+                t("index.privateDesign.steps", {
+                  returnObjects: true,
+                }) as Array<{ label: string; desc: string }>
+              ).map((step, i) => {
                 const StepIcon = [Key, Share2, Lock][i];
                 return (
                   <div
@@ -306,7 +312,9 @@ export default function Index() {
                         {step.label}
                       </span>
                     </div>
-                    <p className="text-sm leading-6 text-foreground/[0.65]">{step.desc}</p>
+                    <p className="text-sm leading-6 text-foreground/[0.65]">
+                      {step.desc}
+                    </p>
                   </div>
                 );
               })}

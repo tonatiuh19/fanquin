@@ -296,21 +296,21 @@ export function OtpAuthModal({
                   {t("auth.continue")}
                 </Button>
                 <p className="text-center text-xs text-foreground/35">
-                  Al continuar, aceptas nuestros{" "}
+                  {t("auth.disclaimer")}{" "}
                   <Link
                     to="/terms"
                     className="underline underline-offset-2 hover:text-foreground/70 transition"
                     onClick={() => onOpenChange(false)}
                   >
-                    Términos y Condiciones
+                    {t("auth.termsLink")}
                   </Link>{" "}
-                  y el{" "}
+                  {t("auth.disclaimerAnd")}{" "}
                   <Link
                     to="/privacy"
                     className="underline underline-offset-2 hover:text-foreground/70 transition"
                     onClick={() => onOpenChange(false)}
                   >
-                    Aviso de Privacidad
+                    {t("auth.privacyLink")}
                   </Link>
                   .
                 </p>

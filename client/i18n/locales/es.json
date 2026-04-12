@@ -61,7 +61,7 @@
     ],
     "matchdayPulse": {
       "title": "Pulso de jornada",
-      "subtitle": "World Cup Crew · 8 jugadores · Modo Amigos",
+      "subtitle": "World Cup Crew · Modo Amigos · En vivo",
       "badge": "Draft y bonus listos"
     },
     "previewCards": {
@@ -491,7 +491,8 @@
       "maxMembersLabel": "Máx. participantes",
       "members": "participantes",
       "bonusLabel": "Criterios extra",
-      "bonusCount": "{{count}} activos"
+      "bonusCount": "{{count}} activos",
+      "dismiss": "Descartar"
     },
     "step5": {
       "title": "¡Tu quiniela está lista!",
@@ -506,18 +507,22 @@
     "modes": {
       "casual": {
         "title": "Casual",
+        "audience": "2 – 5 jugadores",
         "description": "Predicciones simples y equipos al azar. Perfecto para familia y sorteos rápidos de oficina."
       },
       "friends": {
         "title": "Amigos",
+        "audience": "6 – 12 jugadores",
         "description": "Draft de serpiente, bonos por upset, rachas y rivalidades semanales. Hecho para el grupo de chat."
       },
       "league": {
         "title": "Liga",
+        "audience": "13 – 100 jugadores",
         "description": "Ranking ELO, niveles de equipo balanceados, modo supervivencia y brackets para escuelas y oficinas."
       },
       "competitive": {
         "title": "Competitivo",
+        "audience": "Cualquier tamaño",
         "description": "Reglas completas, rankings en vivo, vidas en modo supervivencia y puntuación estricta para jugadores serios."
       }
     }
@@ -556,7 +561,11 @@
     "otpWrong": "Código incorrecto. Inténtalo de nuevo.",
     "verify": "Verificar y continuar",
     "changeEmail": "Usar otro correo",
-    "back": "Volver"
+    "back": "Volver",
+    "disclaimer": "Al continuar, aceptas nuestros",
+    "disclaimerAnd": "y el",
+    "termsLink": "Términos y Condiciones",
+    "privacyLink": "Aviso de Privacidad"
   },
   "notFound": {
     "badge": "Ruta no encontrada",

@@ -50,82 +50,15 @@ const leaderboardBase = [
   },
 ] as const;
 
-const scenarios = {
-  mexicoGoal: {
-    title: "If Mexico score first",
-    impact:
-      "Leo jumps to 1st with a +12 ownership swing, closing Maya's gap to 5 points.",
-    badge: "Leaderboard flip",
-    summary: [
-      "Mexico ownership pays out across 2 players.",
-      "Underdog boost window opens for Japan.",
-      "Double points token activates for 38 minutes.",
-    ],
-  },
-  japanEqualizer: {
-    title: "If Japan equalize",
-    impact:
-      "Cam rises 3 places and Maya's streak is threatened if she predicted a Mexico win.",
-    badge: "Upset alert",
-    summary: [
-      "Weekly reset chest fills to 90%.",
-      "Maya still leads unless Argentina lose later tonight.",
-      "Two streaks break, opening the leaderboard.",
-    ],
-  },
-  cleanSheet: {
-    title: "If Argentina hold a clean sheet",
-    impact:
-      "Maya extends the lead with +5 ownership and preserves a 4-pick streak.",
-    badge: "Streak secured",
-    summary: [
-      "Only 11% of the group picked a scoreless win.",
-      "Double points token becomes best used on USA vs Netherlands.",
-      "Rivalry margin vs Leo widens to 14 points.",
-    ],
-  },
-} as const;
+type ScenarioKey = "mexicoGoal" | "japanEqualizer" | "cleanSheet";
 
-type ScenarioKey = keyof typeof scenarios;
-
-const scenarioTabs: Array<{ key: ScenarioKey; label: string }> = [
-  { key: "mexicoGoal", label: "Mexico goal" },
-  { key: "japanEqualizer", label: "Japan equalizer" },
-  { key: "cleanSheet", label: "Argentina clean sheet" },
-];
-
-const draftBoard = [
-  "Maya R. → Argentina · Brazil · Spain",
-  "Leo V. → Mexico · France · Germany",
-  "Cam G. → Japan · USA · Morocco",
-  "Nadia T. → France · England · Netherlands",
-  "Sam K. → Portugal · Italy · Senegal",
-  "Alex M. → Uruguay · South Korea · Croatia",
-];
-
-const fixtures = [
-  {
-    match: "Mexico vs Argentina",
-    stage: "Group A · Matchday 1",
-    kickoff: "Today · 18:00",
-    prediction: "Argentina win 2–1 (Exact score)",
-    ownershipBoost: "+11% swing if Argentina score first",
-  },
-  {
-    match: "USA vs Netherlands",
-    stage: "Group B · Matchday 1",
-    kickoff: "Today · 21:00",
-    prediction: "Draw 1–1 (Underdog pick)",
-    ownershipBoost: "Unlocks +5 upset bonus for 3 members",
-  },
-  {
-    match: "Japan vs Senegal",
-    stage: "Group C · Matchday 1",
-    kickoff: "Tomorrow · 15:00",
-    prediction: "Japan win 1–0 (Correct winner)",
-    ownershipBoost: "Cam's streak extends +2 if correct",
-  },
-] as const;
+interface ScenarioData {
+  label: string;
+  title: string;
+  impact: string;
+  badge: string;
+  summary: string[];
+}
 
 function getCountdownParts(targetDate: Date) {
   const total = targetDate.getTime() - Date.now();
@@ -163,7 +96,6 @@ export default function GroupHub() {
   }, [openingMatch]);
 
   const { t } = useTranslation();
-  const activeScenario = scenarios[scenario];
 
   const { streaks } = t("groupHub", { returnObjects: true }) as {
     streaks: Record<string, string>;
@@ -172,6 +104,31 @@ export default function GroupHub() {
     ...entry,
     streak: streaks[entry.streakKey] ?? entry.streakKey,
   }));
+
+  const scenariosData = t("groupHub.whatIf.scenarios", {
+    returnObjects: true,
+  }) as Record<ScenarioKey, ScenarioData>;
+  const scenarioTabsList = (
+    ["mexicoGoal", "japanEqualizer", "cleanSheet"] as ScenarioKey[]
+  ).map((key) => ({ key, label: scenariosData[key].label }));
+  const activeScenario = scenariosData[scenario];
+
+  const fixturesList = t("groupHub.fixtures", { returnObjects: true }) as {
+    match: string;
+    stage: string;
+    kickoff: string;
+    prediction: string;
+    ownershipBoost: string;
+  }[];
+  const draftEntries = t("groupHub.draftBoard.entries", {
+    returnObjects: true,
+  }) as string[];
+  const scoringRules = t("groupHub.scoringPulse.rules", {
+    returnObjects: true,
+  }) as { label: string; value: string }[];
+  const engagementInsights = t("groupHub.engagementLoop.insights", {
+    returnObjects: true,
+  }) as { title: string; description: string }[];
 
   return (
     <section className="container py-6 md:py-10">
@@ -184,40 +141,36 @@ export default function GroupHub() {
         <div className="glass-panel overflow-hidden rounded-[2rem] p-6 md:p-8">
           <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr] xl:items-start">
             <div className="space-y-5">
-              <span className="section-label w-fit">
-                Private group command center
-              </span>
+              <span className="section-label w-fit">{t("groupHub.badge")}</span>
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="font-display text-4xl font-semibold tracking-tight text-white md:text-5xl">
-                    World Cup Crew
+                    {t("groupHub.title")}
                   </h1>
                   <span className="rounded-full border border-brand/25 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-brand">
-                    8 members • medium mode
+                    {t("groupHub.membersBadge")}
                   </span>
                 </div>
                 <p className="max-w-2xl text-base leading-7 text-foreground/[0.72] md:text-lg">
-                  This hub blends private group predictions, snake draft team
-                  ownership, rivalry resets, and real-time “what-if” swings into
-                  one matchday experience.
+                  {t("groupHub.description")}
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <SummaryCard
                   icon={<Trophy className="h-4 w-4" />}
-                  label="Prize pool mood"
-                  value="Bragging rights + weekly drops"
+                  label={t("groupHub.summaryCards.prize.label")}
+                  value={t("groupHub.summaryCards.prize.value")}
                 />
                 <SummaryCard
                   icon={<Flame className="h-4 w-4" />}
-                  label="Best streak"
-                  value="Maya holds 4 straight hits"
+                  label={t("groupHub.summaryCards.streak.label")}
+                  value={t("groupHub.summaryCards.streak.value")}
                 />
                 <SummaryCard
                   icon={<ShieldPlus className="h-4 w-4" />}
-                  label="Boosts live"
-                  value="2 underdog boosts unplayed"
+                  label={t("groupHub.summaryCards.boosts.label")}
+                  value={t("groupHub.summaryCards.boosts.value")}
                 />
               </div>
             </div>
@@ -226,10 +179,10 @@ export default function GroupHub() {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-white">
-                    Opening match countdown
+                    {t("groupHub.countdown.title")}
                   </p>
                   <p className="text-sm text-foreground/[0.55]">
-                    FIFA World Cup 2026 kick-off in North America
+                    {t("groupHub.countdown.subtitle")}
                   </p>
                 </div>
                 <Siren className="h-5 w-5 text-brand" />
@@ -244,14 +197,13 @@ export default function GroupHub() {
                       {value}
                     </div>
                     <div className="mt-1 text-[10px] uppercase tracking-[0.28em] text-foreground/[0.45]">
-                      {key}
+                      {t(`groupHub.countdown.${key}`)}
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm text-brand">
-                Invite flow is structured for share links, reminder nudges, and
-                weekly reset rewards.
+                {t("groupHub.countdown.inviteNote")}
               </div>
             </div>
           </div>
@@ -262,14 +214,14 @@ export default function GroupHub() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Live leaderboard
+                  {t("groupHub.leaderboard.title")}
                 </p>
                 <p className="text-sm text-foreground/[0.55]">
-                  Ranking shifts combine predictions, ownership, and streaks.
+                  {t("groupHub.leaderboard.subtitle")}
                 </p>
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-foreground/[0.55]">
-                Updated after every goal event
+                {t("groupHub.leaderboard.updated")}
               </span>
             </div>
             <div className="space-y-3">
@@ -304,7 +256,7 @@ export default function GroupHub() {
                           : "text-rose-300",
                       )}
                     >
-                      {entry.movement} this matchday
+                      {entry.movement} {t("groupHub.leaderboard.thisMatchday")}
                     </p>
                   </div>
                 </div>
@@ -319,16 +271,18 @@ export default function GroupHub() {
                   <Zap className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold text-white">Weekly rivalry</p>
+                  <p className="font-semibold text-white">
+                    {t("groupHub.rivalry.title")}
+                  </p>
                   <p className="text-sm text-foreground/[0.55]">
-                    Head-to-head micro reward keeps the table alive.
+                    {t("groupHub.rivalry.subtitle")}
                   </p>
                 </div>
               </div>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between text-sm text-foreground/62">
                   <span>Maya R.</span>
-                  <span>vs</span>
+                  <span>{t("groupHub.rivalry.vs")}</span>
                   <span>Leo V.</span>
                 </div>
                 <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -351,8 +305,7 @@ export default function GroupHub() {
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-foreground/[0.68]">
-                  Winner unlocks a weekly reset chest with streak insurance for
-                  the next slate.
+                  {t("groupHub.rivalry.winnerNote")}
                 </p>
               </div>
             </div>
@@ -361,19 +314,22 @@ export default function GroupHub() {
               <div className="mb-4 flex items-center gap-3">
                 <TimerReset className="h-5 w-5 text-brandAlt" />
                 <div>
-                  <p className="font-semibold text-white">Scoring pulse</p>
+                  <p className="font-semibold text-white">
+                    {t("groupHub.scoringPulse.title")}
+                  </p>
                   <p className="text-sm text-foreground/[0.55]">
-                    Modular rules active for this group size.
+                    {t("groupHub.scoringPulse.subtitle")}
                   </p>
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <RuleChip label="Exact score" value="+8 pts" />
-                <RuleChip label="Correct winner" value="+3 pts" />
-                <RuleChip label="Goal difference" value="+2 pts" />
-                <RuleChip label="Team win bonus" value="+4 pts" />
-                <RuleChip label="Upset pick" value="+5 to +12" />
-                <RuleChip label="Power-up token" value="Double or underdog" />
+                {scoringRules.map((rule) => (
+                  <RuleChip
+                    key={rule.label}
+                    label={rule.label}
+                    value={rule.value}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -383,9 +339,11 @@ export default function GroupHub() {
           <div className="soft-card rounded-[1.75rem] p-5 md:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-white">Prediction slate</p>
+                <p className="font-semibold text-white">
+                  {t("groupHub.predictionSlate.title")}
+                </p>
                 <p className="text-sm text-foreground/[0.55]">
-                  Match cards fuse predictions with ownership swings.
+                  {t("groupHub.predictionSlate.subtitle")}
                 </p>
               </div>
               <Button
@@ -393,11 +351,11 @@ export default function GroupHub() {
                 variant="ghost"
                 className="rounded-full border border-white/10 bg-white/5 px-4 text-sm text-white hover:bg-white/10"
               >
-                <Link to="/live">Open live route</Link>
+                <Link to="/live">{t("groupHub.predictionSlate.openLive")}</Link>
               </Button>
             </div>
             <div className="space-y-3">
-              {fixtures.map((fixture) => (
+              {fixturesList.map((fixture) => (
                 <div
                   key={fixture.match}
                   className="rounded-[1.45rem] border border-white/10 bg-white/5 p-4"
@@ -418,13 +376,13 @@ export default function GroupHub() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-foreground/74">
                       <p className="mb-1 text-xs uppercase tracking-[0.2em] text-foreground/40">
-                        Your pick
+                        {t("groupHub.predictionSlate.yourPick")}
                       </p>
                       {fixture.prediction}
                     </div>
                     <div className="rounded-2xl border border-brand/20 bg-brand/10 px-4 py-3 text-sm text-brand">
                       <p className="mb-1 text-xs uppercase tracking-[0.2em] text-brand/60">
-                        Ownership impact
+                        {t("groupHub.predictionSlate.ownershipImpact")}
                       </p>
                       {fixture.ownershipBoost}
                     </div>
@@ -437,9 +395,11 @@ export default function GroupHub() {
           <div className="soft-card rounded-[1.75rem] p-5 md:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-white">What-if simulator</p>
+                <p className="font-semibold text-white">
+                  {t("groupHub.whatIf.title")}
+                </p>
                 <p className="text-sm text-foreground/[0.55]">
-                  Contextual insights make every live event feel personal.
+                  {t("groupHub.whatIf.subtitle")}
                 </p>
               </div>
               <span className="rounded-full border border-brandAlt/20 bg-brandAlt/10 px-3 py-1 text-xs text-brandAlt">
@@ -448,7 +408,7 @@ export default function GroupHub() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {scenarioTabs.map((item) => (
+              {scenarioTabsList.map((item) => (
                 <button
                   key={item.key}
                   type="button"
@@ -493,14 +453,16 @@ export default function GroupHub() {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-white">Team ownership board</p>
+                <p className="font-semibold text-white">
+                  {t("groupHub.draftBoard.title")}
+                </p>
                 <p className="text-sm text-foreground/[0.55]">
-                  Snake draft creates identity and emotional stakes.
+                  {t("groupHub.draftBoard.subtitle")}
                 </p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {draftBoard.map((entry) => (
+              {draftEntries.map((entry) => (
                 <div
                   key={entry}
                   className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground/74"
@@ -517,30 +479,22 @@ export default function GroupHub() {
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-white">Engagement loop</p>
+                <p className="font-semibold text-white">
+                  {t("groupHub.engagementLoop.title")}
+                </p>
                 <p className="text-sm text-foreground/[0.55]">
-                  Built for invites, retention nudges, and daily matchday
-                  return.
+                  {t("groupHub.engagementLoop.subtitle")}
                 </p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <InsightCard
-                title="Invite momentum"
-                description="3 dormant friends can rejoin with one-tap share links and seeded draft spots."
-              />
-              <InsightCard
-                title="Weekly catch-up"
-                description="Trailing players still chase micro rewards and rivalry wins even when the season table stretches."
-              />
-              <InsightCard
-                title="Notification hooks"
-                description="Ready for reminders on lock deadlines, rank swings, and power-up opportunities."
-              />
-              <InsightCard
-                title="League expansion"
-                description="Rule cards are modular, so the same shell can power other tournaments and sports."
-              />
+              {engagementInsights.map((insight) => (
+                <InsightCard
+                  key={insight.title}
+                  title={insight.title}
+                  description={insight.description}
+                />
+              ))}
             </div>
           </div>
         </div>

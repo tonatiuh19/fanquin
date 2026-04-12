@@ -61,7 +61,7 @@
     ],
     "matchdayPulse": {
       "title": "Matchday pulse",
-      "subtitle": "World Cup Crew · 8 players · Friends Mode",
+      "subtitle": "World Cup Crew · Friends Mode · Live",
       "badge": "Draft & bonus ready"
     },
     "previewCards": {
@@ -497,7 +497,8 @@
       "maxMembersLabel": "Max members",
       "members": "members",
       "bonusLabel": "Bonus criteria",
-      "bonusCount": "{{count}} active"
+      "bonusCount": "{{count}} active",
+      "dismiss": "Dismiss"
     },
     "step5": {
       "title": "Your quiniela is live!",
@@ -512,18 +513,22 @@
     "modes": {
       "casual": {
         "title": "Casual",
+        "audience": "2 – 5 players",
         "description": "Simple picks and random team assignment. Perfect for family and quick office sweeps."
       },
       "friends": {
         "title": "Friends",
+        "audience": "6 – 12 players",
         "description": "Snake draft ownership, upset bonuses, streaks, and weekly rivalries. Built for banter."
       },
       "league": {
         "title": "League",
+        "audience": "13 – 100 players",
         "description": "ELO ranking, balanced team tiers, survivor mode, and brackets for schools and offices."
       },
       "competitive": {
         "title": "Competitive",
+        "audience": "Any size",
         "description": "Full rules, live rankings, survivor lives, and stricter scoring for serious players."
       }
     }
@@ -562,7 +567,11 @@
     "otpWrong": "Incorrect code. Please try again.",
     "verify": "Verify & continue",
     "changeEmail": "Use a different email",
-    "back": "Go back"
+    "back": "Go back",
+    "disclaimer": "By continuing, you agree to our",
+    "disclaimerAnd": "and the",
+    "termsLink": "Terms and Conditions",
+    "privacyLink": "Privacy Notice"
   },
   "profile": {
     "badge": "Account",
