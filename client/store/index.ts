@@ -7,6 +7,7 @@ import liveReducer from "./slices/liveSlice";
 import predictionsReducer from "./slices/predictionsSlice";
 import survivorReducer from "./slices/survivorSlice";
 import notificationsReducer from "./slices/notificationsSlice";
+import legalReducer from "./slices/legalSlice";
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     predictions: predictionsReducer,
     survivor: survivorReducer,
     notifications: notificationsReducer,
+    legal: legalReducer,
   },
 });
 

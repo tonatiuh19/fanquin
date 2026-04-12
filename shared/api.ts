@@ -368,3 +368,18 @@ export interface DraftState {
 export interface SubmitPickRequest {
   team_id: string;
 }
+
+// ── Legal Documents ────────────────────────────────────────────
+export interface LegalDocument {
+  id: string;
+  type: "privacy" | "terms";
+  version: string;
+  title: string;
+  content: string;
+  jurisdiction: string;
+  effective_date: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type GetLegalDocResponse = ApiSuccess<LegalDocument>;

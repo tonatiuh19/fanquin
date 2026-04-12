@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Loader2,
@@ -294,6 +295,25 @@ export function OtpAuthModal({
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {t("auth.continue")}
                 </Button>
+                <p className="text-center text-xs text-foreground/35">
+                  Al continuar, aceptas nuestros{" "}
+                  <Link
+                    to="/terms"
+                    className="underline underline-offset-2 hover:text-foreground/70 transition"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Términos y Condiciones
+                  </Link>{" "}
+                  y el{" "}
+                  <Link
+                    to="/privacy"
+                    className="underline underline-offset-2 hover:text-foreground/70 transition"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Aviso de Privacidad
+                  </Link>
+                  .
+                </p>
               </>
             )}
 

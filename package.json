@@ -24,6 +24,7 @@
     "nodemailer": "^8.0.4",
     "react-helmet-async": "^3.0.0",
     "react-i18next": "^17.0.1",
+    "react-markdown": "^10.1.0",
     "react-phone-number-input": "^3.4.16",
     "react-redux": "^9.2.0",
     "yup": "^1.7.1",

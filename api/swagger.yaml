@@ -811,6 +811,36 @@ components:
           type: string
           format: date-time
 
+    LegalDocument:
+      type: object
+      required: [id, type, version, title, content, jurisdiction, effective_date, is_active, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [privacy, terms]
+        version:
+          type: string
+          example: "1.0"
+        title:
+          type: string
+        content:
+          type: string
+          description: Document body in Markdown format
+        jurisdiction:
+          type: string
+          example: MX
+        effective_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
 # ─────────────────────────────────────────────────────────────────
 # PATHS
 # ─────────────────────────────────────────────────────────────────
@@ -2028,4 +2058,35 @@ paths:
         "404":
           $ref: "#/components/schemas/ApiError"
         "410":
+          $ref: "#/components/schemas/ApiError"
+
+  # ── Legal Documents ────────────────────────────────────────────
+  /api/legal/{type}:
+    get:
+      tags: [Legal]
+      summary: Get the active legal document by type
+      description: Returns the currently active Privacy Policy (privacy) or Terms & Conditions (terms). No authentication required.
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [privacy, terms]
+          description: Document type
+      responses:
+        "200":
+          description: Legal document returned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LegalDocument"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "404":
           $ref: "#/components/schemas/ApiError"

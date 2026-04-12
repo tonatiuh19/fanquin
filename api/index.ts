@@ -5723,6 +5723,35 @@ export function createApp() {
   app.get("/api/auth/validate", requireAuth, handleValidateSession);
   app.post("/api/auth/logout", handleLogout);
 
+  // ── Legal Documents ──────────────────────────────────────────
+  app.get("/api/legal/:type", async (req, res) => {
+    const { type } = req.params;
+    if (type !== "privacy" && type !== "terms") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid document type" });
+    }
+    try {
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from("legal_documents")
+        .select("*")
+        .eq("type", type)
+        .eq("is_active", true)
+        .single();
+      if (error || !data) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Document not found" });
+      }
+      return res.json({ success: true, data });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
   return app;
 }
 

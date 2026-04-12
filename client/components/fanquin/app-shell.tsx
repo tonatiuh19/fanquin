@@ -341,12 +341,26 @@ export function AppShell() {
         {/* Copyright bar */}
         <div className="border-t border-white/[0.06] py-4">
           <div className="container flex flex-col items-center justify-between gap-2 sm:flex-row">
-            <p className="text-xs text-foreground/30">
-              © 2026 FanQuin.{" "}
-              {i18n.language === "es"
-                ? "Todos los derechos reservados."
-                : "All rights reserved."}
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-xs text-foreground/30">
+                © 2026 FanQuin.{" "}
+                {i18n.language === "es"
+                  ? "Todos los derechos reservados."
+                  : "All rights reserved."}
+              </p>
+              <Link
+                to="/privacy"
+                className="text-xs text-foreground/25 hover:text-foreground/60 transition"
+              >
+                Privacidad
+              </Link>
+              <Link
+                to="/terms"
+                className="text-xs text-foreground/25 hover:text-foreground/60 transition"
+              >
+                Términos
+              </Link>
+            </div>
             <a
               href="https://intelinota.com"
               target="_blank"

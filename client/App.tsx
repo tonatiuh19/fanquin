@@ -34,6 +34,7 @@ import DraftPage from "./pages/DraftPage";
 import JoinPage from "./pages/JoinPage";
 import LivePage from "./pages/LivePage";
 import ScoringPage from "./pages/ScoringPage";
+import LegalDocPage from "./pages/LegalDocPage";
 import { useTranslation } from "react-i18next";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,14 @@ const App = () => {
                     <Route path="/live" element={<LivePage />} />
                   </Route>
                   <Route path="/scoring" element={<ScoringPage />} />
+                  <Route
+                    path="/privacy"
+                    element={<LegalDocPage type="privacy" />}
+                  />
+                  <Route
+                    path="/terms"
+                    element={<LegalDocPage type="terms" />}
+                  />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
