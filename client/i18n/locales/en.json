@@ -24,7 +24,8 @@
       "privateGroups": "Private groups",
       "liveMoments": "Live moments",
       "scoringEngine": "Scoring engine"
-    }
+    },
+    "gamblingDisclaimer": "FanQuin is a free-to-play prediction game for entertainment purposes only. No real money, no wagering."
   },
   "mobileNav": {
     "home": "Home",

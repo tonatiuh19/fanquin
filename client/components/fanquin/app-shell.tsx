@@ -287,10 +287,10 @@ export function AppShell() {
                   {t("nav.signIn")}
                 </Button>
                 <Button
+                  asChild
                   className="rounded-full border border-brand/30 bg-brand px-5 text-sm font-semibold text-slate-950 shadow-glow transition hover:bg-brandStrong"
-                  onClick={() => setAuthOpen(true)}
                 >
-                  {t("nav.createGroup")}
+                  <Link to="/groups/new">{t("nav.createGroup")}</Link>
                 </Button>
               </>
             )}
@@ -372,6 +372,9 @@ export function AppShell() {
               por intelinota.com
             </a>
           </div>
+          <p className="mt-2 text-center text-[0.68rem] text-foreground/20">
+            {t("footer.gamblingDisclaimer")}
+          </p>
         </div>
       </footer>
 

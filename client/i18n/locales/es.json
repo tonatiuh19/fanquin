@@ -24,7 +24,8 @@
       "privateGroups": "Grupos privados",
       "liveMoments": "Momentos en vivo",
       "scoringEngine": "Motor de puntuación"
-    }
+    },
+    "gamblingDisclaimer": "FanQuin es un juego de predicciones gratuito solo con fines de entretenimiento. Sin dinero real, sin apuestas."
   },
   "mobileNav": {
     "home": "Inicio",
