@@ -66,35 +66,55 @@ Each Supabase project is a fully independent Postgres database with its own URL 
 
 ## 4. Import the Schema
 
-### Option A — Supabase SQL Editor (recommended for first setup)
+> **Migration structure**
+>
+> | Path                   | Purpose                                                             |
+> | ---------------------- | ------------------------------------------------------------------- |
+> | `database/schema.sql`  | **Full base schema** — run once on a blank DB                       |
+> | `database/migrations/` | **Incremental changes** — run on top of the schema for existing DBs |
+>
+> `database/` is the single source of truth. `supabase/migrations/` is only used by the Supabase CLI for local dev.
 
-1. In the dashboard open **SQL Editor → New query**
-2. Open `database/schema.sql` from this repo
-3. Paste the entire file content into the editor
-4. Click **Run** — it will create all tables, enums, indexes, RLS policies, triggers, and seed the WC2026 competition row
+### Step 1 — Import the full base schema (blank DB)
 
-### Option B — Supabase CLI (recommended for teams / CI)
+**Option A — Supabase SQL Editor (recommended)**
 
-```bash
-# Install the CLI
-brew install supabase/tap/supabase
+1. Dashboard → **SQL Editor → New query**
+2. Open `database/schema.sql`, paste the full content, click **Run**
 
-# Log in
-supabase login
-
-# Link to your remote project (get the project ref from Project Settings → General)
-supabase link --project-ref YOUR_PROJECT_REF
-
-# Push the schema
-supabase db push --file database/schema.sql
-```
-
-### Option C — psql direct connection
+**Option B — psql**
 
 ```bash
 psql "postgresql://postgres:YOUR_DB_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" \
   -f database/schema.sql
 ```
+
+**Option C — Supabase CLI**
+
+```bash
+brew install supabase/tap/supabase
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push --file database/schema.sql
+```
+
+### Step 2 — Apply pending migrations (existing DB)
+
+After the base schema is in place, run the single pending migration file that adds all incremental changes:
+
+```sql
+-- Paste into Supabase SQL Editor (Dashboard → SQL Editor → New query)
+-- Or: psql ... -f database/migrations/20260410_000000_external_ids_and_test_league.sql
+```
+
+File: `database/migrations/20260410_000000_external_ids_and_test_league.sql`
+
+This migration adds:
+
+- `external_id` columns on `competitions`, `teams`, `matches` (football-data.org sync)
+- `last_synced_at` on `competitions` and `matches`
+- `is_test` flag on `competitions` and `groups`
+- The complete **FanQuin Test League** seed data (see section 10)
 
 ---
 
@@ -240,21 +260,98 @@ return () => {
 
 ## 10. Database Migrations
 
-Future schema changes go in `database/migrations/` with a timestamp prefix:
+`database/migrations/` is the **only** folder for schema changes. Never edit `database/schema.sql` directly — add a new migration file instead.
+
+File naming: `YYYYMMDD_HHMMSS_short_description.sql`
 
 ```
 database/migrations/
-  20260328_120000_add_elo_history.sql
-  20260401_090000_add_daily_challenges.sql
+  20260410_000000_external_ids_and_test_league.sql   ← current pending migration
+  20260501_120000_your_next_change.sql               ← future changes go here
 ```
 
-Apply them with:
+Apply a migration:
 
 ```bash
-supabase db push --file database/migrations/20260328_120000_add_elo_history.sql
+# Option A — SQL Editor: paste file contents and click Run
+
+# Option B — psql
+psql "postgresql://postgres:PASSWORD@db.REF.supabase.co:5432/postgres" \
+  -f database/migrations/20260410_000000_external_ids_and_test_league.sql
+
+# Option C — Supabase CLI
+supabase db push --file database/migrations/20260410_000000_external_ids_and_test_league.sql
 ```
 
-Or in the SQL Editor for quick one-off changes.
+---
+
+## 11. Test League
+
+The pending migration seeds a **FanQuin Test League** that lets you test all game modes and match states in any environment, including production.
+
+### Game modes to test
+
+| Invite code | Mode          | What it tests                             |
+| ----------- | ------------- | ----------------------------------------- |
+| `TSTCASUL`  | `casual`      | Prediction-only scoring, no ELO, no draft |
+| `TSTFRNDS`  | `friends`     | Snake draft + full scoring + ownership    |
+| `TSTLEAGU`  | `league`      | Balanced-tier draft + ELO k=32            |
+| `TSTCMPET`  | `competitive` | 3 survivor lives + ELO k=32               |
+| `TSTGLOBL`  | `global`      | 200-member lobby + ELO k=16               |
+
+### Match states available immediately after migration
+
+| Match                         | Status              | Prediction window              |
+| ----------------------------- | ------------------- | ------------------------------ |
+| Alpha FC vs Beta United       | `completed` (2-1)   | —                              |
+| Gamma City vs Delta SC        | `live`              | Closed (kicked off 30 min ago) |
+| Epsilon Real vs Zeta Athletic | `scheduled`         | **Open** (kicks off in 2 days) |
+| Eta Rovers vs Theta Club      | `scheduled`         | **Closed** (kicks off in 2h)   |
+| Alpha FC vs Epsilon Real      | `scheduled` (Final) | Open (kicks off in 7 days)     |
+
+### Toggling visibility
+
+By default the test league is **hidden** from regular users (`is_test = true`). The API filters it out of `/api/competitions` and the default live feed.
+
+**Expose to all users** (e.g. for load testing in production):
+
+```sql
+UPDATE public.competitions
+SET    is_test = false
+WHERE  id = 'ffffffff-0000-0000-0000-000000000001';
+```
+
+**Hide again**:
+
+```sql
+UPDATE public.competitions
+SET    is_test = true
+WHERE  id = 'ffffffff-0000-0000-0000-000000000001';
+```
+
+### Resetting match states
+
+Match dates are relative to when the migration was run. After a few days some states will go stale. Use the admin endpoint to re-anchor them to now:
+
+```bash
+# Reset match dates only
+curl -X POST https://YOUR_DOMAIN/api/admin/test-league/reset \
+  -H "X-Admin-Secret: YOUR_ADMIN_SECRET"
+
+# Reset match dates AND clear all predictions + member stats
+curl -X POST "https://YOUR_DOMAIN/api/admin/test-league/reset?clear_data=true" \
+  -H "X-Admin-Secret: YOUR_ADMIN_SECRET"
+```
+
+Add `ADMIN_SECRET=your-secret` to `.env` before using this endpoint.
+
+### Accessing test groups directly
+
+Join any test group via invite code on the `/join` page or directly:
+
+```
+https://YOUR_DOMAIN/join?code=TSTFRNDS
+```
 
 ---
 

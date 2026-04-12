@@ -5,6 +5,8 @@ import type {
   Group,
   GroupMode,
   CreateGroupRequest,
+  BonusCriteria,
+  BonusCriterionKey,
 } from "@shared/api";
 import type { RootState } from "../index";
 
@@ -61,6 +63,8 @@ export interface GroupWizardState {
   competitionId: string;
   draftType: "snake" | "random" | "balanced_tier";
   maxMembers: number;
+  // Step 3: Bonus criteria
+  bonusCriteria: Partial<BonusCriteria>;
   // Competitions list
   competitions: Competition[];
   competitionsLoading: boolean;
@@ -79,6 +83,15 @@ const initialState: GroupWizardState = {
   competitionId: "",
   draftType: "snake",
   maxMembers: 20,
+  bonusCriteria: {
+    enabled: [],
+    btts_pts: 2,
+    total_goals_over_pts: 2,
+    total_goals_threshold: 2.5,
+    ft_winner_pts: 2,
+    ht_winner_pts: 2,
+    clean_sheet_pts: 1,
+  },
   competitions: [],
   competitionsLoading: false,
   submitting: false,
@@ -113,6 +126,27 @@ const groupWizardSlice = createSlice({
     },
     setMaxMembers(state, action: PayloadAction<number>) {
       state.maxMembers = action.payload;
+    },
+    toggleBonusCriterion(state, action: PayloadAction<BonusCriterionKey>) {
+      const key = action.payload;
+      const enabled = state.bonusCriteria.enabled ?? [];
+      if (enabled.includes(key)) {
+        state.bonusCriteria.enabled = enabled.filter((k) => k !== key);
+      } else {
+        state.bonusCriteria.enabled = [...enabled, key];
+      }
+    },
+    setBonusCriterionPts(
+      state,
+      action: PayloadAction<{
+        key: keyof Omit<BonusCriteria, "enabled">;
+        value: number;
+      }>,
+    ) {
+      (state.bonusCriteria as any)[action.payload.key] = action.payload.value;
+    },
+    setBonusThreshold(state, action: PayloadAction<number>) {
+      state.bonusCriteria.total_goals_threshold = action.payload;
     },
     setSessionToken(state, action: PayloadAction<string>) {
       state.sessionToken = action.payload;
@@ -150,7 +184,7 @@ const groupWizardSlice = createSlice({
       .addCase(createGroup.fulfilled, (state, action) => {
         state.submitting = false;
         state.createdGroup = action.payload;
-        state.step = 4;
+        state.step = 5;
       })
       .addCase(createGroup.rejected, (state, action) => {
         state.submitting = false;
@@ -166,6 +200,9 @@ export const {
   setCompetitionId,
   setDraftType,
   setMaxMembers,
+  toggleBonusCriterion,
+  setBonusCriterionPts,
+  setBonusThreshold,
   setSessionToken,
   resetWizard,
   clearError,

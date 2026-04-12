@@ -5,12 +5,17 @@ import { PageMeta } from "@/components/fanquin/page-meta";
 import {
   ArrowRight,
   BarChart3,
+  Bell,
   BellRing,
   Flame,
   Gauge,
   LogIn,
   ShieldPlus,
+  Shuffle,
+  SlidersHorizontal,
+  Smartphone,
   Sparkles,
+  Star,
   Swords,
   Target,
   Trophy,
@@ -61,6 +66,11 @@ export default function Index() {
   const productValues = t("index.productDirection.values", {
     returnObjects: true,
   }) as Array<{ title: string; description: string }>;
+  const productValueIcons = [Trophy, Shuffle, Star, SlidersHorizontal];
+  const mobileFeatures = t("index.mobileApp.features", {
+    returnObjects: true,
+  }) as Array<{ text: string }>;
+  const mobileFeatureIcons = [Bell, Zap, BarChart3, Smartphone];
 
   return (
     <div className="container py-6 md:py-10">
@@ -70,8 +80,29 @@ export default function Index() {
         canonicalPath="/"
       />
       <div className="space-y-6 md:space-y-8">
-        <section className="glass-panel overflow-hidden rounded-[2rem] px-5 py-6 md:px-8 md:py-8 xl:px-10 xl:py-10">
-          <div className="grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-center">
+        <section className="glass-panel relative overflow-hidden rounded-[2rem] px-5 py-6 md:px-8 md:py-8 xl:px-10 xl:py-10">
+          {/* ── Video / image background ──────────────────────── */}
+          <div className="pointer-events-none absolute inset-0 select-none">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover opacity-[0.18] transition-opacity duration-1000"
+              poster="https://images.pexels.com/videos/34605063/pictures/preview-0.jpg"
+            >
+              <source
+                src="https://videos.pexels.com/video-files/34605063/14665832_2560_1440_30fps.mp4"
+                type="video/mp4"
+              />
+            </video>
+            {/* Left-to-right fade so text column stays fully readable */}
+            <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-background/20" />
+            {/* Bottom fade to blend into next section */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+          </div>
+
+          <div className="relative z-10 grid gap-8 xl:grid-cols-[1.08fr_0.92fr] xl:items-center">
             <div className="space-y-6">
               <span className="section-label w-fit">{t("index.badge")}</span>
               <div className="space-y-4">
@@ -384,13 +415,82 @@ export default function Index() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {productValues.map((v) => (
+              {productValues.map((v, i) => (
                 <ValueCard
                   key={v.title}
+                  icon={productValueIcons[i]}
                   title={v.title}
                   description={v.description}
                 />
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Mobile app coming soon ── */}
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-8 md:px-8 md:py-10">
+          {/* background glow */}
+          <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-brandAlt/10 blur-3xl" />
+
+          <div className="relative grid gap-8 xl:grid-cols-[1fr_auto] xl:items-center">
+            <div className="space-y-5">
+              <span className="section-label w-fit">
+                {t("index.mobileApp.badge")}
+              </span>
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                {t("index.mobileApp.title")}
+              </h2>
+              <p className="max-w-2xl text-base leading-7 text-foreground/[0.72]">
+                {t("index.mobileApp.description")}
+              </p>
+
+              <div className="flex flex-wrap gap-3 pt-1">
+                {/* iOS pill */}
+                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-foreground/60">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-4 w-4 shrink-0 text-white/70"
+                  >
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+                  </svg>
+                  {t("index.mobileApp.iosLabel")} —{" "}
+                  {t("index.mobileApp.comingSoon")}
+                </div>
+                {/* Android pill */}
+                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-foreground/60">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="h-4 w-4 shrink-0 text-brand/80"
+                  >
+                    <path d="M17.523 15.341a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-11.046 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2M17.8 10l1.4-2.566A.5.5 0 1 0 18.35 7l-1.421 2.604A8.16 8.16 0 0 0 12 8.5a8.16 8.16 0 0 0-4.929 1.104L5.65 7a.5.5 0 1 0-.85.434L6.2 10C4.246 11.178 3 13.127 3 15.5h18c0-2.373-1.246-4.322-3.2-5.5z" />
+                  </svg>
+                  {t("index.mobileApp.androidLabel")} —{" "}
+                  {t("index.mobileApp.comingSoon")}
+                </div>
+              </div>
+            </div>
+
+            {/* feature chips */}
+            <div className="grid grid-cols-2 gap-3 xl:w-72">
+              {mobileFeatures.map((f, i) => {
+                const FeatIcon = mobileFeatureIcons[i];
+                return (
+                  <div
+                    key={f.text}
+                    className="flex flex-col gap-2 rounded-[1.4rem] border border-white/10 bg-white/5 p-4"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/8 text-brand">
+                      {FeatIcon && <FeatIcon className="h-4 w-4" />}
+                    </div>
+                    <p className="text-sm leading-5 text-foreground/[0.72]">
+                      {f.text}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -424,12 +524,19 @@ function PreviewCard({
 function ValueCard({
   title,
   description,
+  icon: Icon,
 }: {
   title: string;
   description: string;
+  icon?: React.ElementType;
 }) {
   return (
     <div className="rounded-[1.45rem] border border-white/10 bg-white/5 p-4">
+      {Icon && (
+        <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/8 text-brand">
+          <Icon className="h-4 w-4" />
+        </div>
+      )}
       <p className="text-lg font-semibold text-white">{title}</p>
       <p className="mt-2 text-sm leading-6 text-foreground/[0.68]">
         {description}

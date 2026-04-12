@@ -4,6 +4,9 @@ import authReducer from "./slices/authSlice";
 import groupsReducer from "./slices/groupsSlice";
 import draftReducer from "./slices/draftSlice";
 import liveReducer from "./slices/liveSlice";
+import predictionsReducer from "./slices/predictionsSlice";
+import survivorReducer from "./slices/survivorSlice";
+import notificationsReducer from "./slices/notificationsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +15,9 @@ export const store = configureStore({
     groups: groupsReducer,
     draft: draftReducer,
     live: liveReducer,
+    predictions: predictionsReducer,
+    survivor: survivorReducer,
+    notifications: notificationsReducer,
   },
 });
 

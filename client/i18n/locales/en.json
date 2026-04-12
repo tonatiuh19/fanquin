@@ -44,65 +44,65 @@
     },
     "stats": [
       {
-        "label": "Group sizes supported",
-        "value": "5+",
-        "note": "Friends, classrooms, offices"
+        "label": "Max single prediction",
+        "value": "+5 pts",
+        "note": "Exact scoreline — correct winner earns +3"
       },
       {
-        "label": "Scoring layers",
-        "value": "6",
-        "note": "Picks, ownership, boosts"
+        "label": "Draft types",
+        "value": "3",
+        "note": "Snake live room, random draw, or balanced tiers"
       },
       {
-        "label": "Always on",
-        "value": "24/7",
-        "note": "Live swings every matchday"
+        "label": "Bonus criteria",
+        "value": "5",
+        "note": "BTTS, half-time, total goals, FT winner, clean sheet"
       }
     ],
     "matchdayPulse": {
       "title": "Matchday pulse",
-      "subtitle": "World Cup Crew · 8 players · medium mode",
-      "badge": "Live loop ready"
+      "subtitle": "World Cup Crew · 8 players · Friends Mode",
+      "badge": "Draft & bonus ready"
     },
     "previewCards": {
       "leaderboard": {
-        "title": "Leaderboard swing",
-        "description": "A Mexico opener moves Leo to first and triggers a +12 ownership swing."
+        "title": "Live scoring breakdown",
+        "description": "Exact score: +5 pts. Correct winner: +3. Goal difference: +2. Bonus criteria stack on top of every pick."
       },
       "weeklyDuel": {
-        "title": "Weekly duel",
-        "description": "Maya vs Leo keeps a weekly trophy in play even if the season table stretches."
+        "title": "Snake draft live room",
+        "description": "Each player picks a team in real time. Order reverses every round — strategy guaranteed."
       },
       "streakReward": {
-        "title": "Streak reward",
-        "description": "Four straight hits unlock streak insurance for the next slate."
+        "title": "Bonus predictions",
+        "description": "BTTS, half-time result, total goals over/under, FT winner, or clean sheet — earn extra pts on every match."
       },
       "whatIf": {
-        "title": "What-if engine",
-        "description": "A live scenario layer explains how every goal changes the group story."
+        "title": "Prediction window",
+        "description": "Every match has its own lock time. Miss kickoff and the slot is gone — no late entries."
       }
     },
-    "ownershipDraft": "Ownership draft",
-    "boostBalance": "Boost balance",
-    "boostMexico": "Underdog boost available for Mexico vs Japan",
-    "boostUSA": "Double points token recommended for USA vs Netherlands",
+    "ownershipDraft": "Team ownership draft",
+    "boostBalance": "Bonus predictions",
+    "boostMexico": "BTTS: both teams score → +2 pts if correct",
+    "boostUSA": "Over 2.5 total goals → +2 pts if correct",
     "pillarsSection": "Why FanQuin hits different",
     "pillars": [
       {
         "title": "Your own quiniela, in minutes",
-        "description": "Create a private group, invite friends or family, and start predicting match scores right away. No spreadsheets, no confusion."
+        "description": "Create a private group, pick your mode and scoring config, invite with a single link. No spreadsheets, no confusion — just a code your friends tap once."
       },
       {
-        "title": "Own a national team",
-        "description": "Snake draft or random assignment gives every player a flag to fight for — your team's wins score you points all tournament long."
+        "title": "3 ways to assign teams",
+        "description": "Live snake draft room where each player picks in real time. Instant random draw settled before kickoff. Balanced tier assignment that spreads strong and weak teams fairly."
       },
       {
-        "title": "Rivalry that stings",
-        "description": "Weekly 1v1 matchups and live leaderboard swings keep every player emotionally invested, even when the season table stretches."
+        "title": "Bonus predictions on every match",
+        "description": "Group admin enables up to 5 bonus criteria: BTTS, half-time result, total goals over/under, full-time winner, or clean sheet. Each correct bonus stacks points on top of your score pick."
       },
       {
-        "title": "Boosts and streaks",
-        "description": "Underdog boosts, double-point tokens, and streak rewards give every matchday a fresh reason to care."
+        "title": "Streaks and custom scoring",
+        "description": "Three consecutive correct picks unlock a streak bonus. Admins tune every point value — exact score, team win, clean sheet, streak threshold — to match their crew."
       }
     ],
     "groupModesSection": "A mode for every crew",
@@ -110,81 +110,107 @@
     "groupModes": [
       {
         "title": "Casual — Friends & Family",
-        "audience": "2–5 players",
-        "description": "Simple picks and random team assignment. Perfect for a family WhatsApp group or a quick office sweep.",
-        "features": ["One-tap invite link", "Random team draw", "Weekly winner"]
+        "audience": "2–10 players",
+        "description": "Simple picks and random team assignment. Perfect for a family WhatsApp group or a quick office sweep. Turn on optional bonus criteria to spice things up.",
+        "features": [
+          "One-tap invite link",
+          "Random team draw",
+          "Optional bonus criteria"
+        ]
       },
       {
         "title": "Friends Mode",
-        "audience": "6–12 players",
-        "description": "Snake draft ownership, upset bonuses, streaks, and 1v1 weekly rivalries. This is where the banter lives.",
-        "features": ["Snake draft", "Weekly rivalries", "Boosts & streaks"]
+        "audience": "6–20 players",
+        "description": "Live snake draft room, all 5 bonus criteria, streak bonuses, and 1v1 weekly rivalries. This is where the banter lives.",
+        "features": [
+          "Snake draft live room",
+          "All 5 bonus criteria",
+          "Streak bonuses"
+        ]
       },
       {
         "title": "League & Classroom",
         "audience": "13–100 players",
-        "description": "ELO ranking, balanced team tiers, survivor mode, and bracket extensions for schools, offices, and big groups.",
-        "features": ["Balanced team tiers", "ELO ranking", "Survivor brackets"]
+        "description": "Balanced tier draft, ELO ranking, survivor mode, and fully configurable scoring for schools, offices, and big groups.",
+        "features": [
+          "Balanced tier draft",
+          "ELO ranking",
+          "Custom scoring config"
+        ]
       }
     ],
     "scoringSection": "Scoring engine",
     "scoringLayers": [
       {
-        "title": "Prediction accuracy",
-        "value": "+8 max",
-        "description": "Exact score, correct winner, and goal margin stack cleanly."
+        "title": "Exact score",
+        "value": "+5 pts",
+        "description": "Full marks for nailing the precise scoreline. Correct winner earns +3. Goal difference adds +2. All three can stack on a single pick."
       },
       {
-        "title": "Ownership rewards",
-        "value": "+4 to +12",
-        "description": "Wins, goals, and special team moments feed into your private-group total."
+        "title": "Team ownership",
+        "value": "+4 / +1 / +3",
+        "description": "Your team's wins (+4 pts), every goal they score (+1 pt each), and clean sheets (+3 pts) accumulate across every match in the tournament."
       },
       {
-        "title": "Upset bonus",
-        "value": "Dynamic",
-        "description": "Low-percentage picks pay more so groups do not converge into safe, boring choices."
+        "title": "Bonus criteria",
+        "value": "Up to +9",
+        "description": "Admin enables BTTS (+2), half-time result (+2), total goals (+2), FT winner (+2), or clean sheet (+1) on top of every match pick."
       },
       {
-        "title": "Streak + boosts",
-        "value": "Momentum",
-        "description": "Consecutive hits and timed tokens produce real comeback windows."
+        "title": "Streak bonus",
+        "value": "+2 pts",
+        "description": "Hit 3+ correct picks in a row and bank a streak bonus. Keep the run alive and the pressure on everyone above you."
       }
     ],
     "retentionSection": "Built to go viral in your group chat",
     "engagementLoops": [
       {
         "title": "Share in one tap",
-        "description": "Private invite links work straight from WhatsApp, iMessage, or any group chat. No app download required to join."
+        "description": "Private invite links work straight from WhatsApp, iMessage, or any group chat. No app download, no sign-up required to join."
       },
       {
-        "title": "Every matchday is a new story",
-        "description": "Upset bonuses, leaderboard flips, and streak breaks generate shareable moments that pull everyone back into the chat."
+        "title": "Admin controls everything",
+        "description": "Group admin configures draft type, enables bonus criteria, tunes point values, and sets the member cap. Every group runs exactly how the creator wants."
       },
       {
         "title": "No one gets left behind",
-        "description": "Weekly resets and micro-win rewards keep trailing players engaged all tournament long — even from last place."
+        "description": "Bonus criteria open extra scoring windows on every match. Trailing players can close the gap with smart bonus picks even from last place."
       }
     ],
+    "mobileApp": {
+      "badge": "Web app fully live · Native app coming May 2026",
+      "title": "Play now on the web — iOS & Android app arrives May 2026",
+      "description": "FanQuin is fully functional right now in your browser. Create groups, run drafts, submit bonus predictions, and track scores — no download needed. A native iOS & Android app is launching in May with a richer mobile experience.",
+      "iosLabel": "App Store",
+      "androidLabel": "Google Play",
+      "comingSoon": "Coming soon",
+      "features": [
+        { "text": "Push alerts at prediction lock" },
+        { "text": "Live goal notifications" },
+        { "text": "Leaderboard widgets" },
+        { "text": "Optimised mobile experience" }
+      ]
+    },
     "productDirection": {
       "badge": "World Cup 2026 → and beyond",
       "title": "Start with the World Cup. Stay for every league that follows.",
       "description": "FanQuin launches with FIFA World Cup 2026 and expands into Champions League, Premier League, Liga MX, NBA, and more. The same social engine — predictions, ownership, rivalries, boosts — powers every competition.",
       "values": [
         {
-          "title": "🏆 Own your team",
-          "description": "Every player gets a national team to cheer for. Your team's goals and wins are your points."
+          "title": "Own your team",
+          "description": "Every player gets a national team through draft or random draw. Your team's wins, goals, and clean sheets score you points all tournament long."
         },
         {
-          "title": "⚔️ Weekly rivalries",
-          "description": "1v1 matchups reset every week. Even last place can get revenge — and the group chat knows it."
+          "title": "Live snake draft",
+          "description": "Snake draft opens a live room. Each player picks a team in real time, order reverses every round — strategy and banter guaranteed."
         },
         {
-          "title": "🔥 Streaks & boosts",
-          "description": "Consecutive correct picks unlock power-ups. Timed tokens and underdog boosts create real comeback windows."
+          "title": "Bonus predictions",
+          "description": "Layer up to 5 bonus criteria on every match pick: BTTS, half-time result, total goals, FT winner, or clean sheet. Admin picks which are active."
         },
         {
-          "title": "🌍 Any group, any size",
-          "description": "2-player showdowns to 100-person classrooms. Game rules automatically adapt to your group size."
+          "title": "Admin rules the group",
+          "description": "Group admin configures draft type, max members, every point value, and which bonus criteria fire. Every group is unique."
         }
       ]
     }
@@ -421,24 +447,47 @@
       "loadingCompetitions": "Loading competitions…",
       "noCompetitions": "No active competitions found.",
       "draftLabel": "Team assignment",
+      "draftOptions": {
+        "snake": {
+          "label": "Snake draft",
+          "description": "Members join a live draft room and take turns picking teams. Order reverses each round so no one always picks first."
+        },
+        "random": {
+          "label": "Random draw",
+          "description": "No draft room needed — teams are randomly assigned to all members the moment the group kicks off."
+        },
+        "balanced_tier": {
+          "label": "Balanced tiers",
+          "description": "Teams are split into top, mid, and underdog tiers. Each member gets one from every tier for a fair, competitive spread."
+        }
+      },
       "maxMembersLabel": "Maximum members"
     },
     "step3": {
-      "title": "Review your quiniela",
-      "subtitle": "Everything below will be used to create your group. Click create when you're ready.",
+      "title": "Bonus prediction criteria",
+      "subtitle": "Select optional predictions users can make for extra points. All criteria are optional — skip to continue.",
+      "skip": "All criteria are optional. You can also configure this later from the group settings."
+    },
+    "step4": {
+      "reviewTitle": "Review your quiniela",
+      "reviewSubtitle": "Everything below will be used to create your group. Click create when you're ready.",
       "nameLabel": "Group name",
       "modeLabel": "Mode",
       "competitionLabel": "Competition",
       "draftLabel": "Draft type",
       "maxMembersLabel": "Max members",
-      "members": "members"
+      "members": "members",
+      "bonusLabel": "Bonus criteria",
+      "bonusCount": "{{count}} active"
     },
-    "step4": {
+    "step5": {
       "title": "Your quiniela is live!",
       "subtitle": "{{name}} is ready. Share the invite link or code with your crew.",
       "inviteLinkTitle": "Invite link",
       "inviteCodeLabel": "Or share this code",
       "membersNote": "Up to {{max}} members can join with this link or code.",
+      "draftNightTitle": "Set a draft night",
+      "draftNightBody": "The real excitement starts before the first pick. Send the link, agree on a date and time, and let the anticipation build. A group draft night is where rivalries are born.",
       "cta": "Go to my groups"
     },
     "modes": {
@@ -555,6 +604,9 @@
     "quickActions": "Quick actions",
     "createAnother": "Create another group",
     "allMyGroups": "All my groups",
+    "predictTitle": "Predict matches",
+    "predictBody": "Submit your score picks before each match kicks off to earn points.",
+    "goPredict": "Go to matches",
     "notFound": "Group not found or you are not a member.",
     "startGroup": "Start group",
     "startGroupConfirm": "This will begin the draft phase. Members will be able to pick teams. Continue?",
@@ -581,7 +633,42 @@
     "snakeExplainExRow1": "Round 1 →   A picks · B picks · C picks",
     "snakeExplainExRow2": "Round 2 ↩   C picks · B picks · A picks",
     "snakeExplainExRow3": "Round 3 →   A picks · B picks · C picks",
-    "snakeExplainFair": "The player who picks last in one round picks first in the next — eliminating any permanent positional advantage."
+    "snakeExplainFair": "The player who picks last in one round picks first in the next — eliminating any permanent positional advantage.",
+    "eliminated": "Eliminated",
+    "survivorPanel": "Survivor Lives",
+    "survivorPanelEmpty": "No survivor data yet.",
+    "livesRemaining": "{{n}} lives remaining",
+    "eloRating": "ELO",
+    "bonusCriteriaLabel": "Bonus prediction criteria",
+    "bonusCriteriaHint": "Select optional predictions users can make for extra points. Each one adds a new question to the prediction form.",
+    "bonus": {
+      "threshold": "Threshold",
+      "btts": {
+        "label": "Both Teams to Score",
+        "hint": "+pts if user correctly predicts whether both teams score."
+      },
+      "total_goals_over": {
+        "label": "Total Goals Over/Under",
+        "hint": "+pts if user correctly predicts whether total goals exceed the threshold."
+      },
+      "ft_winner": {
+        "label": "Full-time Result",
+        "hint": "+pts if user picks the correct full-time result (home/draw/away), independently of the score."
+      },
+      "ht_winner": {
+        "label": "Half-time Result",
+        "hint": "+pts if user predicts the half-time leader correctly."
+      },
+      "clean_sheet": {
+        "label": "Clean Sheet",
+        "hint": "+pts if user correctly predicts which team (or neither) keeps a clean sheet."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You're all caught up!",
+    "markAllRead": "Mark all read"
   },
   "draft": {
     "title": "Draft Room",
@@ -602,6 +689,9 @@
     "cancel": "Cancel",
     "pickError": "Could not submit pick. Try again.",
     "draftComplete": "Draft complete!",
+    "goodLuck": "Good luck, everyone!",
+    "completeSummary": "Final squads",
+    "teamsLabel": "teams",
     "draftCompleteBody": "All teams have been assigned. The competition is now live!",
     "goToGroup": "Go to group",
     "draftOrder": "Draft order",
@@ -620,6 +710,7 @@
     "goToGroup": "Go to group",
     "success": "You joined {{name}}!",
     "full": "This group is full.",
+    "started": "This group has already started and is no longer accepting new members.",
     "invalid": "This invite link is invalid or has expired.",
     "error": "Could not join. Please try again."
   },
@@ -675,8 +766,17 @@
     "syncDone": "Sync complete",
     "matchesUpdated": "matches updated",
     "predsScored": "predictions scored",
+    "testLeagueReset": "Reset test data",
+    "testLeagueResetting": "Resetting...",
+    "testLeagueResetDone": "Test data reset — all matches rescheduled",
+    "testLeagueResetError": "Reset failed. Check ADMIN_SECRET in .env.",
     "showingForGroups": "Showing picks for",
+    "allGroups": "All groups",
     "noActiveGroups": "No active groups for this competition yet. Join or start one to see your picks here.",
+    "noGroupsTitle": "You're not in any group yet",
+    "noGroupsHint": "Join or create a group to start making predictions and tracking your score.",
+    "createGroup": "Create a group",
+    "joinGroup": "Browse groups",
     "signInToSeeGroups": "Sign in to see your group predictions alongside each match.",
     "tabLive": "Live",
     "tabUpcoming": "Upcoming",
@@ -688,6 +788,242 @@
     "completedLabel": "FT",
     "noPrediction": "No prediction submitted",
     "pending": "Pending",
-    "pts": "pts"
+    "pts": "pts",
+    "predict": "Your pick",
+    "predictSubmit": "Save",
+    "predictUpdate": "Update",
+    "predicting": "Saving...",
+    "predictionSaved": "Saved!",
+    "predictionLocked": "Prediction window closed",
+    "bonusLabel": "Bonus picks",
+    "btts": "Both teams score?",
+    "totalGoalsOver": "Over {{threshold}} goals?",
+    "ftWinner": "Full-time result?",
+    "htWinner": "Half-time result?",
+    "cleanSheet": "Clean sheet by?",
+    "yes": "Yes",
+    "no": "No",
+    "home": "Home",
+    "draw": "Draw",
+    "away": "Away",
+    "noCleanSheet": "None"
+  },
+  "scoring": {
+    "meta": {
+      "title": "How Scoring Works · FanQuin",
+      "description": "Full breakdown of FanQuin's prediction scoring, team ownership points, bonus criteria, streak and upset bonuses, and group mode comparison."
+    },
+    "hero": {
+      "badge": "Scoring engine",
+      "title": "Every point, explained",
+      "description": "FanQuin's scoring is fully modular: base predictions stack with team ownership, bonus criteria, streak bonuses, and upset rewards. Group admins configure all point values before the tournament kicks off.",
+      "ctaCreate": "Create a group",
+      "ctaHome": "Back to home"
+    },
+    "base": {
+      "badge": "Prediction scoring",
+      "title": "Three tiers, fully stackable",
+      "description": "Every match pick can earn all three tiers at once. Values shown are Friends mode defaults — every mode ships with its own calibration.",
+      "exact": {
+        "label": "Exact scoreline",
+        "desc": "You called the precise final score. Highest possible base reward — all three tiers stack automatically on a correct exact score."
+      },
+      "winner": {
+        "label": "Correct winner",
+        "desc": "Right result (home / draw / away), wrong scoreline. Also awarded automatically when you hit exact."
+      },
+      "diff": {
+        "label": "Goal difference",
+        "desc": "You predicted the correct goal difference even if the absolute scoreline was off."
+      },
+      "stackNote": "An exact scoreline unlocks all three tiers simultaneously — up to +10 pts in Friends mode.",
+      "lockNote": "Predictions lock at kickoff. Late or missing submissions earn zero points."
+    },
+    "bonus": {
+      "badge": "Bonus criteria",
+      "title": "Up to 5 extra predictions per match",
+      "description": "The group admin enables any combination of these five criteria. Each active criterion adds an extra question to the prediction form — all points stack on top of base scoring.",
+      "criteria": {
+        "btts": {
+          "label": "Both Teams To Score",
+          "desc": "Predict yes or no: will both teams score at least one goal?"
+        },
+        "ft_winner": {
+          "label": "Full-time result",
+          "desc": "Pick the match outcome (home / draw / away) independently of the final scoreline."
+        },
+        "ht_winner": {
+          "label": "Half-time result",
+          "desc": "Predict who is winning at the half-time whistle (home / draw / away)."
+        },
+        "total_goals_over": {
+          "label": "Total goals over / under",
+          "desc": "Predict whether total goals exceed the group's threshold (default: over 2.5). Admin sets the exact threshold."
+        },
+        "clean_sheet": {
+          "label": "Clean sheet",
+          "desc": "Predict which team — if either — keeps a clean sheet (home / away / none)."
+        }
+      },
+      "maxNote": "All five active simultaneously yields up to +9 bonus pts per match, on top of base scoring."
+    },
+    "ownership": {
+      "badge": "Team ownership",
+      "title": "Your teams score points every match",
+      "description": "Teams are assigned at draft time. Every time a team you own plays, their in-match performance converts directly into your leaderboard points — no prediction required.",
+      "win": {
+        "label": "Team win",
+        "desc": "Awarded each time your owned team wins a match outright."
+      },
+      "goal": {
+        "label": "Every goal scored",
+        "desc": "Each goal your team scores in any match adds to your running total."
+      },
+      "sheet": {
+        "label": "Clean sheet kept",
+        "desc": "Your team concedes zero goals — awarded per match with a clean sheet."
+      },
+      "draftNote": "Ownership points accumulate across the full tournament schedule. Values shown are Friends mode defaults."
+    },
+    "multipliers": {
+      "badge": "Multipliers & bonuses",
+      "streak": {
+        "title": "Streak bonus",
+        "description": "Build a run of consecutive correct picks and earn extra points on every subsequent correct prediction until the streak breaks.",
+        "thresholdLabel": "Consecutive picks needed",
+        "threshold": "3 in a row (Friends mode default)",
+        "rewardLabel": "Bonus per correct pick",
+        "reward": "+2 pts while active",
+        "note": "Threshold and bonus amount vary by mode. Competitive mode rewards longer streaks more generously."
+      },
+      "upset": {
+        "title": "Upset pick bonus",
+        "description": "After predictions lock, the system tallies who picked what across all group members. If you correctly called the minority outcome, you earn an extra upset bonus on top of your base points.",
+        "formula": "Bonus = upset_base_pts × (1 ÷ minority_pick_percentage).  A result chosen by only 10 % of the group can multiply the upset base by up to 10 ×. Upset base varies by mode (3 pts to 8 pts)."
+      }
+    },
+    "modes": {
+      "badge": "Group modes",
+      "title": "Scoring defaults by mode",
+      "description": "The mode chosen at group creation pre-fills every scoring value. Admins review these defaults during setup — no manual tuning required.",
+      "cols": {
+        "mode": "Mode",
+        "exact": "Exact",
+        "winner": "Winner",
+        "diff": "Goal diff",
+        "teamWin": "Team win",
+        "goal": "Goal",
+        "cs": "Clean sheet",
+        "upset": "Upset base",
+        "streak": "Streak",
+        "elo": "ELO",
+        "lives": "Lives",
+        "weekly": "Weekly reset"
+      },
+      "note": "ELO rating affects leaderboard rank in League, Competitive, and Global modes only. Survivor lives apply in Competitive mode."
+    },
+    "admin": {
+      "badge": "Admin controls",
+      "title": "What the group admin decides",
+      "description": "Before the draft starts, the admin configures these settings. Once the draft begins, the core scoring config is locked in for the entire tournament.",
+      "controls": [
+        {
+          "label": "Group mode",
+          "desc": "Sets the full scoring baseline — exact pts, team ownership pts, upset and streak values. Five modes from Casual to Global."
+        },
+        {
+          "label": "Draft assignment method",
+          "desc": "Snake live room, random draw, or balanced tier distribution. Determines how national teams are allocated to each member."
+        },
+        {
+          "label": "Max players",
+          "desc": "Caps how many members can join before the group closes and the draft begins."
+        },
+        {
+          "label": "Bonus criteria selection",
+          "desc": "Enable or disable any of the 5 bonus criteria. Only enabled criteria appear on prediction forms."
+        },
+        {
+          "label": "Bonus point values",
+          "desc": "For each enabled criterion, the admin sets the exact point reward (e.g. BTTS worth +2 or +3 pts)."
+        },
+        {
+          "label": "Total goals threshold",
+          "desc": "When the over/under criterion is active, the admin sets the exact threshold (default 2.5 — options include 1.5, 3.5, etc.)."
+        }
+      ],
+      "lockedNote": "Mode, draft type, and scoring config lock once the draft starts. Bonus criteria can be edited while the group is still in the waiting phase."
+    },
+    "draft": {
+      "badge": "Draft assignment",
+      "title": "Three ways to assign teams",
+      "snake": {
+        "label": "Snake draft",
+        "desc": "Players pick teams live in a real-time room. Pick order reverses every round — whoever picks first in round 1 picks last in round 2. Requires all members present. Maximum strategy."
+      },
+      "random": {
+        "label": "Random draw",
+        "desc": "Teams are instantly assigned at random. No scheduling needed — settled automatically when the group goes active."
+      },
+      "balanced_tier": {
+        "label": "Balanced tiers",
+        "desc": "Teams are sorted into tiers (top / mid / underdog) and distributed so every player gets a roughly equal mix of strong and weaker teams."
+      }
+    },
+    "timing": {
+      "badge": "Prediction window",
+      "title": "When to submit — and what happens if you don't",
+      "description": "Every match has a prediction deadline stored in the system. Once that timestamp passes, the form locks. No exceptions, no late entries.",
+      "timeline": [
+        {
+          "label": "Group active",
+          "desc": "The draft is complete. Every match's prediction form is open from this moment."
+        },
+        {
+          "label": "Prediction window open",
+          "desc": "Submit your score pick and any enabled bonus predictions at any point between group activation and the deadline."
+        },
+        {
+          "label": "Deadline — 1 hour before kickoff",
+          "desc": "The prediction window closes exactly 1 hour before scheduled kickoff. After this timestamp, the form is locked — edits and new entries are rejected."
+        },
+        {
+          "label": "Upset percentages calculated",
+          "desc": "Immediately after the lock, the system tallies who picked what. The minority-outcome percentage is used to compute the upset multiplier for every member."
+        },
+        {
+          "label": "Match played",
+          "desc": "The match is synced from the live data feed. Scores, half-time results, and bonus details are verified automatically."
+        },
+        {
+          "label": "Points awarded",
+          "desc": "Prediction pts + bonus pts + team ownership pts are posted simultaneously. The leaderboard and streak counters update in real time."
+        }
+      ],
+      "rules": [
+        {
+          "label": "No entry after the lock",
+          "desc": "Once the prediction_lock timestamp passes, submissions and edits are blocked at the API level. There is no grace period."
+        },
+        {
+          "label": "All bonus criteria share the same deadline",
+          "desc": "BTTS, half-time result, total goals, FT winner, and clean sheet are part of the same prediction form and share the identical lock time."
+        },
+        {
+          "label": "No prediction = 0 points",
+          "desc": "A missed deadline earns zero base points, zero bonus, and zero upset reward for that match. Streak counters are also not advanced."
+        },
+        {
+          "label": "Time zone shown in your local time",
+          "desc": "The app displays the deadline in your device's local time zone. All internal storage is UTC."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Ready to run your own quiniela?",
+      "description": "Create a private group, pick your mode, tune the bonus rules, and share a single invite link.",
+      "create": "Create a group",
+      "home": "Back to home"
+    }
   }
 }

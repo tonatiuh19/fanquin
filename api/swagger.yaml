@@ -34,6 +34,16 @@ tags:
     description: Match score predictions
   - name: Live
     description: Live match data and on-demand sync from football-data.org
+  - name: Admin
+    description: Admin-only operations (requires X-Admin-Secret header)
+  - name: Notifications
+    description: In-app notification management
+  - name: Rivalries
+    description: Weekly 1v1 rivalry matchups per group
+  - name: Boosts
+    description: Power-up boosts for group matches
+  - name: DailyChallenges
+    description: Daily bonus challenges (global mode)
 
 # ─────────────────────────────────────────────────────────────────
 # REUSABLE SCHEMAS
@@ -44,6 +54,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: hex96 # 48-byte random token as hex string
+    AdminSecret:
+      type: apiKey
+      in: header
+      name: X-Admin-Secret
+      description: Server-side secret from ADMIN_SECRET env var
 
   schemas:
     # ── Generic wrappers ─────────────────────────────────────────
@@ -202,6 +217,9 @@ components:
           nullable: true
         is_active:
           type: boolean
+        is_test:
+          type: boolean
+          description: When true, hidden from public competition lists. Toggle to false to expose in production for broad testing.
         logo_url:
           type: string
           format: uri
@@ -303,8 +321,92 @@ components:
         away_score:
           type: integer
           nullable: true
+        ht_score_home:
+          type: integer
+          nullable: true
+          description: Half-time home score (populated during/after match sync).
+        ht_score_away:
+          type: integer
+          nullable: true
+          description: Half-time away score (populated during/after match sync).
 
     # ── Group ─────────────────────────────────────────────────────
+    BonusCriteria:
+      type: object
+      description: Admin-configurable bonus prediction criteria for a group.
+      properties:
+        enabled:
+          type: array
+          items:
+            type: string
+            enum: [btts, total_goals_over, ft_winner, ht_winner, clean_sheet]
+          description: Which bonus criteria are active for this group.
+        btts_pts:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Points awarded for correct Both Teams To Score prediction.
+        total_goals_over_pts:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Points awarded for correct over/under total goals prediction.
+        total_goals_threshold:
+          type: number
+          minimum: 0
+          maximum: 20
+          description: Goal threshold for total_goals_over criterion (e.g. 2.5).
+        ft_winner_pts:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Points awarded for correct full-time result prediction (standalone, independent of score).
+        ht_winner_pts:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Points awarded for correct half-time result prediction.
+        clean_sheet_pts:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Points awarded for correct clean sheet prediction.
+
+    BonusPredictionDetails:
+      type: object
+      description: Optional extra prediction answers submitted alongside score prediction.
+      properties:
+        btts:
+          type: boolean
+          nullable: true
+          description: User's prediction for Both Teams To Score.
+        total_goals_over:
+          type: boolean
+          nullable: true
+          description: User's prediction for total goals over the group threshold.
+        ft_winner:
+          type: string
+          enum: [home, draw, away]
+          nullable: true
+          description: User's standalone full-time result prediction (independent of score prediction).
+        ht_winner:
+          type: string
+          enum: [home, draw, away]
+          nullable: true
+          description: User's prediction for the half-time result.
+        clean_sheet:
+          type: string
+          enum: [home, away, none]
+          nullable: true
+          description: User's prediction for which team (or none) keeps a clean sheet.
+
+    UpdateGroupBonusCriteriaRequest:
+      type: object
+      description: Partial update for group bonus criteria (only provided fields are changed).
+      properties:
+        bonus_criteria:
+          $ref: "#/components/schemas/BonusCriteria"
+
     Group:
       type: object
       required: [id, name, competition_id, mode, owner_id]
@@ -334,6 +436,9 @@ components:
           type: integer
         is_active:
           type: boolean
+        bonus_criteria:
+          $ref: "#/components/schemas/BonusCriteria"
+          description: Optional bonus scoring criteria configured by the group admin.
 
     CreateGroupRequest:
       type: object
@@ -354,6 +459,9 @@ components:
         max_members:
           type: integer
           default: 50
+        bonus_criteria:
+          $ref: "#/components/schemas/BonusCriteria"
+          description: Optional initial bonus criteria configuration.
 
     JoinGroupRequest:
       type: object
@@ -440,6 +548,9 @@ components:
         predicted_away:
           type: integer
           minimum: 0
+        details:
+          $ref: "#/components/schemas/BonusPredictionDetails"
+          description: Optional bonus prediction answers (only relevant if group has bonus_criteria enabled).
 
     Prediction:
       type: object
@@ -469,6 +580,13 @@ components:
         upset_pts:
           type: integer
           nullable: true
+        bonus_pts:
+          type: integer
+          description: Points earned from bonus criteria predictions.
+          default: 0
+        details:
+          $ref: "#/components/schemas/BonusPredictionDetails"
+          description: Bonus prediction answers submitted by the user.
         submitted_at:
           type: string
           format: date-time
@@ -495,6 +613,17 @@ components:
         points_earned:
           type: integer
           nullable: true
+        bonus_pts:
+          type: integer
+          nullable: true
+          description: Points from bonus criteria for this prediction.
+        details:
+          $ref: "#/components/schemas/BonusPredictionDetails"
+          nullable: true
+        group_bonus_criteria:
+          $ref: "#/components/schemas/BonusCriteria"
+          nullable: true
+          description: The bonus criteria config for this group.
 
     LivePageData:
       type: object
@@ -528,6 +657,8 @@ components:
               competition_id:
                 type: string
                 format: uuid
+              bonus_criteria:
+                $ref: "#/components/schemas/BonusCriteria"
           description: User's active groups for this competition (only when authenticated).
         last_synced_at:
           type: string
@@ -555,6 +686,130 @@ components:
         ownership_points_awarded:
           type: integer
           description: Team-ownership point transactions created.
+        streak_bonuses_awarded:
+          type: integer
+          description: Number of streak bonus point grants this sync.
+        upset_bonuses_awarded:
+          type: integer
+          description: Number of upset bonus point grants this sync.
+        elo_updates_applied:
+          type: integer
+          description: ELO rating updates applied (league/competitive groups).
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [lock_reminder, rivalry_result, rank_swing, boost_ready, streak_broken]
+        title:
+          type: string
+        body:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Rivalry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        week_number:
+          type: integer
+        status:
+          type: string
+          enum: [active, completed]
+        player_a_pts:
+          type: integer
+        player_b_pts:
+          type: integer
+        winner_id:
+          type: string
+          format: uuid
+          nullable: true
+        player_a:
+          $ref: "#/components/schemas/UserProfile"
+        player_b:
+          $ref: "#/components/schemas/UserProfile"
+
+    Boost:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        boost_type:
+          type: string
+          enum: [double_points, underdog_boost, last_minute_change, streak_insurance]
+        match_id:
+          type: string
+          format: uuid
+          nullable: true
+        applied_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_used:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    DailyChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        challenge_date:
+          type: string
+          format: date
+        bonus_pts:
+          type: integer
+        competition_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    DailyChallengeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        challenge_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        answer:
+          description: Flexible JSON answer
+        pts_earned:
+          type: integer
+        submitted_at:
+          type: string
+          format: date-time
 
 # ─────────────────────────────────────────────────────────────────
 # PATHS
@@ -1221,3 +1476,556 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  # ── Admin ────────────────────────────────────────────────────
+  /admin/weekly-reset:
+    post:
+      tags: [Admin]
+      summary: Weekly leaderboard snapshot + survivor check + weekly_pts reset
+      description: |
+        Runs the weekly end-of-round processing for all active groups (or a
+        specific competition). For each group:
+        1. Snapshots current standings to `leaderboard_snapshots`
+        2. For `competitive`/`global` groups: runs survivor check — members with
+           0 `weekly_pts` lose a life; at 0 lives they are eliminated
+        3. Resets `weekly_pts` to 0 (when `weekly_reset_enabled` is true)
+
+        Requires `X-Admin-Secret` header.
+      parameters:
+        - in: query
+          name: competition_id
+          schema:
+            type: string
+            format: uuid
+          description: Limit reset to groups within this competition
+      security:
+        - AdminSecret: []
+      responses:
+        "200":
+          description: Reset successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          week_number:
+                            type: integer
+                          groups_processed:
+                            type: integer
+                          snapshots_taken:
+                            type: integer
+                          survivor_checks_run:
+                            type: integer
+                          members_eliminated:
+                            type: integer
+        "401":
+          $ref: "#/components/schemas/ApiError"
+        "503":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/survivor:
+    get:
+      tags: [Groups]
+      summary: Get survivor state for a group
+      description: |
+        Returns each member's remaining lives, elimination status, and the
+        round-by-round history. Only available for `competitive` and `global`
+        mode groups.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Survivor state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          survivor_lives_start:
+                            type: integer
+                          members:
+                            type: array
+                            items:
+                              type: object
+                          rounds:
+                            type: array
+                            items:
+                              type: object
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/elo-history:
+    get:
+      tags: [Groups]
+      summary: Get ELO rating history for a group
+      description: |
+        Returns per-match ELO changes and current standings. Only populated for
+        `league` and `competitive` mode groups.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: ELO history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          current_elos:
+                            type: array
+                            items:
+                              type: object
+                          history:
+                            type: array
+                            items:
+                              type: object
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  /admin/test-league/reset:
+    post:
+      tags: [Admin]
+      summary: Reset test league match states
+      description: |
+        Resets all 5 test match dates/statuses so they cover all testable states:
+        - Match 1: `completed` (2-1, scored 2 days ago)
+        - Match 2: `live` (kicked off 30 min ago, lock expired)
+        - Match 3: `scheduled` (prediction window open, kicks off in 2 days)
+        - Match 4: `scheduled` (prediction window CLOSED, kicks off in 2h)
+        - Match 5: `scheduled` (far-future final, kicks off in 7 days)
+
+        Pass `?clear_data=true` to also wipe predictions and reset group member
+        points/streaks/ELO back to zero.
+
+        Requires `X-Admin-Secret` header matching the `ADMIN_SECRET` env var.
+      parameters:
+        - in: query
+          name: clear_data
+          schema:
+            type: boolean
+          description: Also clear predictions and reset group member stats
+      security:
+        - AdminSecret: []
+      responses:
+        "200":
+          description: Reset successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                          matches_reset:
+                            type: integer
+                          data_cleared:
+                            type: boolean
+        "401":
+          $ref: "#/components/schemas/ApiError"
+        "503":
+          $ref: "#/components/schemas/ApiError"
+
+  # ───────────────────────────────────────
+  # NOTIFICATIONS
+  # ───────────────────────────────────────
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List user notifications
+      description: Returns paginated notifications for the authenticated user, with unread count.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notifications:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Notification"
+                          unread_count:
+                            type: integer
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+  /notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All notifications marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+  /notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark a single notification as read
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+  # ───────────────────────────────────────
+  # RIVALRIES
+  # ───────────────────────────────────────
+  /groups/{id}/rivalries:
+    get:
+      tags: [Rivalries]
+      summary: Get current week rivalries for group
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: week
+          schema:
+            type: integer
+          description: ISO week number (defaults to current week)
+      responses:
+        "200":
+          description: Rivalries for the specified week
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          week_number:
+                            type: integer
+                          rivalries:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Rivalry"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/rivalries/generate:
+    post:
+      tags: [Rivalries]
+      summary: Generate this week's 1v1 matchups (owner only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                week_number:
+                  type: integer
+                competition_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Rivalries generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rivalries:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Rivalry"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/rivalries/history:
+    get:
+      tags: [Rivalries]
+      summary: Past weeks rivalries for group
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Historical rivalries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          history:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Rivalry"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  # ───────────────────────────────────────
+  # BOOSTS
+  # ───────────────────────────────────────
+  /groups/{id}/boosts:
+    get:
+      tags: [Boosts]
+      summary: Get user's boosts for a group
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Available and used boosts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          available:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Boost"
+                          used:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Boost"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+    post:
+      tags: [Boosts]
+      summary: Apply a boost to a match
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [boost_id, match_id]
+              properties:
+                boost_id:
+                  type: string
+                  format: uuid
+                match_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Boost applied
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Boost"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+        "409":
+          $ref: "#/components/schemas/ApiError"
+
+  # ───────────────────────────────────────
+  # DAILY CHALLENGES
+  # ───────────────────────────────────────
+  /daily-challenges:
+    get:
+      tags: [DailyChallenges]
+      summary: Get today's active daily challenge
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: competition_id
+          schema:
+            type: string
+            format: uuid
+          description: Filter by competition
+      responses:
+        "200":
+          description: Today's challenge and user's entry (if any)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          challenge:
+                            nullable: true
+                            $ref: "#/components/schemas/DailyChallenge"
+                          entry:
+                            nullable: true
+                            $ref: "#/components/schemas/DailyChallengeEntry"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+
+  /daily-challenges/{id}/submit:
+    post:
+      tags: [DailyChallenges]
+      summary: Submit answer for a daily challenge
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              properties:
+                answer:
+                  description: Flexible JSON answer (depends on challenge type)
+      responses:
+        "201":
+          description: Entry recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/DailyChallengeEntry"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+        "410":
+          $ref: "#/components/schemas/ApiError"

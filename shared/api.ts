@@ -78,6 +78,7 @@ export interface Competition {
   starts_at: string | null;
   ends_at: string | null;
   is_active: boolean;
+  is_test: boolean;
   logo_url: string | null;
   external_id: number | null;
   last_synced_at: string | null;
@@ -135,6 +136,44 @@ export type GroupMode =
 
 export type GroupStatus = "waiting" | "draft" | "active" | "completed";
 
+// ── Bonus Prediction Criteria ──────────────────────────────────
+/**
+ * The bonus criteria a group admin can enable.
+ * Each correct bonus prediction adds points on top of the base score prediction.
+ */
+export type BonusCriterionKey =
+  | "btts" // Both Teams To Score — predict yes/no
+  | "total_goals_over" // Total goals over/under a threshold — predict yes/no
+  | "ft_winner" // Full-time result — predict home/draw/away (independent of score)
+  | "ht_winner" // Half-time result — predict home/draw/away
+  | "clean_sheet"; // Which team keeps a clean sheet — predict home/away/none
+
+export interface BonusCriteria {
+  /** Which criteria are active for this group */
+  enabled: BonusCriterionKey[];
+  /** Points for predicting whether both teams score */
+  btts_pts: number;
+  /** Points for predicting total goals over/under correctly */
+  total_goals_over_pts: number;
+  /** The over/under goals threshold (e.g., 2.5 means "more than 2 goals") */
+  total_goals_threshold: number;
+  /** Points for predicting the full-time result correctly (standalone, without score) */
+  ft_winner_pts: number;
+  /** Points for predicting the half-time result correctly */
+  ht_winner_pts: number;
+  /** Points for predicting the clean-sheet team correctly */
+  clean_sheet_pts: number;
+}
+
+/** Values the user fills in for each enabled bonus criterion */
+export interface BonusPredictionDetails {
+  btts?: boolean; // true = both teams score
+  total_goals_over?: boolean; // true = total goals > threshold
+  ft_winner?: "home" | "draw" | "away"; // standalone full-time result pick
+  ht_winner?: "home" | "draw" | "away";
+  clean_sheet?: "home" | "away" | "none";
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -145,6 +184,7 @@ export interface Group {
   owner_id: string | null;
   max_members: number;
   scoring_config: Record<string, number | boolean>;
+  bonus_criteria: BonusCriteria;
   is_active: boolean;
   status: GroupStatus;
   draft_started_at: string | null;
@@ -158,6 +198,11 @@ export interface CreateGroupRequest {
   mode: GroupMode;
   draft_type?: "snake" | "random" | "balanced_tier";
   max_members?: number;
+  bonus_criteria?: Partial<BonusCriteria>;
+}
+
+export interface UpdateGroupBonusCriteriaRequest {
+  bonus_criteria: Partial<BonusCriteria>;
 }
 
 export interface JoinGroupRequest {
@@ -184,6 +229,8 @@ export interface SubmitPredictionRequest {
   match_id: string;
   predicted_home: number;
   predicted_away: number;
+  /** Bonus criterion predictions — only keys for enabled criteria are required */
+  details?: BonusPredictionDetails;
 }
 
 export interface Prediction {
@@ -200,6 +247,8 @@ export interface Prediction {
     | "goal_difference"
     | "incorrect";
   points_earned: number;
+  bonus_pts: number;
+  details: BonusPredictionDetails;
   submitted_at: string;
   match?: Match;
 }
@@ -245,18 +294,29 @@ export interface LiveMatchPrediction {
     | "goal_difference"
     | "incorrect";
   points_earned: number;
+  bonus_pts: number;
+  details: BonusPredictionDetails;
+  /** bonus_criteria from the group — tells the UI which fields to show */
+  group_bonus_criteria?: BonusCriteria;
 }
 
 export interface LiveMatch extends Match {
   /** Keyed by group_id. Only present when the user is authenticated. */
   my_predictions?: Record<string, LiveMatchPrediction>;
+  ht_score_home?: number | null;
+  ht_score_away?: number | null;
 }
 
 export interface LivePageData {
   live: LiveMatch[];
   upcoming: LiveMatch[];
   recent: LiveMatch[];
-  my_active_groups: { id: string; name: string; competition_id: string }[];
+  my_active_groups: {
+    id: string;
+    name: string;
+    competition_id: string;
+    bonus_criteria: BonusCriteria;
+  }[];
   last_synced_at: string | null;
   competition: Competition | null;
 }
@@ -266,6 +326,9 @@ export interface SyncResult {
   matches_updated: number;
   predictions_scored: number;
   ownership_points_awarded: number;
+  streak_bonuses_awarded: number;
+  upset_bonuses_awarded: number;
+  elo_updates_applied: number;
 }
 
 // ── Draft ──────────────────────────────────────────────────────

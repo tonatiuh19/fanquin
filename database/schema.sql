@@ -86,7 +86,10 @@ create table public.competitions (
   starts_at       timestamptz,
   ends_at         timestamptz,
   is_active       boolean default true,
+  is_test         boolean not null default false, -- when true, hidden from public lists
   logo_url        text,
+  external_id     integer,                    -- football-data.org competition ID
+  last_synced_at  timestamptz,                -- last sync from external API
   created_at      timestamptz default now()
 );
 
@@ -102,6 +105,7 @@ create table public.teams (
   country_code    text,                       -- ISO 3166-1 alpha-2
   flag_url        text,
   tier            int default 1,              -- 1 = top, 2 = mid, 3 = underdog
+  external_id     integer,                    -- football-data.org team ID
   created_at      timestamptz default now()
 );
 
@@ -119,6 +123,8 @@ create table public.matches (
   prediction_lock timestamptz,               -- predictions close at this time
   home_score      int,
   away_score      int,
+  ht_score_home   int,                        -- half-time home score
+  ht_score_away   int,                        -- half-time away score
   status          match_status default 'scheduled',
   -- Upset bonus: recomputed after lock as BasePoints * (1 / pick_pct)
   upset_multiplier  numeric(4,2) default 1.0,
@@ -126,6 +132,8 @@ create table public.matches (
   away_win_pick_pct numeric(5,4),
   draw_pick_pct     numeric(5,4),
   total_picks       int default 0,
+  external_id     integer,                    -- football-data.org match ID
+  last_synced_at  timestamptz,                -- last sync from external API
   created_at      timestamptz default now()
 );
 
@@ -162,6 +170,16 @@ create table public.groups (
     "weekly_reset_enabled": true
   }',
   is_active       boolean default true,
+  is_test         boolean not null default false, -- when true, hidden from public lists
+  bonus_criteria  jsonb not null default '{
+    "enabled": [],
+    "btts_pts": 2,
+    "total_goals_over_pts": 2,
+    "total_goals_threshold": 2.5,
+    "ft_winner_pts": 2,
+    "ht_winner_pts": 2,
+    "clean_sheet_pts": 1
+  }',
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
@@ -238,6 +256,8 @@ create table public.predictions (
   result          prediction_result default 'pending',
   points_earned   int default 0,
   upset_pts       int default 0,
+  bonus_pts       int not null default 0,     -- points from bonus criteria
+  details         jsonb not null default '{}', -- bonus prediction answers
   submitted_at    timestamptz default now(),
   unique(group_id, user_id, match_id)        -- one prediction per user per match per group
 );
@@ -458,6 +478,13 @@ create index on public.daily_challenge_entries (challenge_id, user_id);
 create index on public.otp_requests (identifier, created_at desc);
 create index on public.otp_requests (expires_at) where not is_used;
 create index on public.user_sessions (user_id) where revoked_at is null;
+-- External ID lookups (football-data.org sync)
+create index if not exists idx_competitions_external_id on public.competitions (external_id);
+create index if not exists idx_teams_external_id        on public.teams        (external_id);
+create index if not exists idx_matches_external_id      on public.matches      (external_id);
+-- Test data filtering
+create index if not exists idx_competitions_is_test on public.competitions (is_test);
+create index if not exists idx_groups_is_test        on public.groups       (is_test);
 
 -- ============================================================
 -- DRAFT SESSIONS
@@ -826,14 +853,12 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Add venue_id to matches
-alter table public.matches add column venue_id uuid references public.venues(id);
--- Add group_label to teams (e.g. 'A', 'B', ...,'L')
-alter table public.teams add column group_label text;
--- Add is_placeholder to teams (true for TBD playoff spots)
-alter table public.teams add column is_placeholder boolean default false;
--- Add match_number for match ordering/display
-alter table public.matches add column match_number int;
+-- These alter statements are kept for idempotency when running against an existing DB.
+-- On a fresh schema they are no-ops because the columns are defined in the CREATE TABLE above.
+alter table public.matches add column if not exists venue_id uuid references public.venues(id);
+alter table public.teams   add column if not exists group_label text;
+alter table public.teams   add column if not exists is_placeholder boolean default false;
+alter table public.matches add column if not exists match_number int;
 
 -- ============================================================
 -- SEED: FIFA World Cup 2026
@@ -1310,3 +1335,69 @@ insert into public.matches (id,competition_id,home_team_id,away_team_id,stage,ma
 insert into public.matches (id,competition_id,home_team_id,away_team_id,stage,match_number,match_date,prediction_lock,status,venue_id) values
   ('70000000-0000-0000-0000-000000000103','a1000000-0000-0000-0000-000000000001',null,null,'Third Place',103,'2026-07-18 21:00:00+00','2026-07-18 20:00:00+00','scheduled','50000000-0000-0000-0000-000000000016'), -- 3rd place, Hard Rock
   ('70000000-0000-0000-0000-000000000104','a1000000-0000-0000-0000-000000000001',null,null,'Final',104,'2026-07-19 19:00:00+00','2026-07-19 18:00:00+00','scheduled','50000000-0000-0000-0000-000000000006'); -- Final, MetLife
+
+
+-- ============================================================
+-- SEED: FanQuin Test League 2026
+-- Hidden from regular users (is_test = true).
+-- Toggle is_test = false to expose for broad prod/load testing.
+-- Reset match dates any time via POST /api/admin/test-league/reset
+-- ============================================================
+
+-- ---- Test Competition ----
+insert into public.competitions (id, name, short_name, type, season, starts_at, ends_at, is_active, is_test, logo_url)
+values (
+  'ffffffff-0000-0000-0000-000000000001',
+  'FanQuin Test League 2026', 'TEST', 'other', '2026',
+  now() - interval '7 days',
+  now() + interval '30 days',
+  true, true, null
+) on conflict (id) do nothing;
+
+-- ---- Test Venue ----
+insert into public.venues (id, name, city, country, country_code, capacity)
+values (
+  'ffffffff-1111-0000-0000-000000000001',
+  'FanQuin Test Arena', 'Test City', 'Testland', 'TX', 50000
+) on conflict (id) do nothing;
+
+-- ---- Test Teams (8 teams — groups A & B, tiers 1-3) ----
+insert into public.teams (id, competition_id, name, short_name, country_code, group_label, tier, is_placeholder) values
+  ('ffffffff-2222-0000-0000-000000000001','ffffffff-0000-0000-0000-000000000001','Alpha FC',      'ALP','US','A',1,false),
+  ('ffffffff-2222-0000-0000-000000000002','ffffffff-0000-0000-0000-000000000001','Beta United',   'BET','GB','A',2,false),
+  ('ffffffff-2222-0000-0000-000000000003','ffffffff-0000-0000-0000-000000000001','Gamma City',    'GAM','DE','A',3,false),
+  ('ffffffff-2222-0000-0000-000000000004','ffffffff-0000-0000-0000-000000000001','Delta SC',      'DEL','ES','A',2,false),
+  ('ffffffff-2222-0000-0000-000000000005','ffffffff-0000-0000-0000-000000000001','Epsilon Real',  'EPS','BR','B',1,false),
+  ('ffffffff-2222-0000-0000-000000000006','ffffffff-0000-0000-0000-000000000001','Zeta Athletic', 'ZET','AR','B',2,false),
+  ('ffffffff-2222-0000-0000-000000000007','ffffffff-0000-0000-0000-000000000001','Eta Rovers',    'ETA','FR','B',3,false),
+  ('ffffffff-2222-0000-0000-000000000008','ffffffff-0000-0000-0000-000000000001','Theta Club',    'THE','PT','B',2,false)
+on conflict (id) do nothing;
+
+-- ---- Test Matches (5 matches — all status/lock states) ----
+-- Match 1: completed (scored 2-1, 2 days ago)
+-- Match 2: live (kicked off 30 min ago, lock expired)
+-- Match 3: scheduled, prediction window OPEN (in 2 days)
+-- Match 4: scheduled, prediction window LOCKED (in 2h, closed 1h ago)
+-- Match 5: scheduled, far-future Final (in 7 days)
+-- NOTE: dates are relative to first run. Use POST /api/admin/test-league/reset to re-anchor.
+insert into public.matches (id, competition_id, home_team_id, away_team_id, stage, match_number, match_date, prediction_lock, home_score, away_score, status, venue_id) values
+  ('ffffffff-3333-0000-0000-000000000001','ffffffff-0000-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000002','Group Stage - A',1,now()-interval'2 days',now()-interval'2 days 1 hour',2,1,'completed','ffffffff-1111-0000-0000-000000000001'),
+  ('ffffffff-3333-0000-0000-000000000002','ffffffff-0000-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000003','ffffffff-2222-0000-0000-000000000004','Group Stage - A',2,now()-interval'30 minutes',now()-interval'90 minutes',null,null,'live','ffffffff-1111-0000-0000-000000000001'),
+  ('ffffffff-3333-0000-0000-000000000003','ffffffff-0000-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000005','ffffffff-2222-0000-0000-000000000006','Group Stage - B',3,now()+interval'2 days',now()+interval'1 day 23 hours',null,null,'scheduled','ffffffff-1111-0000-0000-000000000001'),
+  ('ffffffff-3333-0000-0000-000000000004','ffffffff-0000-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000007','ffffffff-2222-0000-0000-000000000008','Group Stage - B',4,now()+interval'2 hours',now()-interval'1 hour',null,null,'scheduled','ffffffff-1111-0000-0000-000000000001'),
+  ('ffffffff-3333-0000-0000-000000000005','ffffffff-0000-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000005','Final',5,now()+interval'7 days',now()+interval'6 days 23 hours',null,null,'scheduled','ffffffff-1111-0000-0000-000000000001')
+on conflict (id) do nothing;
+
+insert into public.team_match_events (match_id, team_id, goals_scored, clean_sheet, won) values
+  ('ffffffff-3333-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000001',2,false,true),
+  ('ffffffff-3333-0000-0000-000000000001','ffffffff-2222-0000-0000-000000000002',1,false,false)
+on conflict (match_id, team_id) do nothing;
+
+-- ---- Test Groups (one per game mode — fixed invite codes) ----
+insert into public.groups (id, name, invite_code, competition_id, mode, draft_type, owner_id, max_members, status, is_active, is_test, scoring_config) values
+  ('ffffffff-4444-0000-0000-000000000001','Test: Casual League',    'TSTCASUL','ffffffff-0000-0000-0000-000000000001','casual',      'random',       null,20, 'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":0,"team_goal_pts":0,"team_clean_sheet_pts":0,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":0,"survivor_lives":1,"weekly_reset_enabled":false}'),
+  ('ffffffff-4444-0000-0000-000000000002','Test: Friends Group',    'TSTFRNDS','ffffffff-0000-0000-0000-000000000001','friends',     'snake',        null,20, 'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":0,"survivor_lives":1,"weekly_reset_enabled":true}'),
+  ('ffffffff-4444-0000-0000-000000000003','Test: League Mode',      'TSTLEAGU','ffffffff-0000-0000-0000-000000000001','league',      'balanced_tier',null,20, 'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":32,"survivor_lives":1,"weekly_reset_enabled":true}'),
+  ('ffffffff-4444-0000-0000-000000000004','Test: Competitive Mode', 'TSTCMPET','ffffffff-0000-0000-0000-000000000001','competitive', 'snake',        null,20, 'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":32,"survivor_lives":3,"weekly_reset_enabled":true}'),
+  ('ffffffff-4444-0000-0000-000000000005','Test: Global Mode',      'TSTGLOBL','ffffffff-0000-0000-0000-000000000001','global',      'random',       null,200,'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":16,"survivor_lives":1,"weekly_reset_enabled":true}')
+on conflict (id) do nothing;

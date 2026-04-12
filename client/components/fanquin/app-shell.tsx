@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -9,10 +9,18 @@ import {
   LogOut,
   ChevronDown,
   UserCircle,
+  Bell,
+  Heart,
 } from "lucide-react";
 import { OtpAuthModal } from "./OtpAuthModal";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +31,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearAuth, setAuth } from "@/store/slices/authSlice";
+import {
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/store/slices/notificationsSlice";
 import axios from "axios";
 
 import { FanQuinLogo } from "./logo";
@@ -33,7 +46,18 @@ export function AppShell() {
   const dispatch = useAppDispatch();
   const userProfile = useAppSelector((s) => s.auth.userProfile);
   const sessionToken = useAppSelector((s) => s.auth.sessionToken);
+  const { notifications, unread_count } = useAppSelector(
+    (s) => s.notifications,
+  );
   const [authOpen, setAuthOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (userProfile && sessionToken) {
+      dispatch(fetchNotifications());
+    }
+  }, [dispatch, userProfile, sessionToken]);
 
   const displayName =
     userProfile?.display_name ||
@@ -133,6 +157,81 @@ export function AppShell() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* Notifications bell — auth only */}
+            {userProfile && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotifOpen((v) => !v)}
+                  className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-foreground/70 transition hover:bg-white/10 hover:text-white"
+                  aria-label={t("notifications.title")}
+                >
+                  <Bell className="h-4 w-4" />
+                  {unread_count > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      {unread_count > 9 ? "9+" : unread_count}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setNotifOpen(false)}
+                    />
+                    <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl border border-white/10 bg-[hsl(var(--surface))] shadow-panel">
+                      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                        <p className="text-sm font-semibold text-white">
+                          {t("notifications.title")}
+                        </p>
+                        {unread_count > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => dispatch(markAllNotificationsRead())}
+                            className="text-xs text-brand transition hover:text-brand/80"
+                          >
+                            {t("notifications.markAllRead")}
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <p className="px-4 py-6 text-center text-sm text-foreground/40">
+                            {t("notifications.empty")}
+                          </p>
+                        ) : (
+                          notifications.map((n) => (
+                            <button
+                              key={n.id}
+                              type="button"
+                              onClick={() => {
+                                if (!n.is_read)
+                                  dispatch(markNotificationRead(n.id));
+                              }}
+                              className={`w-full border-b border-white/5 px-4 py-3 text-left transition last:border-0 hover:bg-white/5 ${
+                                n.is_read ? "opacity-60" : ""
+                              }`}
+                            >
+                              <p className="text-sm font-medium text-white">
+                                {n.title}
+                              </p>
+                              {n.body && (
+                                <p className="mt-0.5 text-xs text-foreground/60 line-clamp-2">
+                                  {n.body}
+                                </p>
+                              )}
+                              <p className="mt-1 text-[10px] text-foreground/30">
+                                {new Date(n.created_at).toLocaleString()}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {userProfile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -168,7 +267,10 @@ export function AppShell() {
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem
                     className="text-rose-400 focus:bg-rose-500/10 focus:text-rose-400 cursor-pointer"
-                    onClick={() => dispatch(clearAuth())}
+                    onClick={() => {
+                      dispatch(clearAuth());
+                      navigate("/");
+                    }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     {t("nav.signOut")}
@@ -233,6 +335,28 @@ export function AppShell() {
             >
               {i18n.language === "es" ? "EN" : "ES"}
             </button>
+          </div>
+        </div>
+
+        {/* Copyright bar */}
+        <div className="border-t border-white/[0.06] py-4">
+          <div className="container flex flex-col items-center justify-between gap-2 sm:flex-row">
+            <p className="text-xs text-foreground/30">
+              © 2026 FanQuin.{" "}
+              {i18n.language === "es"
+                ? "Todos los derechos reservados."
+                : "All rights reserved."}
+            </p>
+            <a
+              href="https://intelinota.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-1.5 text-xs text-foreground/25 transition hover:text-foreground/60"
+            >
+              Hecho con
+              <Heart className="h-3 w-3 fill-rose-500 text-rose-500 transition-transform duration-300 group-hover:scale-125 group-hover:drop-shadow-[0_0_4px_rgba(244,63,94,0.8)]" />
+              por intelinota.com
+            </a>
           </div>
         </div>
       </footer>

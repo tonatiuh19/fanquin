@@ -44,65 +44,65 @@
     },
     "stats": [
       {
-        "label": "Tamaños de grupo soportados",
-        "value": "5+",
-        "note": "Amigos, salones, oficinas"
+        "label": "Predicción individual máx",
+        "value": "+5 pts",
+        "note": "Marcador exacto — ganador correcto vale +3"
       },
       {
-        "label": "Capas de puntuación",
-        "value": "6",
-        "note": "Predicciones, posesión, boosts"
+        "label": "Tipos de draft",
+        "value": "3",
+        "note": "Sala snake en vivo, sorteo aleatorio o niveles"
       },
       {
-        "label": "Siempre activo",
-        "value": "24/7",
-        "note": "Swings en vivo cada jornada"
+        "label": "Criterios de bonus",
+        "value": "5",
+        "note": "AMBAS, descanso, goles, resultado final, CS"
       }
     ],
     "matchdayPulse": {
       "title": "Pulso de jornada",
-      "subtitle": "World Cup Crew · 8 jugadores · modo mediano",
-      "badge": "Ciclo en vivo listo"
+      "subtitle": "World Cup Crew · 8 jugadores · Modo Amigos",
+      "badge": "Draft y bonus listos"
     },
     "previewCards": {
       "leaderboard": {
-        "title": "Cambio en el ranking",
-        "description": "Un gol de México sube a Leo al primer lugar y genera un +12 de swing por posesión."
+        "title": "Desglose de puntuación en vivo",
+        "description": "Marcador exacto: +5 pts. Ganador correcto: +3. Diferencia de goles: +2. Los criterios de bonus se acumulan sobre cada predicción."
       },
       "weeklyDuel": {
-        "title": "Duelo semanal",
-        "description": "Maya vs Leo mantiene un trofeo semanal en juego aunque la tabla se extienda."
+        "title": "Sala de draft snake en vivo",
+        "description": "Cada jugador elige un equipo en tiempo real. El orden se invierte cada ronda — estrategia y banter garantizados."
       },
       "streakReward": {
-        "title": "Recompensa de racha",
-        "description": "Cuatro aciertos seguidos desbloquean seguro de racha para la siguiente jornada."
+        "title": "Predicciones de bonus",
+        "description": "AMBAS, resultado al descanso, goles totales, ganador final o portería a cero — suma puntos extra en cada partido."
       },
       "whatIf": {
-        "title": "Motor ¿qué pasaría si...?",
-        "description": "Una capa de escenarios en vivo explica cómo cada gol cambia la historia del grupo."
+        "title": "Ventana de predicción",
+        "description": "Cada partido tiene su propio cierre. Si te pierdas el pitido inicial, no puedes enviar tu predicción — sin excepciones."
       }
     },
-    "ownershipDraft": "Draft de posesión",
-    "boostBalance": "Balance de boosts",
-    "boostMexico": "Boost de underdog disponible para México vs Japón",
-    "boostUSA": "Token de puntos dobles recomendado para USA vs Países Bajos",
+    "ownershipDraft": "Draft de posesión de equipos",
+    "boostBalance": "Predicciones de bonus",
+    "boostMexico": "AMBAS anotan: ambos equipos marcan → +2 pts si aciertas",
+    "boostUSA": "Más de 2.5 goles en total → +2 pts si aciertas",
     "pillarsSection": "Por qué FanQuin es diferente",
     "pillars": [
       {
         "title": "Tu propia quiniela, en minutos",
-        "description": "Crea un grupo privado, invita a amigos o familia y empieza a predecir marcadores al instante. Sin hojas de cálculo, sin confusión."
+        "description": "Crea un grupo privado, elige tu modo y configuración de puntuación, invita con un solo enlace. Sin hojas de cálculo, sin confusión — solo un código que tus amigos tocan una vez."
       },
       {
-        "title": "Posee una selección nacional",
-        "description": "El draft de serpiente o la asignación aleatoria le da a cada jugador una bandera por la que luchar: los triunfos de tu equipo te dan puntos en todo el torneo."
+        "title": "3 formas de asignar equipos",
+        "description": "Sala de draft snake en vivo donde cada jugador elige en tiempo real. Sorteo aleatorio resuelto al instante antes del pitido. Niveles balanceados que reparten equipos fuertes y débiles de forma equitativa."
       },
       {
-        "title": "Rivalidad que duele",
-        "description": "Los duelos 1v1 semanales y los swings del ranking en vivo mantienen a todos emocionalmente comprometidos, incluso cuando la tabla se alarga."
+        "title": "Predicciones de bonus en cada partido",
+        "description": "El admin del grupo habilita hasta 5 criterios de bonus: AMBAS, resultado al descanso, goles totales, ganador a tiempo reglamentario o portería a cero. Cada acierto suma puntos sobre tu predicción de marcador."
       },
       {
-        "title": "Boosts y rachas",
-        "description": "Los boosts de underdog, los tokens de puntos dobles y las recompensas de racha dan a cada jornada una razón nueva para importar."
+        "title": "Rachas y puntuación personalizada",
+        "description": "Tres aciertos consecutivos desbloquean un bono de racha. Los admins ajustan cada valor de puntos — marcador exacto, victoria, portería a cero, umbral de racha — a su estilo."
       }
     ],
     "groupModesSection": "Un modo para cada grupo",
@@ -110,93 +110,108 @@
     "groupModes": [
       {
         "title": "Casual — Amigos y Familia",
-        "audience": "2–5 jugadores",
-        "description": "Predicciones simples y equipos asignados al azar. Perfecto para el WhatsApp familiar o una rondita de la oficina.",
+        "audience": "2–10 jugadores",
+        "description": "Predicciones simples y equipos asignados al azar. Perfecto para el WhatsApp familiar o una rondita de oficina. Activa criterios de bonus opcionales para darle más emoción.",
         "features": [
           "Link de invitación en un tap",
           "Sorteo aleatorio de equipos",
-          "Ganador semanal"
+          "Criterios de bonus opcionales"
         ]
       },
       {
         "title": "Modo Amigos",
-        "audience": "6–12 jugadores",
-        "description": "Draft de serpiente, bonos de upset, rachas y rivalidades semanales 1v1. Aquí vive el banter.",
+        "audience": "6–20 jugadores",
+        "description": "Sala de draft snake en vivo, todos los criterios de bonus, bonos de racha y rivalidades semanales 1v1. Aquí vive el banter.",
         "features": [
-          "Draft de serpiente",
-          "Rivalidades semanales",
-          "Boosts y rachas"
+          "Sala de draft snake en vivo",
+          "Los 5 criterios de bonus",
+          "Bonos de racha"
         ]
       },
       {
         "title": "Liga y Salón de Clases",
         "audience": "13–100 jugadores",
-        "description": "Ranking ELO, niveles de equipos balanceados, modo superviviente y extensiones de bracket para escuelas, oficinas y grupos grandes.",
+        "description": "Draft por niveles balanceados, ranking ELO, modo superviviente y puntuación totalmente configurable para escuelas, oficinas y grupos grandes.",
         "features": [
-          "Equipos balanceados por nivel",
+          "Draft por niveles balanceados",
           "Ranking ELO",
-          "Brackets superviviente"
+          "Puntuación personalizable"
         ]
       }
     ],
     "scoringSection": "Motor de puntuación",
     "scoringLayers": [
       {
-        "title": "Precisión de predicción",
-        "value": "+8 máx",
-        "description": "Marcador exacto, ganador correcto y margen de goles se acumulan limpiamente."
+        "title": "Marcador exacto",
+        "value": "+5 pts",
+        "description": "Puntuación máxima por acertar el marcador exacto. Ganador correcto vale +3. Diferencia de goles añade +2. Los tres pueden acumularse en un solo pronóstico."
       },
       {
-        "title": "Recompensas de posesión",
-        "value": "+4 a +12",
-        "description": "Victorias, goles y momentos especiales del equipo alimentan tu total de grupo privado."
+        "title": "Posesión de equipo",
+        "value": "+4 / +1 / +3",
+        "description": "Las victorias de tu equipo (+4 pts), cada gol que marcan (+1 pt por gol) y las porterías a cero (+3 pts) se acumulan en cada partido del torneo."
       },
       {
-        "title": "Bonus de upset",
-        "value": "Dinámico",
-        "description": "Los pronósticos de bajo porcentaje pagan más para que los grupos no converjan en elecciones seguras y aburridas."
+        "title": "Criterios de bonus",
+        "value": "Hasta +9 pts",
+        "description": "El admin habilita AMBAS (+2), resultado al descanso (+2), goles totales (+2), ganador final (+2) o portería a cero (+1) como capas adicionales en cada predicción."
       },
       {
-        "title": "Racha + boosts",
-        "value": "Impulso",
-        "description": "Los aciertos consecutivos y los tokens con tiempo crean ventanas de remontar reales."
+        "title": "Bono de racha",
+        "value": "+2 pts",
+        "description": "Tres aciertos consecutivos desbloquean el bono de racha. Mantén la racha viva y aumenta la presión sobre todos los que te quedan arriba en la tabla."
       }
     ],
     "retentionSection": "Hecho para volverse viral en tu grupo",
     "engagementLoops": [
       {
         "title": "Comparte en un tap",
-        "description": "Los links de invitación privados funcionan directo desde WhatsApp, iMessage o cualquier chat grupal. No hace falta descargar ninguna app para unirse."
+        "description": "Los links de invitación privados funcionan directo desde WhatsApp, iMessage o cualquier chat. Sin descarga, sin registro obligatorio para unirse."
       },
       {
-        "title": "Cada jornada es una historia nueva",
-        "description": "Los bonos de upset, los cambios de líder y las rachas rotas generan momentos compartibles que jalan a todos de vuelta al chat."
+        "title": "El admin controla todo",
+        "description": "El admin del grupo elige el tipo de draft, habilita los criterios de bonus, ajusta los puntos y fija el límite de miembros. Cada grupo funciona exactamente como el creador quiere."
       },
       {
         "title": "Nadie se queda atrás",
-        "description": "Los resets semanales y las mini-recompensas mantienen a los jugadores en último lugar enganchados en todo el torneo."
+        "description": "Los criterios de bonus abren ventanas de puntuación extra en cada partido. Los jugadores rezagados pueden remontar con predicciones de bonus acertadas, incluso desde el último lugar."
       }
     ],
+    "mobileApp": {
+      "badge": "Web disponible ya · App nativa llega mayo 2026",
+      "title": "Juega ahora en el navegador — app iOS y Android en mayo 2026",
+      "description": "FanQuin está completamente disponible ahora mismo en tu navegador. Crea grupos, haz drafts, envía predicciones de bonus y sigue los marcadores — sin descargar nada. La app nativa para iOS y Android llega en mayo con una experiencia móvil aún más completa.",
+      "iosLabel": "App Store",
+      "androidLabel": "Google Play",
+      "comingSoon": "Próximamente",
+
+      "features": [
+        { "text": "Push al cierre de predicciones" },
+        { "text": "Notificaciones de goles en vivo" },
+        { "text": "Widgets del ranking" },
+        { "text": "Experiencia móvil optimizada" }
+      ]
+    },
     "productDirection": {
-      "badge": "Copa del Mundo 2026 → y más allá",
+      "badge": "Copa del Mundo 2026 \u2192 y m\u00e1s all\u00e1",
       "title": "Empieza con el Mundial. Quédate para todas las ligas que siguen.",
       "description": "FanQuin arranca con la Copa del Mundo 2026 y se expande a Champions League, Premier League, Liga MX, NBA y más. El mismo motor social — predicciones, posesión, rivalidades, boosts — impulsa cada competición.",
       "values": [
         {
-          "title": "🏆 Posee tu equipo",
-          "description": "Cada jugador obtiene una selección nacional que apoyar. Los goles y triunfos de tu equipo son tus puntos."
+          "title": "Posee tu equipo",
+          "description": "Cada jugador obtiene una selección nacional por draft o sorteo. Las victorias, goles y porterías a cero de tu equipo suman puntos durante todo el torneo."
         },
         {
-          "title": "⚔️ Rivalidades semanales",
-          "description": "Los duelos 1v1 se reinician cada semana. Hasta el último lugar puede vengarse — y el grupo lo sabe."
+          "title": "Sala de draft en vivo",
+          "description": "El draft snake abre una sala en tiempo real. Cada jugador elige un equipo por turno, el orden se invierte cada ronda — estrategia y banter garantizados."
         },
         {
-          "title": "🔥 Rachas & boosts",
-          "description": "Los aciertos consecutivos desbloquean power-ups. Los tokens con tiempo y los boosts de underdog crean ventanas reales para remontar."
+          "title": "Predicciones de bonus",
+          "description": "Añade hasta 5 criterios de bonus a cada predicción: AMBAS anotan, resultado al descanso, goles totales, ganador final o portería a cero. El admin decide cuáles están activos."
         },
         {
-          "title": "🌍 Cualquier grupo, cualquier tamaño",
-          "description": "Desde duelos de 2 jugadores hasta salones de 100 personas. Las reglas del juego se adaptan automáticamente al tamaño del grupo."
+          "title": "El admin manda en el grupo",
+          "description": "El admin configura todo: tipo de draft, límite de miembros, valores de puntos y qué criterios de bonus se activan. Cada grupo es único."
         }
       ]
     }
@@ -426,24 +441,47 @@
       "loadingCompetitions": "Cargando competiciones…",
       "noCompetitions": "No se encontraron competiciones activas.",
       "draftLabel": "Asignación de equipos",
+      "draftOptions": {
+        "snake": {
+          "label": "Snake draft",
+          "description": "Los participantes entran a una sala de draft en vivo y eligen sus equipos por turnos. El orden se invierte cada ronda para que nadie elija siempre primero."
+        },
+        "random": {
+          "label": "Sorteo aleatorio",
+          "description": "Sin sala de draft — los equipos se asignan aleatoriamente a todos los participantes en el momento en que el grupo arranca."
+        },
+        "balanced_tier": {
+          "label": "Grupos equilibrados",
+          "description": "Los equipos se dividen en niveles: top, medios y débiles. Cada participante recibe uno de cada nivel para una distribución justa y competitiva."
+        }
+      },
       "maxMembersLabel": "Máximo de participantes"
     },
     "step3": {
-      "title": "Revisa tu quiniela",
-      "subtitle": "Todo lo que aparece a continuación se usará para crear tu grupo. Haz clic en crear cuando estés listo.",
+      "title": "Criterios de predicción extra",
+      "subtitle": "Selecciona predicciones opcionales que los jugadores pueden hacer para obtener puntos extra. Todos son opcionales — puedes omitir este paso.",
+      "skip": "Todos los criterios son opcionales. También puedes configurarlos después desde los ajustes del grupo."
+    },
+    "step4": {
+      "reviewTitle": "Revisa tu quiniela",
+      "reviewSubtitle": "Todo lo que aparece a continuación se usará para crear tu grupo. Haz clic en crear cuando estés listo.",
       "nameLabel": "Nombre del grupo",
       "modeLabel": "Modo",
       "competitionLabel": "Competición",
       "draftLabel": "Tipo de draft",
       "maxMembersLabel": "Máx. participantes",
-      "members": "participantes"
+      "members": "participantes",
+      "bonusLabel": "Criterios extra",
+      "bonusCount": "{{count}} activos"
     },
-    "step4": {
+    "step5": {
       "title": "¡Tu quiniela está lista!",
       "subtitle": "{{name}} está lista. Comparte el enlace o el código con tu grupo.",
       "inviteLinkTitle": "Enlace de invitación",
       "inviteCodeLabel": "O comparte este código",
       "membersNote": "Hasta {{max}} participantes pueden unirse con este enlace o código.",
+      "draftNightTitle": "Fija una noche de draft",
+      "draftNightBody": "La emoción de verdad empieza antes del primer pick. Manda el enlace, pónganse de acuerdo en una fecha y hora, y deja que la anticipación haga su magia. Una noche de draft es donde nacen las rivalidades.",
       "cta": "Ir a mis grupos"
     },
     "modes": {
@@ -567,6 +605,9 @@
     "quickActions": "Acciones rápidas",
     "createAnother": "Crear otro grupo",
     "allMyGroups": "Todos mis grupos",
+    "predictTitle": "Predice los partidos",
+    "predictBody": "Envía tus marcadores antes de que empiece cada partido para ganar puntos.",
+    "goPredict": "Ir a los partidos",
     "notFound": "Grupo no encontrado o no eres miembro.",
     "startGroup": "Iniciar grupo",
     "startGroupConfirm": "Esto iniciará la fase de draft. Los miembros podrán elegir equipos. ¿Continuar?",
@@ -593,7 +634,42 @@
     "snakeExplainExRow1": "Ronda 1 →   A elige · B elige · C elige",
     "snakeExplainExRow2": "Ronda 2 ↩   C elige · B elige · A elige",
     "snakeExplainExRow3": "Ronda 3 →   A elige · B elige · C elige",
-    "snakeExplainFair": "El jugador que elige último en una ronda elige primero en la siguiente, eliminando cualquier ventaja de posición permanente."
+    "snakeExplainFair": "El jugador que elige último en una ronda elige primero en la siguiente, eliminando cualquier ventaja de posición permanente.",
+    "eliminated": "Eliminado",
+    "survivorPanel": "Vidas Survivor",
+    "survivorPanelEmpty": "Aún no hay datos de survivor.",
+    "livesRemaining": "{{n}} vidas restantes",
+    "eloRating": "ELO",
+    "bonusCriteriaLabel": "Criterios de predicción extra",
+    "bonusCriteriaHint": "Selecciona predicciones opcionales para obtener puntos adicionales. Cada una agrega una nueva pregunta al formulario de pronóstico.",
+    "bonus": {
+      "threshold": "Umbral",
+      "btts": {
+        "label": "Ambos equipos anotan",
+        "hint": "+pts si el usuario predice correctamente si ambos equipos marcan."
+      },
+      "total_goals_over": {
+        "label": "Total de goles mayor/menor",
+        "hint": "+pts si el usuario predice correctamente si los goles totales superan el umbral."
+      },
+      "ft_winner": {
+        "label": "Resultado final",
+        "hint": "+pts si el usuario acierta el resultado final (local/empate/visitante), independientemente del marcador."
+      },
+      "ht_winner": {
+        "label": "Resultado al medio tiempo",
+        "hint": "+pts si el usuario predice correctamente quién gana al descanso."
+      },
+      "clean_sheet": {
+        "label": "Portería a cero",
+        "hint": "+pts si el usuario predice correctamente qué equipo (o ninguno) mantiene la portería a cero."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "¡Estás al día!",
+    "markAllRead": "Marcar todo como leído"
   },
   "draft": {
     "title": "Sala de Draft",
@@ -614,6 +690,9 @@
     "cancel": "Cancelar",
     "pickError": "No se pudo enviar la selección. Inténtalo de nuevo.",
     "draftComplete": "¡Draft completado!",
+    "goodLuck": "¡Buena suerte a todos!",
+    "completeSummary": "Plantillas finales",
+    "teamsLabel": "equipos",
     "draftCompleteBody": "Todos los equipos han sido asignados. ¡La competición está en vivo!",
     "goToGroup": "Ir al grupo",
     "draftOrder": "Orden de draft",
@@ -632,6 +711,7 @@
     "goToGroup": "Ir al grupo",
     "success": "¡Te uniste a {{name}}!",
     "full": "Este grupo está lleno.",
+    "started": "Este grupo ya ha comenzado y no acepta nuevos miembros.",
     "invalid": "Este enlace de invitación no es válido o ha expirado.",
     "error": "No se pudo unir. Inténtalo de nuevo."
   },
@@ -685,10 +765,19 @@
     "sync": "Sincronizar",
     "syncing": "Sincronizando...",
     "syncDone": "Sincronización completa",
+    "testLeagueReset": "Resetear datos de prueba",
+    "testLeagueResetting": "Reseteando...",
+    "testLeagueResetDone": "Datos reseteados — partidos reprogramados",
+    "testLeagueResetError": "Error al resetear. Verifica ADMIN_SECRET en .env.",
     "matchesUpdated": "partidos actualizados",
     "predsScored": "predicciones puntuadas",
     "showingForGroups": "Mostrando pronósticos de",
+    "allGroups": "Todos los grupos",
     "noActiveGroups": "Aún no tienes grupos activos para esta competición. Únete o crea uno para ver tus pronósticos aquí.",
+    "noGroupsTitle": "Todavía no estás en ningún grupo",
+    "noGroupsHint": "Únete o crea un grupo para empezar a hacer pronósticos y seguir tu puntuación.",
+    "createGroup": "Crear grupo",
+    "joinGroup": "Ver grupos",
     "signInToSeeGroups": "Inicia sesión para ver tus predicciones de grupo junto a cada partido.",
     "tabLive": "En Vivo",
     "tabUpcoming": "Próximos",
@@ -700,6 +789,242 @@
     "completedLabel": "FT",
     "noPrediction": "Sin pronóstico enviado",
     "pending": "Pendiente",
-    "pts": "pts"
+    "pts": "pts",
+    "predict": "Tu pronóstico",
+    "predictSubmit": "Guardar",
+    "predictUpdate": "Actualizar",
+    "predicting": "Guardando...",
+    "predictionSaved": "¡Guardado!",
+    "predictionLocked": "Ventana de pronóstico cerrada",
+    "bonusLabel": "Pronósticos extra",
+    "btts": "¿Ambos equipos anotan?",
+    "totalGoalsOver": "¿Más de {{threshold}} goles?",
+    "ftWinner": "¿Resultado final?",
+    "htWinner": "¿Resultado al medio tiempo?",
+    "cleanSheet": "¿Portería a cero de?",
+    "yes": "Sí",
+    "no": "No",
+    "home": "Local",
+    "draw": "Empate",
+    "away": "Visitante",
+    "noCleanSheet": "Ninguno"
+  },
+  "scoring": {
+    "meta": {
+      "title": "Cómo funciona la puntuación · FanQuin",
+      "description": "Desglose completo del sistema de puntuación de FanQuin: predicciones base, posesión de equipos, criterios de bonus, racha y bonos por upset, y comparativa de modos."
+    },
+    "hero": {
+      "badge": "Motor de puntuación",
+      "title": "Cada punto, explicado",
+      "description": "La puntuación de FanQuin es completamente modular: las predicciones base se acumulan con la posesión de equipo, criterios de bonus, rachas y bonos por upset. Los administradores del grupo configuran todos los valores antes de que arranque el torneo.",
+      "ctaCreate": "Crear grupo",
+      "ctaHome": "Volver al inicio"
+    },
+    "base": {
+      "badge": "Puntuación de predicciones",
+      "title": "Tres niveles, totalmente acumulables",
+      "description": "Cada pronóstico puede ganar los tres niveles a la vez. Los valores mostrados son los predeterminados del modo Amigos — cada modo tiene su propia calibración.",
+      "exact": {
+        "label": "Marcador exacto",
+        "desc": "Acertaste el marcador final exacto. La mayor recompensa base posible — los tres niveles se acumulan automáticamente al acertar exacto."
+      },
+      "winner": {
+        "label": "Ganador correcto",
+        "desc": "Resultado correcto (local / empate / visitante), marcador incorrecto. También se suma automáticamente al acertar exacto."
+      },
+      "diff": {
+        "label": "Diferencia de goles",
+        "desc": "Predijiste la diferencia de goles correcta aunque el marcador absoluto fuera diferente."
+      },
+      "stackNote": "El marcador exacto desbloquea los tres niveles simultáneamente — hasta +10 pts en modo Amigos.",
+      "lockNote": "Las predicciones se cierran al pitido inicial. Los envíos tardíos o ausentes obtienen cero puntos."
+    },
+    "bonus": {
+      "badge": "Criterios de bonus",
+      "title": "Hasta 5 predicciones extra por partido",
+      "description": "El admin del grupo activa cualquier combinación de estos cinco criterios. Cada criterio activo añade una pregunta extra al formulario de predicción — todos los puntos se suman sobre la puntuación base.",
+      "criteria": {
+        "btts": {
+          "label": "Ambos equipos anotan",
+          "desc": "Predice sí o no: ¿marcarán ambos equipos al menos un gol?"
+        },
+        "ft_winner": {
+          "label": "Resultado a tiempo reglamentario",
+          "desc": "Elige el resultado del partido (local / empate / visitante) independientemente del marcador final."
+        },
+        "ht_winner": {
+          "label": "Resultado al descanso",
+          "desc": "Predice quién va ganando al pitido de media parte (local / empate / visitante)."
+        },
+        "total_goals_over": {
+          "label": "Total de goles más/menos",
+          "desc": "Predice si los goles totales superan el umbral del grupo (por defecto: más de 2.5). El admin establece el umbral exacto."
+        },
+        "clean_sheet": {
+          "label": "Portería a cero",
+          "desc": "Predice qué equipo — si alguno — mantiene la portería a cero (local / visitante / ninguno)."
+        }
+      },
+      "maxNote": "Los cinco activos simultáneamente suman hasta +9 pts de bonus por partido, además de la puntuación base."
+    },
+    "ownership": {
+      "badge": "Posesión de equipos",
+      "title": "Tus equipos puntúan en cada partido",
+      "description": "Los equipos se asignan en el draft. Cada vez que un equipo tuyo juega, su rendimiento en el partido se convierte directamente en puntos para tu clasificación — sin necesidad de predicción.",
+      "win": {
+        "label": "Victoria del equipo",
+        "desc": "Se otorga cada vez que tu equipo gana un partido."
+      },
+      "goal": {
+        "label": "Cada gol marcado",
+        "desc": "Cada gol que marca tu equipo en cualquier partido se suma a tu total acumulado."
+      },
+      "sheet": {
+        "label": "Portería a cero",
+        "desc": "Tu equipo no encaja ningún gol — se otorga por partido con portería a cero."
+      },
+      "draftNote": "Los puntos de posesión se acumulan durante todo el torneo. Los valores mostrados son los predeterminados del modo Amigos."
+    },
+    "multipliers": {
+      "badge": "Multiplicadores y bonos",
+      "streak": {
+        "title": "Bono por racha",
+        "description": "Encadena predicciones correctas consecutivas y gana puntos extra en cada acierto siguiente hasta que se rompa la racha.",
+        "thresholdLabel": "Aciertos consecutivos necesarios",
+        "threshold": "3 seguidos (modo Amigos por defecto)",
+        "rewardLabel": "Bonus por acierto mientras está activa",
+        "reward": "+2 pts mientras está activa",
+        "note": "El umbral y el bono varían según el modo. El modo Competitivo recompensa las rachas largas más generosamente."
+      },
+      "upset": {
+        "title": "Bono por upset",
+        "description": "Tras el cierre de predicciones, el sistema contabiliza quién eligió qué entre todos los miembros del grupo. Si acertaste el resultado minoritario, ganas un bonus de upset además de tus puntos base.",
+        "formula": "Bonus = upset_base_pts × (1 ÷ porcentaje_del_resultado_minoritario).  Un resultado elegido solo por el 10 % del grupo puede multiplicar la base de upset hasta 10 ×. La base varía por modo (de 3 a 8 pts)."
+      }
+    },
+    "modes": {
+      "badge": "Modos de grupo",
+      "title": "Valores predeterminados por modo",
+      "description": "El modo elegido al crear el grupo rellena automáticamente todos los valores de puntuación. Los admins revisan estos valores durante la configuración — no se necesita ajuste manual.",
+      "cols": {
+        "mode": "Modo",
+        "exact": "Exacto",
+        "winner": "Ganador",
+        "diff": "Dif. goles",
+        "teamWin": "Victoria equipo",
+        "goal": "Gol",
+        "cs": "Portería a cero",
+        "upset": "Base upset",
+        "streak": "Racha",
+        "elo": "ELO",
+        "lives": "Vidas",
+        "weekly": "Reset semanal"
+      },
+      "note": "El ELO afecta la clasificación en los modos Liga, Competitivo y Global. Las vidas de superviviente solo aplican en el modo Competitivo."
+    },
+    "admin": {
+      "badge": "Controles del admin",
+      "title": "Qué decide el admin del grupo",
+      "description": "Antes de que empiece el draft, el admin configura estos ajustes. Una vez iniciado el draft, la configuración de puntuación queda bloqueada para todo el torneo.",
+      "controls": [
+        {
+          "label": "Modo de grupo",
+          "desc": "Establece toda la base de puntuación — pts exactos, pts de posesión, valores de upset y racha. Cinco modos desde Casual hasta Global."
+        },
+        {
+          "label": "Método de asignación del draft",
+          "desc": "Sala en vivo snake, sorteo aleatorio o distribución por niveles balanceados. Determina cómo se asignan los equipos a cada miembro."
+        },
+        {
+          "label": "Máximo de jugadores",
+          "desc": "Limita cuántos miembros pueden unirse antes de que el grupo se cierre y empiece el draft."
+        },
+        {
+          "label": "Selección de criterios de bonus",
+          "desc": "Activa o desactiva cualquiera de los 5 criterios de bonus. Solo los criterios activados aparecen en los formularios de predicción."
+        },
+        {
+          "label": "Valores de puntos de bonus",
+          "desc": "Para cada criterio activado, el admin establece la recompensa exacta (p.ej. BTTS vale +2 o +3 pts)."
+        },
+        {
+          "label": "Umbral de goles totales",
+          "desc": "Cuando el criterio más/menos está activo, el admin establece el umbral exacto (defecto 2.5 — opciones incluyen 1.5, 3.5, etc.)."
+        }
+      ],
+      "lockedNote": "El modo, tipo de draft y configuración de puntuación se bloquean al iniciar el draft. Los criterios de bonus se pueden editar mientras el grupo está en fase de espera."
+    },
+    "draft": {
+      "badge": "Asignación del draft",
+      "title": "Tres formas de asignar equipos",
+      "snake": {
+        "label": "Draft snake",
+        "desc": "Los jugadores eligen equipos en tiempo real en una sala en vivo. El orden se invierte cada ronda — quien elige primero en la ronda 1, elige último en la ronda 2. Requiere todos los miembros presentes. Máxima estrategia."
+      },
+      "random": {
+        "label": "Sorteo aleatorio",
+        "desc": "Los equipos se asignan al instante de forma aleatoria. Sin necesidad de programar — se resuelve automáticamente cuando el grupo se activa."
+      },
+      "balanced_tier": {
+        "label": "Niveles balanceados",
+        "desc": "Los equipos se ordenan por nivel (top / medio / underdog) y se distribuyen para que cada jugador obtenga una mezcla equitativa de equipos fuertes y débiles."
+      }
+    },
+    "timing": {
+      "badge": "Ventana de predicción",
+      "title": "Cuándo enviar — y qué pasa si no lo haces",
+      "description": "Cada partido tiene una fecha límite de predicción almacenada en el sistema. Una vez que ese momento pasa, el formulario se bloquea. Sin excepciones ni entradas tardías.",
+      "timeline": [
+        {
+          "label": "Grupo activo",
+          "desc": "El draft ha terminado. El formulario de predicción de cada partido queda abierto desde este momento."
+        },
+        {
+          "label": "Ventana de predicción abierta",
+          "desc": "Envía tu pronóstico de marcador y cualquier predicción de bonus activa en cualquier momento entre la activación del grupo y el límite."
+        },
+        {
+          "label": "Límite — 1 hora antes del pitido inicial",
+          "desc": "La ventana de predicción cierra exactamente 1 hora antes del inicio programado del partido. Tras esa marca de tiempo el formulario se bloquea — ediciones y nuevas entradas son rechazadas."
+        },
+        {
+          "label": "Porcentajes de upset calculados",
+          "desc": "Inmediatamente después del cierre, el sistema contabiliza quién eligió qué. El porcentaje del resultado minoritario se usa para calcular el multiplicador de upset para cada miembro."
+        },
+        {
+          "label": "Partido jugado",
+          "desc": "El partido se sincroniza desde el feed de datos en vivo. Los marcadores, resultados al descanso y detalles de bonus se verifican automáticamente."
+        },
+        {
+          "label": "Puntos asignados",
+          "desc": "Los pts de predicción + pts de bonus + pts de posesión de equipo se publican simultáneamente. La clasificación y los contadores de racha se actualizan en tiempo real."
+        }
+      ],
+      "rules": [
+        {
+          "label": "Sin entradas tras el bloqueo",
+          "desc": "Una vez que pasa el timestamp prediction_lock, los envíos y ediciones son bloqueados a nivel de API. No hay período de gracia."
+        },
+        {
+          "label": "Todos los criterios de bonus comparten el mismo límite",
+          "desc": "Ambos equipos anotan, resultado al descanso, goles totales, resultado final y portería a cero forman parte del mismo formulario de predicción y comparten el mismo tiempo de bloqueo."
+        },
+        {
+          "label": "Sin predicción = 0 puntos",
+          "desc": "Un plazo perdido otorga cero pts base, cero bonus y cero recompensa de upset en ese partido. Los contadores de racha tampoco avanzan."
+        },
+        {
+          "label": "Hora mostrada en tu zona horaria local",
+          "desc": "La app muestra el límite en la zona horaria de tu dispositivo. Todo el almacenamiento interno está en UTC."
+        }
+      ]
+    },
+    "cta": {
+      "title": "¿Listo para tu propia quiniela?",
+      "description": "Crea un grupo privado, elige tu modo, ajusta las reglas de bonus y comparte un único enlace de invitación.",
+      "create": "Crear grupo",
+      "home": "Volver al inicio"
+    }
   }
 }

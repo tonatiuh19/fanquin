@@ -28,6 +28,7 @@ import {
   Loader2,
   Crown,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import type { Team, DraftPick, GroupMember } from "@shared/api";
 
@@ -168,9 +169,12 @@ export default function DraftPage() {
       submitPick({ groupId: id, team_id: selectedTeam.id }),
     );
     if (submitPick.fulfilled.match(result)) {
-      dispatch(fetchDraftState(id));
       if (result.payload.is_complete) {
+        // Group is now "active" — fetchDraftState would return 400.
+        // The slice already set is_complete=true; just refresh the group.
         dispatch(fetchGroupById(id));
+      } else {
+        dispatch(fetchDraftState(id));
       }
     }
     setSelectedTeam(null);
@@ -189,27 +193,120 @@ export default function DraftPage() {
     );
   }
 
-  // Draft complete — redirect to group
+  // Draft complete — show celebration + summary screen
   if (draftState?.session.is_complete) {
+    const { picks: completePicks, members: completeMembers } = draftState;
+    const picksByMemberFinal: Record<string, typeof completePicks> = {};
+    for (const pick of completePicks) {
+      if (!picksByMemberFinal[pick.user_id])
+        picksByMemberFinal[pick.user_id] = [];
+      picksByMemberFinal[pick.user_id].push(pick);
+    }
     return (
-      <div className="container flex min-h-[60vh] flex-col items-center justify-center gap-6 py-20 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10">
-          <CheckCircle2 className="h-10 w-10 text-emerald-400" />
+      <div className="container py-12 md:py-20">
+        <PageMeta
+          title={t("seo.draft.title")}
+          description={t("seo.draft.description")}
+          noIndex
+        />
+        {/* Celebration card */}
+        <div className="mx-auto max-w-2xl">
+          <div className="rounded-[2rem] border border-emerald-400/20 bg-gradient-to-b from-emerald-950/60 to-slate-950 p-8 text-center shadow-2xl">
+            <div className="mb-4 flex items-center justify-center gap-3">
+              <Sparkles className="h-6 w-6 text-emerald-400 animate-pulse" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
+                <Trophy className="h-8 w-8 text-emerald-400" />
+              </div>
+              <Sparkles className="h-6 w-6 text-emerald-400 animate-pulse" />
+            </div>
+            <h1 className="font-display text-3xl font-bold text-white">
+              {t("draft.draftComplete")}
+            </h1>
+            <p className="mt-2 text-base text-emerald-300 font-semibold">
+              {t("draft.goodLuck")}
+            </p>
+            <p className="mt-1 text-sm text-foreground/50">
+              {t("draft.draftCompleteBody")}
+            </p>
+          </div>
+
+          {/* Per-member squad summary */}
+          <div className="mt-6 space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-foreground/40">
+              {t("draft.completeSummary")}
+            </h2>
+            {completeMembers.map((member) => {
+              const memberPicks = picksByMemberFinal[member.user_id] ?? [];
+              const isSelf = member.user_id === userProfile?.id;
+              return (
+                <div
+                  key={member.user_id}
+                  className={`rounded-[1.4rem] border p-4 ${
+                    isSelf
+                      ? "border-brand/30 bg-brand/5"
+                      : "border-white/10 bg-white/5"
+                  }`}
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        isSelf
+                          ? "bg-brand text-slate-950"
+                          : "bg-white/10 text-white"
+                      }`}
+                    >
+                      {(member.display_name ?? member.username ?? "?")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                    <span className="font-semibold text-white">
+                      {member.display_name ?? member.username}
+                    </span>
+                    {isSelf && (
+                      <span className="ml-1 rounded-full bg-brand/20 px-2 py-0.5 text-[10px] font-semibold text-brand">
+                        {t("groupPage.you")}
+                      </span>
+                    )}
+                    <span className="ml-auto text-xs text-foreground/40">
+                      {memberPicks.length} {t("draft.teamsLabel")}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {memberPicks.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5"
+                      >
+                        {p.team?.flag_url ? (
+                          <img
+                            src={p.team.flag_url}
+                            alt={p.team.name}
+                            className="h-4 w-6 rounded object-cover"
+                          />
+                        ) : null}
+                        <span className="text-xs font-medium text-white">
+                          {p.team?.short_name ?? p.team?.name ?? "?"}
+                        </span>
+                        {p.team?.tier != null && (
+                          <TierBadge tier={p.team.tier} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button
+              onClick={() => navigate(`/groups/${id}`)}
+              className="rounded-full bg-brand px-10 py-2 text-slate-950 hover:bg-brand/90"
+            >
+              {t("draft.goToGroup")}
+            </Button>
+          </div>
         </div>
-        <div>
-          <h1 className="font-display text-2xl font-bold text-white">
-            {t("draft.draftComplete")}
-          </h1>
-          <p className="mt-2 text-sm text-foreground/60">
-            {t("draft.draftCompleteBody")}
-          </p>
-        </div>
-        <Button
-          onClick={() => navigate(`/groups/${id}`)}
-          className="rounded-full bg-brand px-8 text-slate-950 hover:bg-brand/90"
-        >
-          {t("draft.goToGroup")}
-        </Button>
       </div>
     );
   }

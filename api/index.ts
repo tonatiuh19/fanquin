@@ -1,7 +1,7 @@
 import "dotenv/config";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 import express, { type RequestHandler } from "express";
-import serverless from "serverless-http";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
@@ -44,6 +44,39 @@ function generateSessionToken(): string {
 }
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+// Returns the ISO week number (1-53) for a given date.
+function getISOWeek(date: Date): number {
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/**
+ * After a group transitions to active, seed survivor_lives from scoring_config
+ * for competitive/global groups. No-op for other modes.
+ */
+async function seedSurvivorLives(supabase: any, groupId: string) {
+  const { data: group } = await supabase
+    .from("groups")
+    .select("mode, scoring_config")
+    .eq("id", groupId)
+    .single();
+
+  if (!group) return;
+  if (group.mode !== "competitive" && group.mode !== "global") return;
+
+  const lives: number = (group.scoring_config ?? {}).survivor_lives ?? 1;
+  if (lives <= 1) return; // DB default is already 1, only override when > 1
+
+  await supabase
+    .from("group_members")
+    .update({ survivor_lives: lives })
+    .eq("group_id", groupId);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -148,6 +181,32 @@ const emailCopy = {
     ],
     groupWelcomeCta: "Check your group and invite more friends!",
     groupWelcomeBtn: "Go to Group →",
+    groupRulesTitle: "Group Rules",
+    groupSettingsSubtitle: "Settings",
+    groupModeLabel: "Mode",
+    groupDraftLabel: "Team assignment",
+    groupMaxMembersLabel: "Max members",
+    groupScoringTitle: "Prediction Scoring",
+    groupScoringExact: "Exact score",
+    groupScoringWinner: "Correct winner",
+    groupScoringDiff: "Goal difference",
+    groupOwnershipTitle: "Team Ownership",
+    groupOwnershipWin: "Team win",
+    groupOwnershipGoal: "Team goal",
+    groupOwnershipCleanSheet: "Team clean sheet",
+    groupOwnershipStreakBonus: (threshold: number) =>
+      `${threshold}+ correct streak bonus`,
+    groupBonusTitle: "Bonus Criteria",
+    groupBonusNone: "No bonus criteria enabled.",
+    groupBonusBtts: "Both teams score",
+    groupBonusFtWinner: "Full-time result (standalone)",
+    groupBonusHtWinner: "Half-time result",
+    groupBonusGoals: (n: number) => `Total goals over ${n}`,
+    groupBonusCleanSheet: "Clean sheet prediction",
+    groupTimingTitle: "⏱️ Prediction window",
+    groupTimingBody:
+      "Predictions lock at each match's kickoff time. Submit before the whistle or your pick won't count!",
+    groupPts: "pts",
     groupDraftStartSubject: (groupName: string) =>
       `🏈 The draft is open — ${groupName}`,
     groupDraftStartBadge: "Draft is live",
@@ -200,6 +259,15 @@ const emailCopy = {
     ] as [string, string, string][],
     groupActiveStartCta: "Check your group and start predicting!",
     groupActiveStartBtn: "Go to Group →",
+    draftCompleteSubject: (groupName: string) =>
+      `🏆 Draft complete — ${groupName}`,
+    draftCompleteBadge: "Draft complete",
+    draftCompleteTitle: (groupName: string) =>
+      `The draft is over — ${groupName} 🏆`,
+    draftCompleteIntro: (name: string) =>
+      `${name ? `Hey ${name}! ` : ""}All picks are in — may the best squad win! Head to your group to start predicting matches.`,
+    draftCompleteCta: "Predictions are now open. Good luck!",
+    draftCompleteBtn: "Go to Group →",
   },
   es: {
     footerNote:
@@ -279,6 +347,32 @@ const emailCopy = {
     ],
     groupWelcomeCta: "¡Revisa tu grupo e invita a más amigos!",
     groupWelcomeBtn: "Ir al grupo →",
+    groupRulesTitle: "Reglas del grupo",
+    groupSettingsSubtitle: "Configuración",
+    groupModeLabel: "Modo",
+    groupDraftLabel: "Asignación de equipos",
+    groupMaxMembersLabel: "Máximo de jugadores",
+    groupScoringTitle: "Puntuación de predicciones",
+    groupScoringExact: "Marcador exacto",
+    groupScoringWinner: "Ganador correcto",
+    groupScoringDiff: "Diferencia de goles",
+    groupOwnershipTitle: "Puntos de equipo",
+    groupOwnershipWin: "Victoria del equipo",
+    groupOwnershipGoal: "Gol del equipo",
+    groupOwnershipCleanSheet: "Portería a cero del equipo",
+    groupOwnershipStreakBonus: (threshold: number) =>
+      `Bono por racha de ${threshold}+ aciertos`,
+    groupBonusTitle: "Criterios de bonificación",
+    groupBonusNone: "Este grupo no tiene criterios de bonificación.",
+    groupBonusBtts: "Ambos equipos marcan",
+    groupBonusFtWinner: "Resultado a tiempo reglamentario (independiente)",
+    groupBonusHtWinner: "Resultado al descanso",
+    groupBonusGoals: (n: number) => `Más de ${n} goles en total`,
+    groupBonusCleanSheet: "Predicción de portería a cero",
+    groupTimingTitle: "⏱️ Ventana de predicción",
+    groupTimingBody:
+      "Las predicciones se cierran al inicio de cada partido. ¡Envíalas antes del pitido o no contarán!",
+    groupPts: "pts",
     groupDraftStartSubject: (groupName: string) =>
       `🏈 El draft está abierto — ${groupName}`,
     groupDraftStartBadge: "Draft en vivo",
@@ -331,6 +425,15 @@ const emailCopy = {
     ] as [string, string, string][],
     groupActiveStartCta: "¡Revisa tu grupo y empieza a predecir!",
     groupActiveStartBtn: "Ir al grupo →",
+    draftCompleteSubject: (groupName: string) =>
+      `🏆 Draft completado — ${groupName}`,
+    draftCompleteBadge: "Draft completado",
+    draftCompleteTitle: (groupName: string) =>
+      `El draft ha terminado — ${groupName} 🏆`,
+    draftCompleteIntro: (name: string) =>
+      `${name ? `¡Hola ${name}! ` : ""}¡Todos los picks están hechos — que gane la mejor plantilla! Entra a tu grupo para empezar a predecir partidos.`,
+    draftCompleteCta: "Las predicciones ya están abiertas. ¡Buena suerte!",
+    draftCompleteBtn: "Ir al grupo →",
   },
 } as const;
 
@@ -361,6 +464,30 @@ type EmailCopyEntry = {
   groupWelcomeSteps: readonly (readonly string[])[];
   groupWelcomeCta: string;
   groupWelcomeBtn: string;
+  groupRulesTitle: string;
+  groupSettingsSubtitle: string;
+  groupModeLabel: string;
+  groupDraftLabel: string;
+  groupMaxMembersLabel: string;
+  groupScoringTitle: string;
+  groupScoringExact: string;
+  groupScoringWinner: string;
+  groupScoringDiff: string;
+  groupOwnershipTitle: string;
+  groupOwnershipWin: string;
+  groupOwnershipGoal: string;
+  groupOwnershipCleanSheet: string;
+  groupOwnershipStreakBonus: (threshold: number) => string;
+  groupBonusTitle: string;
+  groupBonusNone: string;
+  groupBonusBtts: string;
+  groupBonusFtWinner: string;
+  groupBonusHtWinner: string;
+  groupBonusGoals: (n: number) => string;
+  groupBonusCleanSheet: string;
+  groupTimingTitle: string;
+  groupTimingBody: string;
+  groupPts: string;
   groupDraftStartSubject: (groupName: string) => string;
   groupDraftStartBadge: string;
   groupDraftStartTitle: (groupName: string) => string;
@@ -375,6 +502,12 @@ type EmailCopyEntry = {
   groupActiveStartSteps: [string, string, string][];
   groupActiveStartCta: string;
   groupActiveStartBtn: string;
+  draftCompleteSubject: (groupName: string) => string;
+  draftCompleteBadge: string;
+  draftCompleteTitle: (groupName: string) => string;
+  draftCompleteIntro: (name: string) => string;
+  draftCompleteCta: string;
+  draftCompleteBtn: string;
 };
 function t(locale: string): EmailCopyEntry {
   return emailCopy[
@@ -432,6 +565,84 @@ function emailShell(content: string, locale = "es"): string {
   </table>
 </body>
 </html>`;
+}
+
+/** Draft complete summary email sent to every group member */
+function buildDraftCompleteEmail(
+  displayName: string,
+  groupName: string,
+  groupId: string,
+  memberPicks: {
+    userId: string;
+    name: string;
+    teams: {
+      name: string;
+      shortName: string | null;
+      tier: number | null;
+      flagUrl: string | null;
+    }[];
+  }[],
+  appUrl: string,
+  locale = "es",
+): string {
+  const c = t(locale);
+  const groupUrl = `${appUrl}/groups/${groupId}`;
+
+  const memberRows = memberPicks
+    .map(({ name, teams }) => {
+      const teamPills = teams
+        .map(
+          (team) =>
+            `<span style="display:inline-block;background:#f3f4f6;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px;color:#374151;font-weight:600;">${
+              team.shortName ?? team.name
+            }${team.tier != null ? ` <span style="color:#9ca3af;font-weight:400;">T${team.tier}</span>` : ""}</span>`,
+        )
+        .join("");
+      return `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;">
+          <p style="margin:0 0 6px 0;color:#111827;font-size:14px;font-weight:700;">${name}</p>
+          <div>${teamPills}</div>
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const content = `
+    <!-- HERO -->
+    <tr>
+      <td style="background:linear-gradient(135deg,#0c2340 0%,#1e3a5f 50%,#2563eb 100%);padding:36px 32px;text-align:center;">
+        <p style="margin:0 0 6px 0;color:#bfdbfe;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;">${c.draftCompleteBadge}</p>
+        <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:26px;font-weight:800;">${c.draftCompleteTitle(groupName)}</h1>
+        <p style="margin:0;color:#bfdbfe;font-size:15px;">${c.draftCompleteIntro(displayName)}</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="background:#ffffff;padding:32px 32px 0;">
+        <p style="margin:0 0 16px 0;color:#111827;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Final Squads</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          ${memberRows}
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="background:#ffffff;padding:24px 32px 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="center" style="background:#eff6ff;border-radius:12px;padding:24px;">
+              <p style="margin:0 0 14px 0;color:#374151;font-size:14px;">${c.draftCompleteCta}</p>
+              <a href="${groupUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 48px;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.3px;">
+                ${c.draftCompleteBtn}
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+
+  return emailShell(content, locale);
 }
 
 /** OTP verification code email */
@@ -566,10 +777,176 @@ function buildGroupWelcomeEmail(
   groupId: string,
   appUrl: string,
   locale = "es",
+  groupConfig?: {
+    mode?: string;
+    draft_type?: string;
+    max_members?: number;
+    scoring_config?: Record<string, unknown>;
+    bonus_criteria?: {
+      enabled?: string[];
+      btts_pts?: number;
+      total_goals_over_pts?: number;
+      total_goals_threshold?: number;
+      ft_winner_pts?: number;
+      ht_winner_pts?: number;
+      clean_sheet_pts?: number;
+    };
+  },
 ): string {
   const c = t(locale);
   const accentColor = "#16a34a";
   const groupUrl = `${appUrl}/groups/${groupId}`;
+
+  const modeNames: Record<string, Record<string, string>> = {
+    en: {
+      friends: "Friends",
+      casual: "Casual",
+      league: "League",
+      competitive: "Competitive",
+      global: "Global",
+    },
+    es: {
+      friends: "Amigos",
+      casual: "Casual",
+      league: "Liga",
+      competitive: "Competitivo",
+      global: "Global",
+    },
+  };
+  const draftNames: Record<string, Record<string, string>> = {
+    en: {
+      snake: "🐍 Snake draft (live room)",
+      random: "🎲 Random draw",
+      balanced_tier: "⚖️ Balanced tiers",
+    },
+    es: {
+      snake: "🐍 Draft snake (sala en vivo)",
+      random: "🎲 Sorteo aleatorio",
+      balanced_tier: "⚖️ Niveles balanceados",
+    },
+  };
+  const l = locale in modeNames ? locale : "es";
+  const modeName =
+    modeNames[l][groupConfig?.mode ?? ""] ?? groupConfig?.mode ?? "—";
+  const draftName =
+    draftNames[l][groupConfig?.draft_type ?? ""] ??
+    groupConfig?.draft_type ??
+    "—";
+
+  const toNum = (val: unknown): number => (typeof val === "number" ? val : 0);
+  const sc = (groupConfig?.scoring_config ?? {}) as Record<string, unknown>;
+  const bc = groupConfig?.bonus_criteria ?? {};
+  const pts = c.groupPts;
+
+  const makeRow = (label: string, value: string, color: string) =>
+    `<tr>
+       <td style="color:#6b7280;font-size:13px;padding:7px 0;border-bottom:1px solid #f3f4f6;">${label}</td>
+       <td align="right" style="color:${color};font-size:13px;font-weight:700;padding:7px 0;border-bottom:1px solid #f3f4f6;">${value}</td>
+     </tr>`;
+
+  const settingsHTML = [
+    makeRow(c.groupModeLabel, modeName, "#111827"),
+    makeRow(c.groupDraftLabel, draftName, "#111827"),
+    makeRow(
+      c.groupMaxMembersLabel,
+      String(groupConfig?.max_members ?? "—"),
+      "#111827",
+    ),
+  ].join("");
+
+  const scoringHTML = (
+    [
+      [c.groupScoringExact, toNum(sc.exact_score_pts)],
+      [c.groupScoringWinner, toNum(sc.correct_winner_pts)],
+      [c.groupScoringDiff, toNum(sc.goal_difference_pts)],
+    ] as [string, number][]
+  )
+    .filter(([, p]) => p > 0)
+    .map(([label, p]) => makeRow(label, `+${p} ${pts}`, "#16a34a"))
+    .join("");
+
+  const streakThreshold = toNum(sc.streak_bonus_threshold);
+  const streakPts = toNum(sc.streak_bonus_pts);
+  const ownershipHTML =
+    (
+      [
+        [c.groupOwnershipWin, toNum(sc.team_win_pts)],
+        [c.groupOwnershipGoal, toNum(sc.team_goal_pts)],
+        [c.groupOwnershipCleanSheet, toNum(sc.team_clean_sheet_pts)],
+      ] as [string, number][]
+    )
+      .filter(([, p]) => p > 0)
+      .map(([label, p]) => makeRow(label, `+${p} ${pts}`, "#7c3aed"))
+      .join("") +
+    (streakThreshold > 0 && streakPts > 0
+      ? makeRow(
+          c.groupOwnershipStreakBonus(streakThreshold),
+          `+${streakPts} ${pts}`,
+          "#f59e0b",
+        )
+      : "");
+
+  const enabledCriteria: string[] = bc.enabled ?? [];
+  const bonusCriterionLabel: Record<string, string> = {
+    btts: c.groupBonusBtts,
+    ft_winner: c.groupBonusFtWinner,
+    ht_winner: c.groupBonusHtWinner,
+    total_goals_over: c.groupBonusGoals(bc.total_goals_threshold ?? 2.5),
+    clean_sheet: c.groupBonusCleanSheet,
+  };
+  const bonusPtsMap: Record<string, number> = {
+    btts: toNum(bc.btts_pts),
+    ft_winner: toNum(bc.ft_winner_pts),
+    ht_winner: toNum(bc.ht_winner_pts),
+    total_goals_over: toNum(bc.total_goals_over_pts),
+    clean_sheet: toNum(bc.clean_sheet_pts),
+  };
+  const bonusHTML =
+    enabledCriteria.length === 0
+      ? `<tr><td colspan="2" style="color:#9ca3af;font-size:13px;padding:8px 0;font-style:italic;">${c.groupBonusNone}</td></tr>`
+      : enabledCriteria
+          .map((key) =>
+            makeRow(
+              bonusCriterionLabel[key] ?? key,
+              `+${bonusPtsMap[key] ?? 0} ${pts}`,
+              "#0891b2",
+            ),
+          )
+          .join("");
+
+  const tableBlock = (title: string, rows: string) => `
+    <p style="margin:0 0 6px 0;color:#374151;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">${title}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
+      <tr>
+        <td style="background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;padding:0 14px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tbody>${rows}</tbody>
+          </table>
+        </td>
+      </tr>
+    </table>`;
+
+  const rulesHTML = groupConfig
+    ? `
+    <!-- GROUP RULES -->
+    <tr>
+      <td style="background:#f8fafc;padding:28px 32px;border-top:2px solid #e5e7eb;">
+        <p style="margin:0 0 20px 0;color:#111827;font-size:15px;font-weight:800;letter-spacing:0.3px;">📋 ${c.groupRulesTitle}</p>
+        ${tableBlock(c.groupSettingsSubtitle, settingsHTML)}
+        ${tableBlock("🎯 " + c.groupScoringTitle, scoringHTML)}
+        ${tableBlock("🏆 " + c.groupOwnershipTitle, ownershipHTML)}
+        ${tableBlock("⭐ " + c.groupBonusTitle, bonusHTML)}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;">
+              <p style="margin:0 0 4px 0;color:#92400e;font-size:13px;font-weight:700;">${c.groupTimingTitle}</p>
+              <p style="margin:0;color:#78350f;font-size:13px;line-height:1.5;">${c.groupTimingBody}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`
+    : "";
 
   const stepsHTML = c.groupWelcomeSteps
     .map(
@@ -603,6 +980,8 @@ function buildGroupWelcomeEmail(
         <p style="margin:0;color:#bfdbfe;font-size:15px;">${c.groupWelcomeIntro(displayName)}</p>
       </td>
     </tr>
+
+    ${rulesHTML}
 
     <tr>
       <td style="background:#ffffff;padding:40px 32px 32px;">
@@ -1281,6 +1660,7 @@ export function createApp() {
         .from("competitions")
         .select("*")
         .eq("is_active", true)
+        .eq("is_test", false)
         .order("starts_at", { ascending: true });
 
       if (error) throw error;
@@ -1519,6 +1899,7 @@ export function createApp() {
           mode,
           draft_type = "snake",
           max_members = 50,
+          bonus_criteria,
         } = req.body;
 
         if (!name || !competition_id || !mode) {
@@ -1544,6 +1925,85 @@ export function createApp() {
           return;
         }
 
+        // Per-mode scoring config defaults:
+        //  casual    – relaxed points, no ELO, no survivor
+        //  friends   – defaults
+        //  league    – ELO enabled (k=32), higher points per win
+        //  competitive – survivor (3 lives), ELO (k=24), higher exact bonus
+        //  global    – massive pool, lower ELO k-factor, weekly streak important
+        const scoringDefaults: Record<string, object> = {
+          casual: {
+            exact_score_pts: 4,
+            correct_winner_pts: 2,
+            goal_difference_pts: 1,
+            team_win_pts: 3,
+            team_goal_pts: 1,
+            team_clean_sheet_pts: 2,
+            upset_base_pts: 3,
+            streak_bonus_threshold: 3,
+            streak_bonus_pts: 1,
+            elo_k_factor: 0,
+            survivor_lives: 1,
+            weekly_reset_enabled: false,
+          },
+          friends: {
+            exact_score_pts: 5,
+            correct_winner_pts: 3,
+            goal_difference_pts: 2,
+            team_win_pts: 4,
+            team_goal_pts: 1,
+            team_clean_sheet_pts: 3,
+            upset_base_pts: 5,
+            streak_bonus_threshold: 3,
+            streak_bonus_pts: 2,
+            elo_k_factor: 0,
+            survivor_lives: 1,
+            weekly_reset_enabled: false,
+          },
+          league: {
+            exact_score_pts: 6,
+            correct_winner_pts: 3,
+            goal_difference_pts: 2,
+            team_win_pts: 5,
+            team_goal_pts: 1,
+            team_clean_sheet_pts: 3,
+            upset_base_pts: 6,
+            streak_bonus_threshold: 3,
+            streak_bonus_pts: 2,
+            elo_k_factor: 32,
+            survivor_lives: 1,
+            weekly_reset_enabled: true,
+          },
+          competitive: {
+            exact_score_pts: 7,
+            correct_winner_pts: 4,
+            goal_difference_pts: 2,
+            team_win_pts: 5,
+            team_goal_pts: 1,
+            team_clean_sheet_pts: 3,
+            upset_base_pts: 7,
+            streak_bonus_threshold: 3,
+            streak_bonus_pts: 3,
+            elo_k_factor: 24,
+            survivor_lives: 3,
+            weekly_reset_enabled: true,
+          },
+          global: {
+            exact_score_pts: 5,
+            correct_winner_pts: 3,
+            goal_difference_pts: 2,
+            team_win_pts: 4,
+            team_goal_pts: 1,
+            team_clean_sheet_pts: 3,
+            upset_base_pts: 8,
+            streak_bonus_threshold: 4,
+            streak_bonus_pts: 3,
+            elo_k_factor: 16,
+            survivor_lives: 1,
+            weekly_reset_enabled: true,
+          },
+        };
+
         const supabase = getSupabaseAdmin();
 
         const { data: group, error } = await supabase
@@ -1555,6 +2015,12 @@ export function createApp() {
             draft_type,
             owner_id: req.userId!,
             max_members,
+            scoring_config: scoringDefaults[mode] ?? scoringDefaults.friends,
+            ...(bonus_criteria &&
+            typeof bonus_criteria === "object" &&
+            !Array.isArray(bonus_criteria)
+              ? { bonus_criteria }
+              : {}),
           })
           .select()
           .single();
@@ -1581,7 +2047,7 @@ export function createApp() {
 
   // ──────────────────────────────────────────────────────────────
   // PATCH /api/groups/:id  (auth required, owner only, waiting only)
-  // Update group name and/or max_members before the draft starts.
+  // Update group name, max_members, and/or bonus_criteria before the draft starts.
   // ──────────────────────────────────────────────────────────────
   app.patch(
     "/api/groups/:id",
@@ -1590,13 +2056,26 @@ export function createApp() {
       try {
         const supabase = getSupabaseAdmin();
         const groupId = req.params.id;
-        const { name, max_members } = req.body as {
+        const { name, max_members, bonus_criteria } = req.body as {
           name?: string;
           max_members?: number;
+          bonus_criteria?: {
+            enabled?: string[];
+            btts_pts?: number;
+            total_goals_over_pts?: number;
+            total_goals_threshold?: number;
+            ft_winner_pts?: number;
+            ht_winner_pts?: number;
+            clean_sheet_pts?: number;
+          };
         };
 
         // At least one field required
-        if (name === undefined && max_members === undefined) {
+        if (
+          name === undefined &&
+          max_members === undefined &&
+          bonus_criteria === undefined
+        ) {
           res.status(400).json({
             success: false,
             message: "Provide at least one field to update.",
@@ -1628,10 +2107,73 @@ export function createApp() {
           }
         }
 
+        // Validate bonus_criteria
+        const validCriterionKeys = [
+          "btts",
+          "total_goals_over",
+          "ft_winner",
+          "ht_winner",
+          "clean_sheet",
+        ];
+        if (bonus_criteria !== undefined) {
+          if (
+            typeof bonus_criteria !== "object" ||
+            Array.isArray(bonus_criteria)
+          ) {
+            res.status(400).json({
+              success: false,
+              message: "bonus_criteria must be an object.",
+            });
+            return;
+          }
+          if (bonus_criteria.enabled !== undefined) {
+            if (
+              !Array.isArray(bonus_criteria.enabled) ||
+              bonus_criteria.enabled.some(
+                (k) => !validCriterionKeys.includes(k),
+              )
+            ) {
+              res.status(400).json({
+                success: false,
+                message: `bonus_criteria.enabled may only contain: ${validCriterionKeys.join(", ")}.`,
+              });
+              return;
+            }
+          }
+          const ptFields = [
+            "btts_pts",
+            "total_goals_over_pts",
+            "ft_winner_pts",
+            "ht_winner_pts",
+            "clean_sheet_pts",
+          ] as const;
+          for (const f of ptFields) {
+            const v = bonus_criteria[f];
+            if (v !== undefined && (!Number.isInteger(v) || v < 0 || v > 50)) {
+              res.status(400).json({
+                success: false,
+                message: `${f} must be an integer between 0 and 50.`,
+              });
+              return;
+            }
+          }
+          if (bonus_criteria.total_goals_threshold !== undefined) {
+            const t = bonus_criteria.total_goals_threshold;
+            if (typeof t !== "number" || t < 0 || t > 20) {
+              res.status(400).json({
+                success: false,
+                message:
+                  "total_goals_threshold must be a number between 0 and 20.",
+              });
+              return;
+            }
+          }
+        }
+
         // Fetch group — must belong to this user and be in waiting status
         const { data: group, error: fetchErr } = await supabase
           .from("groups")
-          .select("id, owner_id, status, group_members(count)")
+          .select("id, owner_id, status, bonus_criteria, group_members(count)")
           .eq("id", groupId)
           .single();
 
@@ -1675,6 +2217,12 @@ export function createApp() {
         if (name !== undefined) updates.name = name.trim();
         if (max_members !== undefined)
           updates.max_members = Number(max_members);
+        if (bonus_criteria !== undefined) {
+          // Merge with existing bonus_criteria rather than full-replace
+          const existing =
+            (group.bonus_criteria as Record<string, unknown>) ?? {};
+          updates.bonus_criteria = { ...existing, ...bonus_criteria };
+        }
 
         const { data: updated, error: updateErr } = await supabase
           .from("groups")
@@ -1884,6 +2432,7 @@ export function createApp() {
 
         if (updateErr) throw updateErr;
         sendStartEmails(false);
+        await seedSurvivorLives(supabase, groupId as string);
         res.json({ success: true, data: updated });
       } catch (err) {
         res.status(500).json({
@@ -1944,6 +2493,8 @@ export function createApp() {
           .single();
 
         if (updateErr) throw updateErr;
+        // Seed survivor lives now that the group is active
+        await seedSurvivorLives(supabase, groupId as string);
         res.json({ success: true, data: updated });
       } catch (err) {
         res.status(500).json({
@@ -1987,6 +2538,82 @@ export function createApp() {
           .select("id, status, draft_type, competition_id")
           .eq("id", groupId)
           .single();
+
+        // When status is "active" the draft is complete — return the finished
+        // session so all members (not just the last picker) see the completion screen.
+        if (group && group.status === "active") {
+          const { data: session } = await supabase
+            .from("draft_sessions")
+            .select("*")
+            .eq("group_id", groupId)
+            .single();
+
+          if (session) {
+            const [{ data: picks }, { data: members }] = await Promise.all([
+              supabase
+                .from("draft_picks")
+                .select(
+                  `id, pick_number, round, auto_picked, picked_at, user_id, team_id,
+                teams(id, name, short_name, country_code, flag_url, tier),
+                profiles(username, display_name)`,
+                )
+                .eq("group_id", groupId)
+                .order("pick_number", { ascending: true }),
+              supabase
+                .from("group_members")
+                .select(
+                  `id, group_id, user_id, role, total_points, joined_at,
+                profiles(username, display_name, avatar_url)`,
+                )
+                .eq("group_id", groupId),
+            ]);
+
+            res.json({
+              success: true,
+              data: {
+                session: {
+                  group_id: groupId,
+                  member_order: session.member_order ?? [],
+                  current_pick: session.current_pick,
+                  total_picks: session.total_picks,
+                  pick_deadline: session.pick_deadline,
+                  current_picker_id: null,
+                  round: Math.ceil(
+                    session.total_picks /
+                      Math.max((session.member_order ?? []).length, 1),
+                  ),
+                  is_complete: true,
+                },
+                picks: (picks ?? []).map((p: any) => ({
+                  id: p.id,
+                  group_id: groupId,
+                  user_id: p.user_id,
+                  team_id: p.team_id,
+                  pick_number: p.pick_number,
+                  round: p.round,
+                  auto_picked: p.auto_picked,
+                  picked_at: p.picked_at,
+                  team: p.teams,
+                  username: p.profiles?.username ?? "",
+                  display_name: p.profiles?.display_name ?? null,
+                })),
+                available_teams: [],
+                members: (members ?? []).map((m: any) => ({
+                  id: m.id,
+                  group_id: m.group_id,
+                  user_id: m.user_id,
+                  username: m.profiles?.username ?? "",
+                  display_name: m.profiles?.display_name ?? null,
+                  avatar_url: m.profiles?.avatar_url ?? null,
+                  role: m.role,
+                  total_points: m.total_points,
+                  joined_at: m.joined_at,
+                })),
+              },
+            });
+            return;
+          }
+        }
 
         if (!group || group.status !== "draft") {
           res
@@ -2258,6 +2885,8 @@ export function createApp() {
               updated_at: new Date().toISOString(),
             })
             .eq("id", groupId);
+          // Seed survivor lives for competitive/global groups
+          seedSurvivorLives(supabase, groupId as string).catch(console.error);
         }
 
         // Compute next picker for response
@@ -2267,6 +2896,79 @@ export function createApp() {
           const np = nextPick % m;
           const ni = nr % 2 === 0 ? np : m - 1 - np;
           nextPickerId = memberOrder[ni];
+        }
+
+        // Send draft-complete summary email to all members (fire-and-forget)
+        if (isComplete) {
+          const appUrl = process.env.APP_URL || "https://fanquin.com";
+          Promise.all([
+            supabase
+              .from("draft_picks")
+              .select(
+                `user_id, team_id, pick_number, teams(name, short_name, tier, flag_url)`,
+              )
+              .eq("group_id", groupId)
+              .order("pick_number", { ascending: true }),
+            supabase
+              .from("group_members")
+              .select(`user_id, profiles(username, display_name)`)
+              .eq("group_id", groupId),
+            supabase.from("groups").select("name").eq("id", groupId).single(),
+          ])
+            .then(
+              async ([
+                { data: allPicks },
+                { data: allMembers },
+                { data: grp },
+              ]) => {
+                if (!allPicks || !allMembers || !grp) return;
+                const groupName = grp.name as string;
+                const memberPicks = allMembers.map((mem: any) => ({
+                  userId: mem.user_id as string,
+                  name:
+                    (mem.profiles?.display_name as string | null) ??
+                    (mem.profiles?.username as string | null) ??
+                    "Player",
+                  teams: (allPicks as any[])
+                    .filter((p: any) => p.user_id === mem.user_id)
+                    .map((p: any) => ({
+                      name: p.teams?.name ?? "",
+                      shortName: p.teams?.short_name ?? null,
+                      tier: p.teams?.tier ?? null,
+                      flagUrl: p.teams?.flag_url ?? null,
+                    })),
+                }));
+                const emailPromises = await Promise.all(
+                  allMembers.map(async (mem: any) => {
+                    const { data: authUser } =
+                      await supabase.auth.admin.getUserById(mem.user_id);
+                    const email = authUser?.user?.email;
+                    if (!email) return;
+                    const locale: string =
+                      (authUser?.user?.user_metadata?.locale as string) ?? "es";
+                    const displayName =
+                      (mem.profiles?.display_name as string | null) ??
+                      (mem.profiles?.username as string | null) ??
+                      "";
+                    const copy = emailCopy[locale as Locale] ?? emailCopy.es;
+                    return sendEmail({
+                      to: email,
+                      subject: copy.draftCompleteSubject(groupName),
+                      html: buildDraftCompleteEmail(
+                        displayName,
+                        groupName,
+                        groupId as string,
+                        memberPicks,
+                        appUrl,
+                        locale,
+                      ),
+                    });
+                  }),
+                );
+                return emailPromises;
+              },
+            )
+            .catch((e) => console.error("Draft complete email failed:", e));
         }
 
         res.status(201).json({
@@ -2363,7 +3065,9 @@ export function createApp() {
 
         const { data: group, error } = await supabase
           .from("groups")
-          .select("id, name, max_members, group_members(count)")
+          .select(
+            "id, name, status, max_members, mode, draft_type, scoring_config, bonus_criteria, group_members(count)",
+          )
           .eq("invite_code", invite_code.trim().toLowerCase())
           .eq("is_active", true)
           .single();
@@ -2372,6 +3076,15 @@ export function createApp() {
           res.status(404).json({
             success: false,
             message: "Invalid or expired invite code.",
+          });
+          return;
+        }
+
+        if (group.status === "draft" || group.status === "active") {
+          res.status(409).json({
+            success: false,
+            message:
+              "This group has already started and is no longer accepting new members.",
           });
           return;
         }
@@ -2424,6 +3137,24 @@ export function createApp() {
                 group.id,
                 appUrl,
                 joinLocale,
+                {
+                  mode: group.mode,
+                  draft_type: group.draft_type,
+                  max_members: group.max_members,
+                  scoring_config: (group.scoring_config ?? {}) as Record<
+                    string,
+                    unknown
+                  >,
+                  bonus_criteria: (group.bonus_criteria ?? {}) as {
+                    enabled?: string[];
+                    btts_pts?: number;
+                    total_goals_over_pts?: number;
+                    total_goals_threshold?: number;
+                    ft_winner_pts?: number;
+                    ht_winner_pts?: number;
+                    clean_sheet_pts?: number;
+                  },
+                },
               ),
             });
           })
@@ -2473,7 +3204,7 @@ export function createApp() {
           .select(
             `
           user_id, total_points, prediction_pts, ownership_pts,
-          current_streak, elo_rating, rank,
+          current_streak, elo_rating, rank, is_eliminated, survivor_lives,
           profiles(username, display_name, first_name, last_name, avatar_url)
         `,
           )
@@ -2495,6 +3226,8 @@ export function createApp() {
           ownership_pts: row.ownership_pts,
           current_streak: row.current_streak,
           elo_rating: row.elo_rating,
+          is_eliminated: row.is_eliminated ?? false,
+          survivor_lives: row.survivor_lives ?? null,
         }));
 
         res.json({ success: true, data: leaderboard });
@@ -2581,7 +3314,8 @@ export function createApp() {
     requireAuth,
     async (req: AuthenticatedRequest, res) => {
       try {
-        const { group_id, match_id, predicted_home, predicted_away } = req.body;
+        const { group_id, match_id, predicted_home, predicted_away, details } =
+          req.body;
 
         if (
           !group_id ||
@@ -2606,6 +3340,58 @@ export function createApp() {
             success: false,
             message:
               "predicted_home and predicted_away must be non-negative integers.",
+          });
+          return;
+        }
+
+        // Validate bonus prediction details shape if provided
+        if (
+          details !== undefined &&
+          (typeof details !== "object" || Array.isArray(details))
+        ) {
+          res
+            .status(400)
+            .json({ success: false, message: "details must be an object." });
+          return;
+        }
+        const safeDetails = details ?? {};
+        if (
+          safeDetails.btts !== undefined &&
+          typeof safeDetails.btts !== "boolean"
+        ) {
+          res.status(400).json({
+            success: false,
+            message: "details.btts must be a boolean.",
+          });
+          return;
+        }
+        if (
+          safeDetails.total_goals_over !== undefined &&
+          typeof safeDetails.total_goals_over !== "boolean"
+        ) {
+          res.status(400).json({
+            success: false,
+            message: "details.total_goals_over must be a boolean.",
+          });
+          return;
+        }
+        if (
+          safeDetails.ht_winner !== undefined &&
+          !["home", "draw", "away"].includes(safeDetails.ht_winner)
+        ) {
+          res.status(400).json({
+            success: false,
+            message: "details.ht_winner must be 'home', 'draw', or 'away'.",
+          });
+          return;
+        }
+        if (
+          safeDetails.clean_sheet !== undefined &&
+          !["home", "away", "none"].includes(safeDetails.clean_sheet)
+        ) {
+          res.status(400).json({
+            success: false,
+            message: "details.clean_sheet must be 'home', 'away', or 'none'.",
           });
           return;
         }
@@ -2666,6 +3452,7 @@ export function createApp() {
               user_id: req.userId!,
               predicted_home,
               predicted_away,
+              details: safeDetails,
               result: "pending",
             },
             { onConflict: "group_id,user_id,match_id" },
@@ -2770,6 +3557,8 @@ export function createApp() {
       }
 
       // ── Resolve competition ────────────────────────────────────
+      // Priority: explicit ?competition_id → user's active group competition
+      //           → most active non-test competition (unauthenticated fallback)
       const competitionId = req.query.competition_id as string | undefined;
       let competition: Record<string, unknown> | null = null;
 
@@ -2780,11 +3569,38 @@ export function createApp() {
           .eq("id", competitionId)
           .single();
         competition = data;
+      } else if (userId) {
+        // Find the competition the user is actively playing in
+        const { data: membership } = await supabase
+          .from("group_members")
+          .select("groups(competition_id, competitions(*))")
+          .eq("user_id", userId)
+          .limit(1)
+          .single();
+        const comp = (membership as any)?.groups?.competitions;
+        if (comp) {
+          competition = comp;
+        } else {
+          // User has no groups yet — return empty so LivePage shows join prompt
+          res.json({
+            success: true,
+            data: {
+              live: [],
+              upcoming: [],
+              recent: [],
+              my_active_groups: [],
+              last_synced_at: null,
+              competition: null,
+            },
+          });
+          return;
+        }
       } else {
         const { data } = await supabase
           .from("competitions")
           .select("*")
           .eq("is_active", true)
+          .eq("is_test", false)
           .order("starts_at", { ascending: true })
           .limit(1)
           .single();
@@ -2806,6 +3622,38 @@ export function createApp() {
         return;
       }
 
+      // ── Auto-reschedule test competition matches ────────────────
+      // When the test league is loaded, silently rebase all 5 test
+      // matches to 5-min intervals from now (no data wipe).
+      if ((competition as any).is_test === true) {
+        const MIN = 60_000;
+        const now = Date.now();
+        const ts = (ms: number) => new Date(now + ms).toISOString();
+        const testMatchIds = [
+          "ffffffff-3333-0000-0000-000000000001",
+          "ffffffff-3333-0000-0000-000000000002",
+          "ffffffff-3333-0000-0000-000000000003",
+          "ffffffff-3333-0000-0000-000000000004",
+          "ffffffff-3333-0000-0000-000000000005",
+        ];
+        await Promise.all(
+          testMatchIds.map((id, i) =>
+            supabase
+              .from("matches")
+              .update({
+                status: "scheduled",
+                match_date: ts((i + 1) * 5 * MIN),
+                prediction_lock: ts((i + 1) * 5 * MIN - 2 * MIN),
+                home_score: null,
+                away_score: null,
+                ht_score_home: null,
+                ht_score_away: null,
+              })
+              .eq("id", id),
+          ),
+        );
+      }
+
       // ── Fetch match bands in parallel ─────────────────────────
       const [
         { data: liveMatches },
@@ -2817,7 +3665,7 @@ export function createApp() {
           .from("matches")
           .select(
             `id, stage, match_number, match_date, prediction_lock,
-             home_score, away_score, status,
+             home_score, away_score, ht_score_home, ht_score_away, status,
              home_team:teams!matches_home_team_id_fkey(id, name, short_name, flag_url, country_code),
              away_team:teams!matches_away_team_id_fkey(id, name, short_name, flag_url, country_code),
              venue:venues(name, city)`,
@@ -2831,7 +3679,7 @@ export function createApp() {
           .from("matches")
           .select(
             `id, stage, match_number, match_date, prediction_lock,
-             home_score, away_score, status,
+             home_score, away_score, ht_score_home, ht_score_away, status,
              home_team:teams!matches_home_team_id_fkey(id, name, short_name, flag_url, country_code),
              away_team:teams!matches_away_team_id_fkey(id, name, short_name, flag_url, country_code),
              venue:venues(name, city)`,
@@ -2846,7 +3694,7 @@ export function createApp() {
           .from("matches")
           .select(
             `id, stage, match_number, match_date, prediction_lock,
-             home_score, away_score, status,
+             home_score, away_score, ht_score_home, ht_score_away, status,
              home_team:teams!matches_home_team_id_fkey(id, name, short_name, flag_url, country_code),
              away_team:teams!matches_away_team_id_fkey(id, name, short_name, flag_url, country_code),
              venue:venues(name, city)`,
@@ -2872,25 +3720,35 @@ export function createApp() {
       }[] = [];
 
       if (userId && allMatches.length > 0) {
-        // User's active groups for this competition
+        // User's active groups for this competition (include bonus_criteria)
         const { data: memberships } = await supabase
           .from("group_members")
-          .select("groups(id, name, competition_id, status)")
+          .select("groups(id, name, competition_id, status, bonus_criteria)")
           .eq("user_id", userId);
 
-        myActiveGroups = (memberships ?? [])
+        const activeGroupsFull = (memberships ?? [])
           .map((m: any) => m.groups)
           .filter(
             (g: any) =>
               g &&
               g.competition_id === competition!.id &&
               g.status === "active",
-          )
-          .map((g: any) => ({
-            id: g.id,
-            name: g.name,
-            competition_id: g.competition_id,
-          }));
+          );
+
+        myActiveGroups = activeGroupsFull.map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          competition_id: g.competition_id,
+          bonus_criteria: g.bonus_criteria ?? {
+            enabled: [],
+            btts_pts: 2,
+            total_goals_over_pts: 2,
+            total_goals_threshold: 2.5,
+            ft_winner_pts: 2,
+            ht_winner_pts: 2,
+            clean_sheet_pts: 1,
+          },
+        }));
 
         if (myActiveGroups.length > 0) {
           const groupIds = myActiveGroups.map((g) => g.id);
@@ -2899,7 +3757,7 @@ export function createApp() {
           const { data: predictions } = await supabase
             .from("predictions")
             .select(
-              "match_id, group_id, predicted_home, predicted_away, result, points_earned",
+              "match_id, group_id, predicted_home, predicted_away, result, points_earned, bonus_pts, details",
             )
             .eq("user_id", userId)
             .in("group_id", groupIds)
@@ -2917,6 +3775,11 @@ export function createApp() {
               predicted_away: pred.predicted_away,
               result: pred.result,
               points_earned: pred.points_earned,
+              bonus_pts: pred.bonus_pts ?? 0,
+              details: pred.details ?? {},
+              group_bonus_criteria: (group as any)?.bonus_criteria ?? {
+                enabled: [],
+              },
             };
           }
         }
@@ -3136,6 +3999,9 @@ export function createApp() {
         let matchesUpdated = 0;
         let predictionsScored = 0;
         let ownershipPointsAwarded = 0;
+        let streakBonusesAwarded = 0;
+        let upsetBonusesAwarded = 0;
+        let eloUpdatesApplied = 0;
 
         for (const fdMatch of fdMatches) {
           matchesChecked++;
@@ -3179,13 +4045,17 @@ export function createApp() {
             continue;
           }
 
-          // Update match record
+          // Update match record (including half-time scores from football-data.org)
+          const htHome: number | null = fdMatch.score?.halfTime?.home ?? null;
+          const htAway: number | null = fdMatch.score?.halfTime?.away ?? null;
           await supabase
             .from("matches")
             .update({
               status: newStatus,
               home_score: homeScore,
               away_score: awayScore,
+              ht_score_home: htHome,
+              ht_score_away: htAway,
               external_id: fdMatch.id,
               last_synced_at: new Date().toISOString(),
             })
@@ -3202,38 +4072,109 @@ export function createApp() {
             homeScore !== null &&
             awayScore !== null
           ) {
-            // Fetch all pending predictions for this match
+            // Fetch all pending predictions for this match (including bonus details)
             const { data: pendingPreds } = await supabase
               .from("predictions")
-              .select("id, group_id, user_id, predicted_home, predicted_away")
+              .select(
+                "id, group_id, user_id, predicted_home, predicted_away, details",
+              )
               .eq("match_id", dbMatch.id)
               .eq("result", "pending");
 
             if (pendingPreds && pendingPreds.length > 0) {
-              // Load scoring configs for involved groups
+              // Load scoring configs + bonus criteria for involved groups
               const groupIds = [
                 ...new Set(pendingPreds.map((p) => p.group_id)),
               ];
               const { data: groups } = await supabase
                 .from("groups")
-                .select("id, scoring_config")
+                .select("id, scoring_config, bonus_criteria")
                 .in("id", groupIds);
 
               const configByGroup = new Map<string, any>(
                 (groups ?? []).map((g) => [g.id, g.scoring_config ?? {}]),
               );
+              const bonusByGroup = new Map<string, any>(
+                (groups ?? []).map((g) => [
+                  g.id,
+                  g.bonus_criteria ?? { enabled: [] },
+                ]),
+              );
 
-              // Accumulate per-user-group point deltas
-              const ptsDelta = new Map<string, number>(); // `${groupId}:${userId}` → pts
+              // ── Pre-scoring: compute pick percentages for upset bonus ────
+              const totalPicksForMatch = pendingPreds.length;
+              let homeWinCount = 0;
+              let awayWinCount = 0;
+              let drawCountPicks = 0;
+              for (const p of pendingPreds) {
+                if (p.predicted_home > p.predicted_away) homeWinCount++;
+                else if (p.predicted_away > p.predicted_home) awayWinCount++;
+                else drawCountPicks++;
+              }
+              const actOutcome =
+                homeScore > awayScore
+                  ? "home"
+                  : awayScore > homeScore
+                    ? "away"
+                    : "draw";
+              const actOutcomeCount =
+                actOutcome === "home"
+                  ? homeWinCount
+                  : actOutcome === "away"
+                    ? awayWinCount
+                    : drawCountPicks;
+              const actPickPct =
+                totalPicksForMatch > 0
+                  ? actOutcomeCount / totalPicksForMatch
+                  : 0.5;
+              // Upset: actual outcome was the minority pick (< 50%)
+              const isUpsetResult = totalPicksForMatch >= 5 && actPickPct < 0.5;
+              const upsetMult = isUpsetResult
+                ? Math.min(
+                    parseFloat((1 / actPickPct).toFixed(2)),
+                    10, // cap multiplier at 10×
+                  )
+                : 1.0;
+
+              // Persist pick stats + upset_multiplier on the match
+              await supabase
+                .from("matches")
+                .update({
+                  home_win_pick_pct:
+                    totalPicksForMatch > 0
+                      ? homeWinCount / totalPicksForMatch
+                      : null,
+                  away_win_pick_pct:
+                    totalPicksForMatch > 0
+                      ? awayWinCount / totalPicksForMatch
+                      : null,
+                  draw_pick_pct:
+                    totalPicksForMatch > 0
+                      ? drawCountPicks / totalPicksForMatch
+                      : null,
+                  total_picks: totalPicksForMatch,
+                  upset_multiplier: upsetMult,
+                })
+                .eq("id", dbMatch.id);
+
+              // Accumulate per-user-group point deltas + track correctness
+              const ptsDelta = new Map<string, number>(); // `${groupId}:${userId}` → total pts
+              const correctKeys = new Set<string>(); // correctly predicted
+              const incorrectKeys = new Set<string>(); // incorrectly predicted
 
               for (const pred of pendingPreds) {
                 const cfg = configByGroup.get(pred.group_id) ?? {};
+                const bonus = bonusByGroup.get(pred.group_id) ?? {
+                  enabled: [],
+                };
                 const exactPts: number = cfg.exact_score_pts ?? 5;
                 const winnerPts: number = cfg.correct_winner_pts ?? 3;
                 const diffPts: number = cfg.goal_difference_pts ?? 2;
+                const upsetBasePts: number = cfg.upset_base_pts ?? 5;
 
                 let result: string;
                 let pts = 0;
+                let upsetPts = 0;
 
                 if (
                   pred.predicted_home === homeScore &&
@@ -3269,39 +4210,266 @@ export function createApp() {
                   }
                 }
 
+                // Upset bonus: correct pick of minority-outcome
+                if (pts > 0 && isUpsetResult) {
+                  upsetPts = Math.round(upsetBasePts * upsetMult);
+                  upsetBonusesAwarded++;
+                }
+
+                // ── Bonus criteria scoring ───────────────────────────────
+                const details: Record<string, any> = pred.details ?? {};
+                const enabledCriteria: string[] = bonus.enabled ?? [];
+                let bonusPts = 0;
+
+                if (
+                  enabledCriteria.includes("btts") &&
+                  details.btts !== undefined
+                ) {
+                  const actualBtts = homeScore > 0 && awayScore > 0;
+                  if (details.btts === actualBtts) {
+                    bonusPts += bonus.btts_pts ?? 2;
+                  }
+                }
+
+                if (
+                  enabledCriteria.includes("total_goals_over") &&
+                  details.total_goals_over !== undefined
+                ) {
+                  const threshold: number = bonus.total_goals_threshold ?? 2.5;
+                  const actualOver = homeScore + awayScore > threshold;
+                  if (details.total_goals_over === actualOver) {
+                    bonusPts += bonus.total_goals_over_pts ?? 2;
+                  }
+                }
+
+                if (
+                  enabledCriteria.includes("ft_winner") &&
+                  details.ft_winner !== undefined
+                ) {
+                  const actualFtWinner =
+                    homeScore > awayScore
+                      ? "home"
+                      : awayScore > homeScore
+                        ? "away"
+                        : "draw";
+                  if (details.ft_winner === actualFtWinner) {
+                    bonusPts += bonus.ft_winner_pts ?? 2;
+                  }
+                }
+
+                if (
+                  enabledCriteria.includes("ht_winner") &&
+                  details.ht_winner !== undefined
+                ) {
+                  // Use half-time scores extracted from fdMatch
+                  const htH: number | null =
+                    fdMatch.score?.halfTime?.home ?? null;
+                  const htA: number | null =
+                    fdMatch.score?.halfTime?.away ?? null;
+                  if (htH !== null && htA !== null) {
+                    const actualHtWinner =
+                      htH > htA ? "home" : htA > htH ? "away" : "draw";
+                    if (details.ht_winner === actualHtWinner) {
+                      bonusPts += bonus.ht_winner_pts ?? 2;
+                    }
+                  }
+                }
+
+                if (
+                  enabledCriteria.includes("clean_sheet") &&
+                  details.clean_sheet !== undefined
+                ) {
+                  const actualCleanSheet =
+                    awayScore === 0 && homeScore > 0
+                      ? "home"
+                      : homeScore === 0 && awayScore > 0
+                        ? "away"
+                        : "none";
+                  if (details.clean_sheet === actualCleanSheet) {
+                    bonusPts += bonus.clean_sheet_pts ?? 1;
+                  }
+                }
+                // ── End bonus scoring ────────────────────────────────────
+
+                const totalPredPts = pts + upsetPts + bonusPts;
+
                 await supabase
                   .from("predictions")
-                  .update({ result, points_earned: pts })
+                  .update({
+                    result,
+                    points_earned: totalPredPts,
+                    upset_pts: upsetPts,
+                    bonus_pts: bonusPts,
+                  })
                   .eq("id", pred.id);
 
                 predictionsScored++;
 
-                if (pts > 0) {
-                  const key = `${pred.group_id}:${pred.user_id}`;
-                  ptsDelta.set(key, (ptsDelta.get(key) ?? 0) + pts);
+                const predKey = `${pred.group_id}:${pred.user_id}`;
+                if (pts > 0 || bonusPts > 0) {
+                  correctKeys.add(predKey);
+                  ptsDelta.set(
+                    predKey,
+                    (ptsDelta.get(predKey) ?? 0) + totalPredPts,
+                  );
+                } else {
+                  incorrectKeys.add(predKey);
                 }
               }
 
-              // Apply prediction points to group_members (fetch → increment → update)
-              for (const [key, pts] of ptsDelta) {
-                const [groupId, uid] = key.split(":");
-                const { data: member } = await supabase
-                  .from("group_members")
-                  .select("prediction_pts, total_points")
-                  .eq("group_id", groupId)
-                  .eq("user_id", uid)
-                  .single();
-
-                if (member) {
-                  await supabase
+              // ── Batch-fetch all affected group_members ───────────────────
+              const allPredKeys = [
+                ...new Set([...correctKeys, ...incorrectKeys]),
+              ];
+              const memberRows = await Promise.all(
+                allPredKeys.map(async (key) => {
+                  const [gid, uid] = key.split(":");
+                  const { data } = await supabase
                     .from("group_members")
-                    .update({
-                      prediction_pts: member.prediction_pts + pts,
-                      total_points: member.total_points + pts,
-                    })
-                    .eq("group_id", groupId)
-                    .eq("user_id", uid);
+                    .select(
+                      "prediction_pts, total_points, current_streak, best_streak, weekly_pts, elo_rating",
+                    )
+                    .eq("group_id", gid)
+                    .eq("user_id", uid)
+                    .single();
+                  return { key, groupId: gid, uid, member: data };
+                }),
+              );
+
+              // ── Load group modes + configs ───────────────────────────────
+              const affectedGroupIds = [
+                ...new Set(allPredKeys.map((k) => k.split(":")[0])),
+              ];
+              const { data: affectedGroupsData } = await supabase
+                .from("groups")
+                .select("id, mode, scoring_config, bonus_criteria")
+                .in("id", affectedGroupIds);
+
+              const groupModeMap = new Map<string, string>(
+                (affectedGroupsData ?? []).map((g) => [g.id, g.mode]),
+              );
+              const groupCfgMap = new Map<string, any>(
+                (affectedGroupsData ?? []).map((g) => [
+                  g.id,
+                  g.scoring_config ?? {},
+                ]),
+              );
+
+              // ── Pre-load all member ELOs for avg computation ─────────────
+              const eloGroupIds = affectedGroupIds.filter((gid) => {
+                const m = groupModeMap.get(gid);
+                return m === "league" || m === "competitive";
+              });
+              const groupEloMap = new Map<string, Map<string, number>>();
+              if (eloGroupIds.length > 0) {
+                const { data: allEloMembers } = await supabase
+                  .from("group_members")
+                  .select("group_id, user_id, elo_rating")
+                  .in("group_id", eloGroupIds);
+                for (const em of allEloMembers ?? []) {
+                  if (!groupEloMap.has(em.group_id))
+                    groupEloMap.set(em.group_id, new Map());
+                  groupEloMap.get(em.group_id)!.set(em.user_id, em.elo_rating);
                 }
+              }
+
+              // ── Apply updates: pts + weekly_pts + streaks + ELO ─────────
+              const eloHistoryRows: any[] = [];
+
+              for (const { key, groupId, uid, member } of memberRows) {
+                if (!member) continue;
+
+                const predPts = ptsDelta.get(key) ?? 0;
+                const isCorrect = correctKeys.has(key);
+                const isIncorrect = incorrectKeys.has(key);
+                const cfg = groupCfgMap.get(groupId) ?? {};
+                const streakThreshold: number = cfg.streak_bonus_threshold ?? 3;
+                const streakBonusPts: number = cfg.streak_bonus_pts ?? 2;
+
+                // ── Streak ───────────────────────────────────────────────
+                let newStreak = member.current_streak;
+                let streakBonus = 0;
+                let streakBroken = false;
+
+                if (isCorrect) {
+                  newStreak = member.current_streak + 1;
+                  if (newStreak >= streakThreshold) {
+                    streakBonus = streakBonusPts;
+                    streakBonusesAwarded++;
+                  }
+                } else if (isIncorrect) {
+                  streakBroken = member.current_streak >= streakThreshold;
+                  newStreak = 0;
+                }
+
+                const newBestStreak = Math.max(member.best_streak, newStreak);
+
+                // ── ELO (league / competitive only) ──────────────────────
+                let eloAfter = member.elo_rating;
+                const mode = groupModeMap.get(groupId);
+                if (
+                  (mode === "league" || mode === "competitive") &&
+                  (isCorrect || isIncorrect)
+                ) {
+                  const K: number = cfg.elo_k_factor ?? 32;
+                  const groupElos = groupEloMap.get(groupId) ?? new Map();
+                  const eloValues = [...groupElos.values()];
+                  const avgElo =
+                    eloValues.length > 0
+                      ? eloValues.reduce((s, e) => s + e, 0) / eloValues.length
+                      : 1000;
+                  // Expected score vs field average
+                  const expected =
+                    1 / (1 + Math.pow(10, (avgElo - member.elo_rating) / 400));
+                  const actual = isCorrect ? 1 : 0;
+                  const eloDelta = Math.round(K * (actual - expected));
+                  eloAfter = Math.max(100, member.elo_rating + eloDelta);
+                  eloHistoryRows.push({
+                    group_id: groupId,
+                    user_id: uid,
+                    match_id: dbMatch.id,
+                    elo_before: member.elo_rating,
+                    elo_after: eloAfter,
+                  });
+                  eloUpdatesApplied++;
+                }
+
+                const totalDelta = predPts + streakBonus;
+
+                await supabase
+                  .from("group_members")
+                  .update({
+                    prediction_pts: member.prediction_pts + predPts,
+                    total_points: member.total_points + totalDelta,
+                    weekly_pts: member.weekly_pts + totalDelta,
+                    current_streak: newStreak,
+                    best_streak: newBestStreak,
+                    elo_rating: eloAfter,
+                  })
+                  .eq("group_id", groupId)
+                  .eq("user_id", uid);
+
+                // Log streak events
+                if (isIncorrect && streakBroken) {
+                  await supabase.from("streak_events").insert({
+                    group_id: groupId,
+                    user_id: uid,
+                    streak_length: member.current_streak,
+                    broken: true,
+                  });
+                } else if (isCorrect && newStreak >= streakThreshold) {
+                  await supabase.from("streak_events").insert({
+                    group_id: groupId,
+                    user_id: uid,
+                    streak_length: newStreak,
+                    broken: false,
+                  });
+                }
+              }
+
+              // Bulk-insert ELO history
+              if (eloHistoryRows.length > 0) {
+                await supabase.from("elo_history").insert(eloHistoryRows);
               }
             }
 
@@ -3424,6 +4592,9 @@ export function createApp() {
             matches_updated: matchesUpdated,
             predictions_scored: predictionsScored,
             ownership_points_awarded: ownershipPointsAwarded,
+            streak_bonuses_awarded: streakBonusesAwarded,
+            upset_bonuses_awarded: upsetBonusesAwarded,
+            elo_updates_applied: eloUpdatesApplied,
           },
         });
       } catch (err) {
@@ -3437,7 +4608,1113 @@ export function createApp() {
   );
 
   // ──────────────────────────────────────────────────────────────
+  // POST /api/admin/test-league/reset
+  // Resets test match states.
+  //
+  // ?mode=mixed         (default) All 5 states covered: completed/live/open/locked/final
+  // ?mode=all_scheduled All 5 matches scheduled, 5-min apart from now — ideal for
+  //                     end-to-end prediction testing. Always clears predictions.
+  //
+  // ?clear_data=true    (mixed mode only) Also clears predictions + member points.
+  // Requires X-Admin-Secret header matching ADMIN_SECRET env var.
+  // ──────────────────────────────────────────────────────────────
+  app.post("/api/admin/test-league/reset", async (req, res) => {
+    try {
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        res
+          .status(503)
+          .json({ success: false, message: "ADMIN_SECRET is not configured." });
+        return;
+      }
+      const provided = req.headers["x-admin-secret"];
+      if (!provided || provided !== adminSecret) {
+        res.status(401).json({ success: false, message: "Unauthorized." });
+        return;
+      }
+
+      const supabase = getSupabaseAdmin();
+      const now = new Date();
+      const mode = (req.query.mode as string) ?? "mixed";
+      const clearData =
+        req.query.clear_data === "true" || mode === "all_scheduled";
+
+      const testCompId = "ffffffff-0000-0000-0000-000000000001";
+      const matchIds = {
+        m1: "ffffffff-3333-0000-0000-000000000001",
+        m2: "ffffffff-3333-0000-0000-000000000002",
+        m3: "ffffffff-3333-0000-0000-000000000003",
+        m4: "ffffffff-3333-0000-0000-000000000004",
+        m5: "ffffffff-3333-0000-0000-000000000005",
+      };
+
+      const ts = (offsetMs: number) =>
+        new Date(now.getTime() + offsetMs).toISOString();
+      const MIN = 60_000;
+      const HR = 3_600_000;
+      const DAY = 86_400_000;
+
+      if (mode === "all_scheduled") {
+        // All 5 matches scheduled, 5-min apart, predictions window open
+        // m1: now+5min, m2: now+10min, m3: now+15min, m4: now+20min, m5: now+25min
+        // lock = match_date - 2min (window open)
+        const schedules = [
+          {
+            id: matchIds.m1,
+            offset: 5 * MIN,
+            stage: "Group Stage - A",
+            number: 1,
+          },
+          {
+            id: matchIds.m2,
+            offset: 10 * MIN,
+            stage: "Group Stage - A",
+            number: 2,
+          },
+          {
+            id: matchIds.m3,
+            offset: 15 * MIN,
+            stage: "Group Stage - B",
+            number: 3,
+          },
+          {
+            id: matchIds.m4,
+            offset: 20 * MIN,
+            stage: "Group Stage - B",
+            number: 4,
+          },
+          { id: matchIds.m5, offset: 25 * MIN, stage: "Final", number: 5 },
+        ];
+
+        for (const s of schedules) {
+          await supabase
+            .from("matches")
+            .update({
+              status: "scheduled",
+              match_date: ts(s.offset),
+              prediction_lock: ts(s.offset - 2 * MIN),
+              home_score: null,
+              away_score: null,
+              ht_score_home: null,
+              ht_score_away: null,
+            })
+            .eq("id", s.id);
+        }
+      } else {
+        // mixed mode — original 5 distinct states
+        const completed = "ffffffff-3333-0000-0000-000000000001";
+        const live = "ffffffff-3333-0000-0000-000000000002";
+        const open = "ffffffff-3333-0000-0000-000000000003";
+        const locked = "ffffffff-3333-0000-0000-000000000004";
+        const final_ = "ffffffff-3333-0000-0000-000000000005";
+
+        await supabase
+          .from("matches")
+          .update({
+            status: "completed",
+            match_date: ts(-2 * DAY),
+            prediction_lock: ts(-2 * DAY - HR),
+            home_score: 2,
+            away_score: 1,
+          })
+          .eq("id", completed);
+
+        await supabase
+          .from("matches")
+          .update({
+            status: "live",
+            match_date: ts(-30 * MIN),
+            prediction_lock: ts(-90 * MIN),
+            home_score: null,
+            away_score: null,
+          })
+          .eq("id", live);
+
+        await supabase
+          .from("matches")
+          .update({
+            status: "scheduled",
+            match_date: ts(2 * DAY),
+            prediction_lock: ts(2 * DAY - HR),
+            home_score: null,
+            away_score: null,
+          })
+          .eq("id", open);
+
+        await supabase
+          .from("matches")
+          .update({
+            status: "scheduled",
+            match_date: ts(2 * HR),
+            prediction_lock: ts(-HR),
+            home_score: null,
+            away_score: null,
+          })
+          .eq("id", locked);
+
+        await supabase
+          .from("matches")
+          .update({
+            status: "scheduled",
+            match_date: ts(7 * DAY),
+            prediction_lock: ts(7 * DAY - HR),
+            home_score: null,
+            away_score: null,
+          })
+          .eq("id", final_);
+      }
+
+      if (clearData) {
+        // Clear predictions on test matches
+        await supabase
+          .from("predictions")
+          .delete()
+          .in("match_id", Object.values(matchIds));
+
+        // Reset group_members points for test groups
+        await supabase
+          .from("group_members")
+          .update({
+            total_points: 0,
+            prediction_pts: 0,
+            ownership_pts: 0,
+            current_streak: 0,
+            best_streak: 0,
+            weekly_pts: 0,
+            elo_rating: 1000,
+            rank: null,
+          })
+          .in("group_id", [
+            "ffffffff-4444-0000-0000-000000000001",
+            "ffffffff-4444-0000-0000-000000000002",
+            "ffffffff-4444-0000-0000-000000000003",
+            "ffffffff-4444-0000-0000-000000000004",
+            "ffffffff-4444-0000-0000-000000000005",
+          ]);
+
+        // Reset test groups to 'active' so they show in GET /api/live
+        await supabase
+          .from("groups")
+          .update({
+            status: "active",
+            draft_started_at: null,
+            started_at: null,
+          })
+          .eq("competition_id", testCompId)
+          .eq("is_test", true);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          message: `Test league reset (${mode}) successfully.`,
+          matches_reset: 5,
+          mode,
+          data_cleared: clearData,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Test league reset failed.",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────
   // REGISTER ROUTES
+  // ──────────────────────────────────────────────────────────────
+  // POST /api/admin/weekly-reset  (admin secret required)
+  // 1. Snapshots the current leaderboard to leaderboard_snapshots
+  // 2. Runs survivor check for competitive/global groups:
+  //    - If a member earned 0 weekly_pts this week → lose a life
+  //    - If lives reach 0 → is_eliminated = true
+  // 3. Resets weekly_pts = 0 for groups with weekly_reset_enabled
+  // ──────────────────────────────────────────────────────────────
+  app.post("/api/admin/weekly-reset", async (req, res) => {
+    try {
+      const adminSecret = process.env.ADMIN_SECRET;
+      if (!adminSecret) {
+        res
+          .status(503)
+          .json({ success: false, message: "ADMIN_SECRET is not configured." });
+        return;
+      }
+      const provided = req.headers["x-admin-secret"];
+      if (!provided || provided !== adminSecret) {
+        res.status(401).json({ success: false, message: "Unauthorized." });
+        return;
+      }
+
+      const supabase = getSupabaseAdmin();
+      const competitionId = req.query.competition_id as string | undefined;
+      const weekNumber = getISOWeek(new Date());
+
+      // Load all active groups
+      let groupQuery = supabase
+        .from("groups")
+        .select("id, mode, scoring_config")
+        .eq("status", "active")
+        .eq("is_active", true);
+
+      if (competitionId) {
+        groupQuery = groupQuery.eq("competition_id", competitionId);
+      }
+
+      const { data: activeGroups } = await groupQuery;
+
+      if (!activeGroups || activeGroups.length === 0) {
+        res.json({
+          success: true,
+          data: { message: "No active groups.", groups_processed: 0 },
+        });
+        return;
+      }
+
+      let groupsProcessed = 0;
+      let snapshotsTaken = 0;
+      let survivorChecksRun = 0;
+      let membersEliminated = 0;
+
+      for (const group of activeGroups) {
+        const cfg = group.scoring_config ?? {};
+        const weeklyResetEnabled: boolean = cfg.weekly_reset_enabled ?? true;
+        const isSurvivorMode =
+          group.mode === "competitive" || group.mode === "global";
+
+        // Load all non-eliminated members
+        const { data: members } = await supabase
+          .from("group_members")
+          .select(
+            "id, user_id, total_points, prediction_pts, ownership_pts, weekly_pts, survivor_lives, is_eliminated",
+          )
+          .eq("group_id", group.id)
+          .eq("is_eliminated", false);
+
+        if (!members) continue;
+
+        // ── Snapshot leaderboard ─────────────────────────────────
+        if (weeklyResetEnabled && members.length > 0) {
+          const sorted = [...members].sort(
+            (a, b) => b.total_points - a.total_points,
+          );
+          await supabase.from("leaderboard_snapshots").insert(
+            sorted.map((m, i) => ({
+              group_id: group.id,
+              user_id: m.user_id,
+              week_number: weekNumber,
+              rank: i + 1,
+              total_points: m.total_points,
+              prediction_pts: m.prediction_pts,
+              ownership_pts: m.ownership_pts,
+            })),
+          );
+          snapshotsTaken += sorted.length;
+        }
+
+        // ── Survivor check ───────────────────────────────────────
+        if (isSurvivorMode) {
+          survivorChecksRun++;
+
+          // Upsert this week's round
+          const { data: round } = await supabase
+            .from("survivor_rounds")
+            .upsert(
+              {
+                group_id: group.id,
+                round_number: weekNumber,
+                week_number: weekNumber,
+                started_at: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+                ended_at: new Date().toISOString(),
+              },
+              { onConflict: "group_id,round_number" },
+            )
+            .select()
+            .single();
+
+          if (round) {
+            const entries: any[] = [];
+            for (const member of members) {
+              const survived = member.weekly_pts > 0;
+              let newLives = member.survivor_lives ?? 1;
+              let eliminated = false;
+
+              if (!survived) {
+                newLives = Math.max(0, newLives - 1);
+                if (newLives <= 0) {
+                  eliminated = true;
+                  membersEliminated++;
+                }
+              }
+
+              entries.push({
+                group_id: group.id,
+                round_id: round.id,
+                user_id: member.user_id,
+                survived,
+                lives_remaining: newLives,
+                eliminated_at: eliminated ? new Date().toISOString() : null,
+              });
+
+              if (!survived || eliminated) {
+                await supabase
+                  .from("group_members")
+                  .update({
+                    survivor_lives: newLives,
+                    is_eliminated: eliminated,
+                  })
+                  .eq("id", member.id);
+              }
+            }
+
+            await supabase.from("survivor_entries").insert(entries);
+          }
+        }
+
+        // ── Reset weekly_pts ─────────────────────────────────────
+        if (weeklyResetEnabled) {
+          await supabase
+            .from("group_members")
+            .update({ weekly_pts: 0 })
+            .eq("group_id", group.id);
+        }
+
+        groupsProcessed++;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          week_number: weekNumber,
+          groups_processed: groupsProcessed,
+          snapshots_taken: snapshotsTaken,
+          survivor_checks_run: survivorChecksRun,
+          members_eliminated: membersEliminated,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Weekly reset failed.",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // GET /api/groups/:id/survivor  (auth required)
+  // Returns survivor state for the group — lives, eliminations,
+  // round history. Only available for competitive/global groups.
+  // ──────────────────────────────────────────────────────────────
+  app.get(
+    "/api/groups/:id/survivor",
+    requireAuth,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const groupId = req.params.id;
+
+        // Verify membership
+        const { data: membership } = await supabase
+          .from("group_members")
+          .select("id")
+          .eq("group_id", groupId)
+          .eq("user_id", req.userId!)
+          .single();
+
+        if (!membership) {
+          res
+            .status(403)
+            .json({ success: false, message: "Not a member of this group." });
+          return;
+        }
+
+        const { data: group } = await supabase
+          .from("groups")
+          .select("id, mode, scoring_config")
+          .eq("id", groupId)
+          .single();
+
+        if (
+          !group ||
+          (group.mode !== "competitive" && group.mode !== "global")
+        ) {
+          res.status(400).json({
+            success: false,
+            message:
+              "Survivor mode is only available for competitive/global groups.",
+          });
+          return;
+        }
+
+        const [{ data: members }, { data: rounds }] = await Promise.all([
+          supabase
+            .from("group_members")
+            .select(
+              "user_id, survivor_lives, is_eliminated, total_points, prediction_pts, weekly_pts",
+            )
+            .eq("group_id", groupId)
+            .order("is_eliminated", { ascending: true })
+            .order("total_points", { ascending: false }),
+          supabase
+            .from("survivor_rounds")
+            .select(
+              "id, round_number, week_number, started_at, ended_at, survivor_entries(user_id, survived, lives_remaining, eliminated_at)",
+            )
+            .eq("group_id", groupId)
+            .order("round_number", { ascending: false })
+            .limit(10),
+        ]);
+
+        const cfg = group.scoring_config ?? {};
+        res.json({
+          success: true,
+          data: {
+            survivor_lives_start: cfg.survivor_lives ?? 1,
+            members: members ?? [],
+            rounds: rounds ?? [],
+          },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load survivor state.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // GET /api/groups/:id/elo-history  (auth required)
+  // Returns per-match ELO history and current standings.
+  // Only meaningful for league/competitive groups.
+  // ──────────────────────────────────────────────────────────────
+  app.get(
+    "/api/groups/:id/elo-history",
+    requireAuth,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const groupId = req.params.id;
+
+        // Verify membership
+        const { data: membership } = await supabase
+          .from("group_members")
+          .select("id")
+          .eq("group_id", groupId)
+          .eq("user_id", req.userId!)
+          .single();
+
+        if (!membership) {
+          res
+            .status(403)
+            .json({ success: false, message: "Not a member of this group." });
+          return;
+        }
+
+        const [{ data: history }, { data: currentElos }] = await Promise.all([
+          supabase
+            .from("elo_history")
+            .select(
+              "user_id, match_id, elo_before, elo_after, delta, recorded_at",
+            )
+            .eq("group_id", groupId)
+            .order("recorded_at", { ascending: false })
+            .limit(200),
+          supabase
+            .from("group_members")
+            .select("user_id, elo_rating, total_points")
+            .eq("group_id", groupId)
+            .order("elo_rating", { ascending: false }),
+        ]);
+
+        res.json({
+          success: true,
+          data: {
+            current_elos: currentElos ?? [],
+            history: history ?? [],
+          },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load ELO history.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // NOTIFICATIONS
+  // ──────────────────────────────────────────────────────────────
+
+  // GET /api/notifications — list user's notifications (paginated)
+  app.get(
+    "/api/notifications",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const limit = Math.min(
+          parseInt((req.query.limit as string) ?? "50", 10),
+          100,
+        );
+        const offset = parseInt((req.query.offset as string) ?? "0", 10);
+
+        const [{ data: notifications, error }, { count: unreadCount }] =
+          await Promise.all([
+            supabase
+              .from("notifications")
+              .select("id, type, title, body, metadata, is_read, created_at")
+              .eq("user_id", userId)
+              .order("created_at", { ascending: false })
+              .range(offset, offset + limit - 1),
+            supabase
+              .from("notifications")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", userId)
+              .eq("is_read", false),
+          ]);
+
+        if (error) throw error;
+
+        res.json({
+          success: true,
+          data: {
+            notifications: notifications ?? [],
+            unread_count: unreadCount ?? 0,
+          },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load notifications.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // PATCH /api/notifications/read-all — mark all notifications as read
+  app.patch(
+    "/api/notifications/read-all",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+
+        const { error } = await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("user_id", userId)
+          .eq("is_read", false);
+
+        if (error) throw error;
+
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to mark all notifications as read.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // PATCH /api/notifications/:id/read — mark one notification as read
+  app.patch(
+    "/api/notifications/:id/read",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id } = req.params;
+
+        const { error } = await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("id", id)
+          .eq("user_id", userId);
+
+        if (error) throw error;
+
+        res.json({ success: true });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to mark notification as read.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // RIVALRIES
+  // ──────────────────────────────────────────────────────────────
+
+  // GET /api/groups/:id/rivalries — current week rivalries for group
+  app.get(
+    "/api/groups/:id/rivalries",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: groupId } = req.params;
+        const weekNumber = req.query.week
+          ? parseInt(req.query.week as string, 10)
+          : getISOWeek(new Date());
+
+        // Verify membership
+        const { data: member } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .eq("user_id", userId)
+          .single();
+        if (!member) {
+          return res
+            .status(403)
+            .json({ success: false, message: "Not a member of this group." });
+        }
+
+        const { data: rivalries, error } = await supabase
+          .from("rivalries")
+          .select(
+            `id, week_number, status,
+             player_a_pts, player_b_pts, winner_id,
+             player_a:profiles!rivalries_player_a_id_fkey(id, display_name, username, avatar_url),
+             player_b:profiles!rivalries_player_b_id_fkey(id, display_name, username, avatar_url)`,
+          )
+          .eq("group_id", groupId)
+          .eq("week_number", weekNumber)
+          .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        res.json({
+          success: true,
+          data: { week_number: weekNumber, rivalries: rivalries ?? [] },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load rivalries.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // POST /api/groups/:id/rivalries/generate — generate this week's 1v1 matchups
+  app.post(
+    "/api/groups/:id/rivalries/generate",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: groupId } = req.params;
+        const weekNumber = req.body.week_number ?? getISOWeek(new Date());
+        const competitionId = req.body.competition_id as string | undefined;
+
+        // Only group owner can generate
+        const { data: group } = await supabase
+          .from("groups")
+          .select("owner_id, mode")
+          .eq("id", groupId)
+          .single();
+        if (!group || group.owner_id !== userId) {
+          return res.status(403).json({
+            success: false,
+            message: "Only the group owner can generate rivalries.",
+          });
+        }
+
+        // Fetch active members sorted by total_points desc
+        const { data: members } = await supabase
+          .from("group_members")
+          .select("user_id, total_points")
+          .eq("group_id", groupId)
+          .order("total_points", { ascending: false });
+
+        if (!members || members.length < 2) {
+          return res.status(400).json({
+            success: false,
+            message: "Need at least 2 members to generate rivalries.",
+          });
+        }
+
+        // Pair members: top vs 2nd, 3rd vs 4th, etc. (Shuffle if odd)
+        const shuffled = [...members];
+        const pairs: { a: string; b: string }[] = [];
+        for (let i = 0; i + 1 < shuffled.length; i += 2) {
+          pairs.push({ a: shuffled[i].user_id, b: shuffled[i + 1].user_id });
+        }
+
+        // Delete existing matchups for this week (idempotent)
+        await supabase
+          .from("rivalries")
+          .delete()
+          .eq("group_id", groupId)
+          .eq("week_number", weekNumber);
+
+        const inserts = pairs.map(({ a, b }) => ({
+          group_id: groupId,
+          player_a_id: a,
+          player_b_id: b,
+          week_number: weekNumber,
+          competition_id: competitionId ?? null,
+          status: "active",
+        }));
+
+        const { data: created, error } = await supabase
+          .from("rivalries")
+          .insert(inserts)
+          .select();
+
+        if (error) throw error;
+
+        res.json({ success: true, data: { rivalries: created ?? [] } });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to generate rivalries.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // GET /api/groups/:id/rivalries/history — past weeks rivalries
+  app.get(
+    "/api/groups/:id/rivalries/history",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: groupId } = req.params;
+
+        const { data: member } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .eq("user_id", userId)
+          .single();
+        if (!member) {
+          return res
+            .status(403)
+            .json({ success: false, message: "Not a member of this group." });
+        }
+
+        const { data: history, error } = await supabase
+          .from("rivalries")
+          .select(
+            `id, week_number, status, player_a_pts, player_b_pts, winner_id,
+             player_a:profiles!rivalries_player_a_id_fkey(id, display_name, username, avatar_url),
+             player_b:profiles!rivalries_player_b_id_fkey(id, display_name, username, avatar_url)`,
+          )
+          .eq("group_id", groupId)
+          .neq("status", "active")
+          .order("week_number", { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        res.json({ success: true, data: { history: history ?? [] } });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load rivalry history.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // BOOSTS
+  // ──────────────────────────────────────────────────────────────
+
+  // GET /api/groups/:id/boosts — user's available boosts for this group
+  app.get(
+    "/api/groups/:id/boosts",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: groupId } = req.params;
+
+        const { data: member } = await supabase
+          .from("group_members")
+          .select("user_id")
+          .eq("group_id", groupId)
+          .eq("user_id", userId)
+          .single();
+        if (!member) {
+          return res
+            .status(403)
+            .json({ success: false, message: "Not a member of this group." });
+        }
+
+        const { data: boosts, error } = await supabase
+          .from("boosts")
+          .select(
+            "id, boost_type, match_id, applied_at, expires_at, is_used, created_at",
+          )
+          .eq("group_id", groupId)
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const available = (boosts ?? []).filter((b) => !b.is_used);
+        const used = (boosts ?? []).filter((b) => b.is_used);
+
+        res.json({ success: true, data: { available, used } });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load boosts.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // POST /api/groups/:id/boosts — apply a boost to a match
+  app.post(
+    "/api/groups/:id/boosts",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: groupId } = req.params;
+        const { boost_id, match_id } = req.body as {
+          boost_id: string;
+          match_id: string;
+        };
+
+        if (!boost_id || !match_id) {
+          return res.status(400).json({
+            success: false,
+            message: "boost_id and match_id are required.",
+          });
+        }
+
+        // Verify the boost belongs to this user + group and is available
+        const { data: boost } = await supabase
+          .from("boosts")
+          .select("id, boost_type, is_used, expires_at")
+          .eq("id", boost_id)
+          .eq("user_id", userId)
+          .eq("group_id", groupId)
+          .single();
+
+        if (!boost) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Boost not found." });
+        }
+        if (boost.is_used) {
+          return res
+            .status(409)
+            .json({ success: false, message: "Boost already used." });
+        }
+        if (boost.expires_at && new Date(boost.expires_at) < new Date()) {
+          return res
+            .status(410)
+            .json({ success: false, message: "Boost has expired." });
+        }
+
+        // Verify match is still upcoming (not started)
+        const { data: match } = await supabase
+          .from("matches")
+          .select("id, status, match_date")
+          .eq("id", match_id)
+          .single();
+
+        if (!match) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Match not found." });
+        }
+        if (match.status !== "scheduled") {
+          return res.status(409).json({
+            success: false,
+            message:
+              "Cannot apply boost to a match that has already started or finished.",
+          });
+        }
+
+        const { data: updated, error } = await supabase
+          .from("boosts")
+          .update({
+            is_used: true,
+            match_id,
+            applied_at: new Date().toISOString(),
+          })
+          .eq("id", boost_id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, data: updated });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to apply boost.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // DAILY CHALLENGES
+  // ──────────────────────────────────────────────────────────────
+
+  // GET /api/daily-challenges — today's active challenge (optionally filter by competition_id)
+  app.get(
+    "/api/daily-challenges",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const competitionId = req.query.competition_id as string | undefined;
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+        let query = supabase
+          .from("daily_challenges")
+          .select(
+            "id, title, description, challenge_date, bonus_pts, competition_id",
+          )
+          .eq("challenge_date", today)
+          .eq("is_active", true);
+
+        if (competitionId) {
+          query = query.eq("competition_id", competitionId);
+        }
+
+        const { data: challenges, error } = await query;
+        if (error) throw error;
+
+        if (!challenges || challenges.length === 0) {
+          return res.json({
+            success: true,
+            data: { challenge: null, entry: null },
+          });
+        }
+
+        const challenge = challenges[0];
+
+        // Check if user already submitted
+        const { data: entry } = await supabase
+          .from("daily_challenge_entries")
+          .select("id, answer, pts_earned, submitted_at")
+          .eq("challenge_id", challenge.id)
+          .eq("user_id", userId)
+          .single();
+
+        res.json({
+          success: true,
+          data: { challenge, entry: entry ?? null },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to load daily challenge.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // POST /api/daily-challenges/:id/submit — submit answer for a daily challenge
+  app.post(
+    "/api/daily-challenges/:id/submit",
+    requireAuth,
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const userId = (req as any).userId as string;
+        const { id: challengeId } = req.params;
+        const { answer } = req.body as { answer: unknown };
+
+        if (answer === undefined || answer === null) {
+          return res
+            .status(400)
+            .json({ success: false, message: "answer is required." });
+        }
+
+        // Verify challenge exists and is active today
+        const { data: challenge } = await supabase
+          .from("daily_challenges")
+          .select("id, bonus_pts, challenge_date, is_active")
+          .eq("id", challengeId)
+          .single();
+
+        if (!challenge) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Challenge not found." });
+        }
+        if (!challenge.is_active) {
+          return res.status(410).json({
+            success: false,
+            message: "Challenge is no longer active.",
+          });
+        }
+        const today = new Date().toISOString().slice(0, 10);
+        if (challenge.challenge_date !== today) {
+          return res.status(410).json({
+            success: false,
+            message: "This challenge is not for today.",
+          });
+        }
+
+        // Idempotent upsert — only one entry per user per challenge
+        const { data: entry, error } = await supabase
+          .from("daily_challenge_entries")
+          .upsert(
+            {
+              challenge_id: challengeId,
+              user_id: userId,
+              answer,
+              pts_earned: 0, // graded later by admin/sync
+              submitted_at: new Date().toISOString(),
+            },
+            { onConflict: "challenge_id,user_id" },
+          )
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        res.status(201).json({ success: true, data: entry });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to submit daily challenge.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
   // ──────────────────────────────────────────────────────────────
   app.get("/api/auth/check-email", handleCheckEmail);
   app.get("/api/auth/check-username", handleCheckUsername);
@@ -3449,5 +5726,23 @@ export function createApp() {
   return app;
 }
 
-export const app = createApp();
-export default serverless(app);
+// Lazy singleton — reused across serverless invocations
+let _app: express.Application | null = null;
+function getApp() {
+  if (!_app) {
+    _app = createApp();
+  }
+  return _app;
+}
+
+// Default export: Vercel serverless handler
+export default async (req: VercelRequest, res: VercelResponse) => {
+  try {
+    getApp()(req as any, res as any);
+  } catch (err) {
+    console.error("API handler error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+};

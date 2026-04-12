@@ -108,8 +108,14 @@ const draftSlice = createSlice({
         state.submitting = true;
         state.pickError = null;
       })
-      .addCase(submitPick.fulfilled, (state) => {
+      .addCase(submitPick.fulfilled, (state, action) => {
         state.submitting = false;
+        // When the last pick is submitted the group transitions to "active",
+        // so a subsequent fetchDraftState will fail (group no longer in draft).
+        // Reflect is_complete directly so the completion screen renders immediately.
+        if (action.payload.is_complete && state.draftState) {
+          state.draftState.session.is_complete = true;
+        }
       })
       .addCase(submitPick.rejected, (state, action) => {
         state.submitting = false;

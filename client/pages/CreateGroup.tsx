@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageMeta } from "@/components/fanquin/page-meta";
 import {
+  CalendarClock,
   Check,
   ChevronRight,
   Copy,
@@ -14,6 +15,7 @@ import {
   Link2,
   Loader2,
   Sparkles,
+  Target,
   Trophy,
   Users,
   Zap,
@@ -30,17 +32,39 @@ import {
   clearError,
   fetchCompetitions,
   createGroup,
+  toggleBonusCriterion,
+  setBonusCriterionPts,
+  setBonusThreshold,
 } from "@/store/slices/groupWizardSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { OtpAuthModal } from "@/components/fanquin/OtpAuthModal";
-import type { GroupMode } from "@shared/api";
+import type { BonusCriteria, BonusCriterionKey, GroupMode } from "@shared/api";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-const STEPS = [1, 2, 3, 4];
+const STEPS = [1, 2, 3, 4, 5];
+
+const BONUS_CRITERION_KEYS: BonusCriterionKey[] = [
+  "btts",
+  "total_goals_over",
+  "ft_winner",
+  "ht_winner",
+  "clean_sheet",
+];
+
+const CRITERION_PTS_KEY: Record<
+  BonusCriterionKey,
+  keyof Omit<BonusCriteria, "enabled">
+> = {
+  btts: "btts_pts",
+  total_goals_over: "total_goals_over_pts",
+  ft_winner: "ft_winner_pts",
+  ht_winner: "ht_winner_pts",
+  clean_sheet: "clean_sheet_pts",
+};
 
 const slideVariants = {
   enter: (dir: number) => ({
@@ -91,21 +115,9 @@ const MODE_OPTIONS: ModeOption[] = [
 ];
 
 const DRAFT_OPTIONS = [
-  {
-    key: "snake" as const,
-    label: "Snake draft",
-    description: "Takes turns picking in reverse order every round",
-  },
-  {
-    key: "random" as const,
-    label: "Random draw",
-    description: "Teams are randomly assigned at kick-off",
-  },
-  {
-    key: "balanced_tier" as const,
-    label: "Balanced tiers",
-    description: "Equal distribution of top, mid, and underdog teams",
-  },
+  { key: "snake" as const },
+  { key: "random" as const },
+  { key: "balanced_tier" as const },
 ];
 
 // ── Step indicator ────────────────────────────────────────────────
@@ -364,10 +376,10 @@ function StepConfig({ onValid, submitRef }: StepConfigProps) {
                         : "text-foreground/80",
                     )}
                   >
-                    {opt.label}
+                    {t(`createGroup.step2.draftOptions.${opt.key}.label`)}
                   </p>
                   <p className="mt-0.5 text-xs text-foreground/50">
-                    {opt.description}
+                    {t(`createGroup.step2.draftOptions.${opt.key}.description`)}
                   </p>
                 </div>
               </button>
@@ -404,7 +416,121 @@ function StepConfig({ onValid, submitRef }: StepConfigProps) {
   );
 }
 
-// ── Step 3: Review + create ───────────────────────────────────────
+// ── Step 3: Bonus criteria ────────────────────────────────────────
+
+function StepBonus() {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const { bonusCriteria } = useAppSelector((s) => s.groupWizard);
+  const enabled = bonusCriteria.enabled ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display text-2xl font-semibold text-white">
+          {t("createGroup.step3.title")}
+        </h2>
+        <p className="mt-2 text-sm text-foreground/[0.6]">
+          {t("createGroup.step3.subtitle")}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {BONUS_CRITERION_KEYS.map((key) => {
+          const isEnabled = enabled.includes(key);
+          const ptsKey = CRITERION_PTS_KEY[key];
+          return (
+            <div
+              key={key}
+              className={`rounded-xl border px-3 py-2.5 transition-all ${
+                isEnabled
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : "border-white/8 bg-white/[0.02]"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => dispatch(toggleBonusCriterion(key))}
+                    className={`relative flex h-4 w-7 shrink-0 rounded-full transition-colors ${
+                      isEnabled ? "bg-amber-500" : "bg-white/15"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${
+                        isEnabled ? "left-3.5" : "left-0.5"
+                      }`}
+                    />
+                  </button>
+                  <div className="min-w-0">
+                    <span className="text-[12px] font-medium text-foreground/75">
+                      {t(`groupPage.bonus.${key}.label`)}
+                    </span>
+                    <p className="mt-0.5 text-[10px] leading-snug text-foreground/40">
+                      {t(`groupPage.bonus.${key}.hint`)}
+                    </p>
+                  </div>
+                </div>
+                {isEnabled && (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      value={bonusCriteria[ptsKey] as number}
+                      onChange={(e) =>
+                        dispatch(
+                          setBonusCriterionPts({
+                            key: ptsKey,
+                            value: Number(e.target.value),
+                          }),
+                        )
+                      }
+                      className="w-10 rounded-lg border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 text-center text-[12px] font-bold text-amber-300 outline-none focus:border-amber-500/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    <span className="text-[10px] text-foreground/40">
+                      {t("live.pts")}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {isEnabled && key === "total_goals_over" && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[11px] text-foreground/50">
+                    {t("groupPage.bonus.threshold")}:
+                  </span>
+                  <div className="flex gap-1">
+                    {[1.5, 2.5, 3.5, 4.5].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => dispatch(setBonusThreshold(v))}
+                        className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${
+                          bonusCriteria.total_goals_threshold === v
+                            ? "bg-amber-500/20 text-amber-300"
+                            : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-center text-xs text-foreground/30">
+        {t("createGroup.step3.skip")}
+      </p>
+    </div>
+  );
+}
+
+// ── Step 4: Review + create ───────────────────────────────────────
 
 function StepReview() {
   const { t } = useTranslation();
@@ -415,27 +541,29 @@ function StepReview() {
     draftType,
     maxMembers,
     competitions,
+    bonusCriteria,
     error,
   } = useAppSelector((s) => s.groupWizard);
   const dispatch = useAppDispatch();
 
   const competition = competitions.find((c) => c.id === competitionId);
+  const enabledCount = bonusCriteria.enabled?.length ?? 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-semibold text-white">
-          {t("createGroup.step3.title")}
+          {t("createGroup.step4.reviewTitle")}
         </h2>
         <p className="mt-1 text-sm text-foreground/[0.6]">
-          {t("createGroup.step3.subtitle")}
+          {t("createGroup.step4.reviewSubtitle")}
         </p>
       </div>
 
       <div className="space-y-3 rounded-[1.4rem] border border-white/10 bg-white/5 p-5">
-        <ReviewRow label={t("createGroup.step3.nameLabel")} value={name} />
+        <ReviewRow label={t("createGroup.step4.nameLabel")} value={name} />
         <ReviewRow
-          label={t("createGroup.step3.modeLabel")}
+          label={t("createGroup.step4.modeLabel")}
           value={
             <span className="capitalize">
               {t(`createGroup.modes.${mode}.title`)}
@@ -443,19 +571,28 @@ function StepReview() {
           }
         />
         <ReviewRow
-          label={t("createGroup.step3.competitionLabel")}
+          label={t("createGroup.step4.competitionLabel")}
           value={competition?.name ?? "—"}
         />
         <ReviewRow
-          label={t("createGroup.step3.draftLabel")}
-          value={
-            DRAFT_OPTIONS.find((d) => d.key === draftType)?.label ?? draftType
-          }
+          label={t("createGroup.step4.draftLabel")}
+          value={t(`createGroup.step2.draftOptions.${draftType}.label`)}
         />
         <ReviewRow
-          label={t("createGroup.step3.maxMembersLabel")}
-          value={`${maxMembers} ${t("createGroup.step3.members")}`}
+          label={t("createGroup.step4.maxMembersLabel")}
+          value={`${maxMembers} ${t("createGroup.step4.members")}`}
         />
+        {enabledCount > 0 && (
+          <ReviewRow
+            label={t("createGroup.step4.bonusLabel")}
+            value={
+              <span className="flex items-center gap-1 text-amber-400">
+                <Target className="h-3.5 w-3.5" />
+                {t("createGroup.step4.bonusCount", { count: enabledCount })}
+              </span>
+            }
+          />
+        )}
       </div>
 
       {error && (
@@ -488,7 +625,7 @@ function ReviewRow({
   );
 }
 
-// ── Step 4: Done ─────────────────────────────────────────────────
+// ── Step 5: Done ─────────────────────────────────────────────────
 
 function StepDone() {
   const { t } = useTranslation();
@@ -518,10 +655,10 @@ function StepDone() {
 
       <div>
         <h2 className="font-display text-2xl font-semibold text-white">
-          {t("createGroup.step4.title")}
+          {t("createGroup.step5.title")}
         </h2>
         <p className="mt-2 text-sm text-foreground/[0.6]">
-          {t("createGroup.step4.subtitle", { name: createdGroup?.name })}
+          {t("createGroup.step5.subtitle", { name: createdGroup?.name })}
         </p>
       </div>
 
@@ -531,7 +668,7 @@ function StepDone() {
           <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
               <Link2 className="h-4 w-4 text-brand" />
-              {t("createGroup.step4.inviteLinkTitle")}
+              {t("createGroup.step5.inviteLinkTitle")}
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
               <code className="flex-1 truncate text-xs text-foreground/70">
@@ -549,7 +686,7 @@ function StepDone() {
           {/* Invite code */}
           <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
             <p className="mb-2 text-xs text-foreground/50">
-              {t("createGroup.step4.inviteCodeLabel")}
+              {t("createGroup.step5.inviteCodeLabel")}
             </p>
             <p className="font-display text-3xl font-bold tracking-[0.25em] text-brand">
               {createdGroup.invite_code.toUpperCase()}
@@ -560,10 +697,25 @@ function StepDone() {
           <div className="flex items-center justify-center gap-2 text-sm text-foreground/50">
             <Users className="h-4 w-4" />
             <span>
-              {t("createGroup.step4.membersNote", {
+              {t("createGroup.step5.membersNote", {
                 max: createdGroup.max_members,
               })}
             </span>
+          </div>
+
+          {/* Draft night tip */}
+          <div className="rounded-[1.4rem] border border-brand/20 bg-gradient-to-br from-brand/10 to-violet-500/5 p-4 text-left">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand/30 bg-brand/15">
+                <CalendarClock className="h-3.5 w-3.5 text-brand" />
+              </span>
+              <span className="text-sm font-semibold text-white">
+                {t("createGroup.step5.draftNightTitle")}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-foreground/60">
+              {t("createGroup.step5.draftNightBody")}
+            </p>
           </div>
         </div>
       )}
@@ -572,7 +724,7 @@ function StepDone() {
         onClick={handleDone}
         className="mx-auto flex items-center gap-2 rounded-full bg-brand px-8 text-[hsl(var(--primary-foreground))] hover:bg-brand/90"
       >
-        {t("createGroup.step4.cta")}
+        {t("createGroup.step5.cta")}
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -584,8 +736,17 @@ function StepDone() {
 export default function CreateGroup() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { step, mode, name, competitionId, submitting, sessionToken } =
-    useAppSelector((s) => s.groupWizard);
+  const {
+    step,
+    mode,
+    name,
+    competitionId,
+    draftType,
+    maxMembers,
+    submitting,
+    sessionToken,
+    bonusCriteria,
+  } = useAppSelector((s) => s.groupWizard);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -614,7 +775,8 @@ export default function CreateGroup() {
   const canAdvance = () => {
     if (step === 1) return mode !== null;
     if (step === 2) return true; // Formik validates on submit
-    if (step === 3) return true;
+    if (step === 3) return true; // bonus criteria optional
+    if (step === 4) return true;
     return false;
   };
 
@@ -624,8 +786,9 @@ export default function CreateGroup() {
         name,
         competition_id: competitionId,
         mode: mode!,
-        draft_type: "snake",
-        max_members: 20,
+        draft_type: draftType,
+        max_members: maxMembers,
+        bonus_criteria: bonusCriteria,
       }),
     );
   };
@@ -636,7 +799,7 @@ export default function CreateGroup() {
       step2SubmitRef.current?.();
       return;
     }
-    if (step === 3) {
+    if (step === 4) {
       const token = sessionToken ?? localStorage.getItem("fanquin_session");
       if (!token) {
         setShowAuthModal(true);
@@ -675,7 +838,7 @@ export default function CreateGroup() {
           </button>
           <StepDots current={step} />
           <span className="text-xs text-foreground/40">
-            {t("createGroup.stepOf", { current: step, total: 4 })}
+            {t("createGroup.stepOf", { current: step, total: 5 })}
           </span>
         </div>
 
@@ -698,14 +861,15 @@ export default function CreateGroup() {
                   onValid={() => dispatch(setStep(3))}
                 />
               )}
-              {step === 3 && <StepReview />}
-              {step === 4 && <StepDone />}
+              {step === 3 && <StepBonus />}
+              {step === 4 && <StepReview />}
+              {step === 5 && <StepDone />}
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* Footer actions */}
-        {step < 4 && (
+        {step < 5 && (
           <div className="mt-5 flex justify-end">
             <Button
               onClick={handleNext}
@@ -713,7 +877,7 @@ export default function CreateGroup() {
               className="flex items-center gap-2 rounded-full bg-brand px-6 text-[hsl(var(--primary-foreground))] hover:bg-brand/90 disabled:opacity-40"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {step === 3
+              {step === 4
                 ? t("createGroup.createButton")
                 : t("createGroup.nextButton")}
               {!submitting && <ChevronRight className="h-4 w-4" />}

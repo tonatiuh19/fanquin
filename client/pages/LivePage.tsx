@@ -10,8 +10,12 @@ import {
   XCircle,
   MinusCircle,
   Clock,
+  Flag,
   Trophy,
   ChevronRight,
+  Loader2,
+  Target,
+  Zap,
 } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -19,13 +23,20 @@ import {
   fetchLiveData,
   syncMatches,
   clearSyncResult,
+  resetTestLeague,
+  clearTestResetResult,
 } from "@/store/slices/liveSlice";
+import { submitPrediction } from "@/store/slices/predictionsSlice";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageMeta } from "@/components/fanquin/page-meta";
-import type { LiveMatch, LiveMatchPrediction } from "@shared/api";
+import type {
+  LiveMatch,
+  LiveMatchPrediction,
+  BonusCriteria,
+  BonusPredictionDetails,
+} from "@shared/api";
 import { Link } from "react-router-dom";
 
 // ── Date helpers ──────────────────────────────────────────────────
@@ -90,6 +101,196 @@ function PredBadge({
   );
 }
 
+// ── Bonus prediction fields ───────────────────────────────────────
+
+function BonusFields({
+  groupId,
+  criteria,
+  details,
+  onChange,
+  disabled,
+}: {
+  groupId: string;
+  criteria: BonusCriteria;
+  details: BonusPredictionDetails;
+  onChange: (d: BonusPredictionDetails) => void;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const enabled = criteria.enabled ?? [];
+  if (enabled.length === 0) return null;
+
+  return (
+    <div className="mt-2 space-y-2 border-t border-white/6 pt-2">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-foreground/35">
+        <Zap className="h-2.5 w-2.5 text-amber-400" />
+        {t("live.bonusLabel")}
+      </p>
+
+      {enabled.includes("btts") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-foreground/55">
+            {t("live.btts")}
+            <span className="ml-1 text-[10px] text-amber-400">
+              +{criteria.btts_pts ?? 2}
+            </span>
+          </span>
+          <div className="flex gap-1">
+            {(["yes", "no"] as const).map((v) => {
+              const val = v === "yes";
+              const active = details.btts === val;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange({ ...details, btts: val })}
+                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold transition ${
+                    active
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  {t(`live.${v}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {enabled.includes("total_goals_over") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-foreground/55">
+            {t("live.totalGoalsOver", {
+              threshold: criteria.total_goals_threshold ?? 2.5,
+            })}
+            <span className="ml-1 text-[10px] text-amber-400">
+              +{criteria.total_goals_over_pts ?? 2}
+            </span>
+          </span>
+          <div className="flex gap-1">
+            {(["yes", "no"] as const).map((v) => {
+              const val = v === "yes";
+              const active = details.total_goals_over === val;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    onChange({ ...details, total_goals_over: val })
+                  }
+                  className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold transition ${
+                    active
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  {t(`live.${v}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {enabled.includes("ft_winner") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-foreground/55">
+            {t("live.ftWinner")}
+            <span className="ml-1 text-[10px] text-amber-400">
+              +{criteria.ft_winner_pts ?? 2}
+            </span>
+          </span>
+          <div className="flex gap-1">
+            {(["home", "draw", "away"] as const).map((v) => {
+              const active = details.ft_winner === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange({ ...details, ft_winner: v })}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition ${
+                    active
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  {t(`live.${v}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {enabled.includes("ht_winner") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-foreground/55">
+            {t("live.htWinner")}
+            <span className="ml-1 text-[10px] text-amber-400">
+              +{criteria.ht_winner_pts ?? 2}
+            </span>
+          </span>
+          <div className="flex gap-1">
+            {(["home", "draw", "away"] as const).map((v) => {
+              const active = details.ht_winner === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange({ ...details, ht_winner: v })}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition ${
+                    active
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  {t(`live.${v}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {enabled.includes("clean_sheet") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-foreground/55">
+            {t("live.cleanSheet")}
+            <span className="ml-1 text-[10px] text-amber-400">
+              +{criteria.clean_sheet_pts ?? 1}
+            </span>
+          </span>
+          <div className="flex gap-1">
+            {(["home", "away", "none"] as const).map((v) => {
+              const active = details.clean_sheet === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange({ ...details, clean_sheet: v })}
+                  className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition ${
+                    active
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  {t(`live.${v === "none" ? "noCleanSheet" : v}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Match card ────────────────────────────────────────────────────
 
 function MatchCard({
@@ -97,18 +298,70 @@ function MatchCard({
   myGroups,
 }: {
   match: LiveMatch;
-  myGroups: { id: string; name: string }[];
+  myGroups: { id: string; name: string; bonus_criteria: BonusCriteria }[];
 }) {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const predictState = useAppSelector((s) => s.predictions);
   const dateLocale = useDateLocale();
   const isLive = match.status === "live";
   const isCompleted = match.status === "completed";
+  const isScheduled = match.status === "scheduled";
 
   const homeFlag = match.home_team?.flag_url;
   const awayFlag = match.away_team?.flag_url;
 
   const predictions = match.my_predictions ?? {};
-  const hasPredictions = Object.keys(predictions).length > 0;
+  const hasPredictions =
+    Object.keys(predictions).filter((k) => !k.startsWith("__")).length > 0;
+
+  const isPredictionLocked =
+    match.prediction_lock != null &&
+    new Date(match.prediction_lock) <= new Date();
+
+  // Local score inputs, pre-filled from existing predictions
+  const [scores, setScores] = useState<
+    Record<string, { home: string; away: string }>
+  >(() => {
+    const init: Record<string, { home: string; away: string }> = {};
+    for (const g of myGroups) {
+      const existing = match.my_predictions?.[g.id];
+      init[g.id] = {
+        home: existing !== undefined ? String(existing.predicted_home) : "",
+        away: existing !== undefined ? String(existing.predicted_away) : "",
+      };
+    }
+    return init;
+  });
+
+  // Local bonus prediction details, pre-filled from existing predictions
+  const [bonusDetails, setBonusDetails] = useState<
+    Record<string, BonusPredictionDetails>
+  >(() => {
+    const init: Record<string, BonusPredictionDetails> = {};
+    for (const g of myGroups) {
+      const existing = match.my_predictions?.[g.id];
+      init[g.id] = existing?.details ?? {};
+    }
+    return init;
+  });
+
+  const handleSubmit = (groupId: string, groupName: string) => {
+    const s = scores[groupId];
+    const h = parseInt(s?.home ?? "", 10);
+    const a = parseInt(s?.away ?? "", 10);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
+    dispatch(
+      submitPrediction({
+        match_id: match.id,
+        group_id: groupId,
+        group_name: groupName,
+        predicted_home: h,
+        predicted_away: a,
+        details: bonusDetails[groupId] ?? {},
+      }),
+    );
+  };
 
   return (
     <div
@@ -163,8 +416,8 @@ function MatchCard({
                 className="h-7 w-7 rounded-full object-cover shadow-sm ring-1 ring-white/10"
               />
             ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-base">
-                🏳️
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-foreground/30">
+                <Flag className="h-4 w-4" />
               </div>
             )}
             <span className="truncate text-sm font-semibold text-foreground">
@@ -201,8 +454,8 @@ function MatchCard({
                 className="h-7 w-7 rounded-full object-cover shadow-sm ring-1 ring-white/10"
               />
             ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-base">
-                🏳️
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 text-foreground/30">
+                <Flag className="h-4 w-4" />
               </div>
             )}
           </div>
@@ -215,40 +468,199 @@ function MatchCard({
           </p>
         )}
 
-        {/* Predictions per group */}
-        {hasPredictions && (
+        {/* Predictions per group — read-only for live/completed */}
+        {hasPredictions && !isScheduled && (
           <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
-            {Object.values(predictions).map((pred) => (
-              <div
-                key={(pred as LiveMatchPrediction).group_id}
-                className="flex items-center justify-between gap-2"
-              >
-                <span className="truncate text-[11px] text-foreground/50">
-                  {(pred as LiveMatchPrediction).group_name}
-                </span>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="font-mono text-[11px] text-foreground/60">
-                    {(pred as LiveMatchPrediction).predicted_home}–
-                    {(pred as LiveMatchPrediction).predicted_away}
-                  </span>
-                  <PredBadge
-                    result={(pred as LiveMatchPrediction).result}
-                    pts={(pred as LiveMatchPrediction).points_earned}
-                  />
-                </div>
-              </div>
-            ))}
+            {Object.values(predictions)
+              .filter((pred) => (pred as LiveMatchPrediction).group_id)
+              .map((pred) => {
+                const p = pred as LiveMatchPrediction;
+                const totalPts = p.points_earned + (p.bonus_pts ?? 0);
+                return (
+                  <div
+                    key={p.group_id}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate text-[11px] text-foreground/50">
+                      {p.group_name}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="font-mono text-[11px] text-foreground/60">
+                        {p.predicted_home}–{p.predicted_away}
+                      </span>
+                      {(p.bonus_pts ?? 0) > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
+                          <Zap className="h-2.5 w-2.5" />+{p.bonus_pts}
+                        </span>
+                      )}
+                      <PredBadge result={p.result} pts={totalPts} />
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         )}
 
-        {/* No prediction notice when in active groups but no prediction */}
+        {/* No prediction notice — live/completed only */}
         {!hasPredictions &&
+          !isScheduled &&
           myGroups.length > 0 &&
           match.my_predictions !== undefined && (
             <p className="mt-2 text-center text-[11px] text-foreground/30">
               {t("live.noPrediction")}
             </p>
           )}
+
+        {/* Prediction form — upcoming/scheduled matches */}
+        {isScheduled && myGroups.length > 0 && (
+          <div className="mt-3 space-y-2 border-t border-white/6 pt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/35">
+              {t("live.predict")}
+            </p>
+            {isPredictionLocked ? (
+              <p className="flex items-center gap-1.5 text-[11px] text-foreground/40">
+                <Clock className="h-3 w-3" />
+                {t("live.predictionLocked")}
+              </p>
+            ) : (
+              myGroups.map((group) => {
+                const stateKey = `${group.id}_${match.id}`;
+                const isSubmitting = !!predictState.submitting[stateKey];
+                const hasSaved = !!predictState.succeeded[stateKey];
+                const hasError = predictState.errors[stateKey];
+                const s = scores[group.id] ?? { home: "", away: "" };
+                const hasPred = !!match.my_predictions?.[group.id];
+                const criteria = group.bonus_criteria;
+                const hasBonus = (criteria?.enabled ?? []).length > 0;
+
+                return (
+                  <div
+                    key={group.id}
+                    className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate text-[11px] font-medium text-foreground/60">
+                          {group.name}
+                        </span>
+                        {hasBonus && (
+                          <span className="flex h-4 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 text-[9px] font-semibold text-amber-400">
+                            <Target className="h-2 w-2" />+
+                            {criteria.enabled.length}
+                          </span>
+                        )}
+                      </div>
+                      {hasSaved && (
+                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-brand">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {t("live.predictionSaved")}
+                        </span>
+                      )}
+                      {hasError && (
+                        <span className="shrink-0 text-[10px] text-red-400">
+                          {hasError}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={s.home}
+                        onChange={(e) =>
+                          setScores((prev) => ({
+                            ...prev,
+                            [group.id]: {
+                              ...prev[group.id],
+                              home: e.target.value,
+                            },
+                          }))
+                        }
+                        disabled={isSubmitting}
+                        placeholder="0"
+                        className="w-10 rounded-lg border border-white/10 bg-white/5 px-1 py-1 text-center text-sm font-bold text-white outline-none focus:border-brand/50 disabled:opacity-50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <span className="text-xs font-bold text-foreground/30">
+                        –
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        value={s.away}
+                        onChange={(e) =>
+                          setScores((prev) => ({
+                            ...prev,
+                            [group.id]: {
+                              ...prev[group.id],
+                              away: e.target.value,
+                            },
+                          }))
+                        }
+                        disabled={isSubmitting}
+                        placeholder="0"
+                        className="w-10 rounded-lg border border-white/10 bg-white/5 px-1 py-1 text-center text-sm font-bold text-white outline-none focus:border-brand/50 disabled:opacity-50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                    </div>
+                    {/* Bonus criteria fields */}
+                    {hasBonus && (
+                      <BonusFields
+                        groupId={group.id}
+                        criteria={criteria}
+                        details={bonusDetails[group.id] ?? {}}
+                        onChange={(d) =>
+                          setBonusDetails((prev) => ({
+                            ...prev,
+                            [group.id]: d,
+                          }))
+                        }
+                        disabled={isSubmitting}
+                      />
+                    )}
+                    {/* Save button — always below bonus fields so it's clear it saves everything */}
+                    {(() => {
+                      const d = bonusDetails[group.id] ?? {};
+                      const enabled = criteria?.enabled ?? [];
+                      const bonusComplete = enabled.every((key) => {
+                        if (key === "btts") return d.btts !== undefined;
+                        if (key === "total_goals_over")
+                          return d.total_goals_over !== undefined;
+                        if (key === "ft_winner")
+                          return d.ft_winner !== undefined;
+                        if (key === "ht_winner")
+                          return d.ht_winner !== undefined;
+                        if (key === "clean_sheet")
+                          return d.clean_sheet !== undefined;
+                        return true;
+                      });
+                      const canSave =
+                        !isSubmitting &&
+                        s.home !== "" &&
+                        s.away !== "" &&
+                        bonusComplete;
+                      return (
+                        <button
+                          onClick={() => handleSubmit(group.id, group.name)}
+                          disabled={!canSave}
+                          className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-brand/15 px-3 text-[11px] font-semibold text-brand transition hover:bg-brand/25 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : hasPred ? (
+                            t("live.predictUpdate")
+                          ) : (
+                            t("live.predictSubmit")
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -302,12 +714,20 @@ function EmptyState({
 export default function LivePage() {
   const { t, i18n } = useTranslation();
   const dispatch = useAppDispatch();
-  const { data, loading, syncing, syncResult, syncError } = useAppSelector(
-    (s) => s.live,
-  );
+  const {
+    data,
+    loading,
+    syncing,
+    syncResult,
+    syncError,
+    testResetting,
+    testResetResult,
+    testResetError,
+  } = useAppSelector((s) => s.live);
   const sessionToken = useAppSelector((s) => s.auth.sessionToken);
   const dateLocale = useDateLocale();
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   // Auto-switch to "live" tab if there are live matches
   useEffect(() => {
@@ -329,9 +749,23 @@ export default function LivePage() {
     }
   }, [syncResult, syncError, dispatch]);
 
+  // Clear test reset feedback after 4 seconds
+  useEffect(() => {
+    if (testResetResult || testResetError) {
+      const t = setTimeout(() => dispatch(clearTestResetResult()), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [testResetResult, testResetError, dispatch]);
+
   const competition = data?.competition;
   const myGroups = data?.my_active_groups ?? [];
   const lastSynced = data?.last_synced_at;
+
+  // Filter groups shown in match cards — null means show all
+  const visibleGroups =
+    selectedGroupId !== null
+      ? myGroups.filter((g) => g.id === selectedGroupId)
+      : myGroups;
 
   const handleSync = () => {
     dispatch(syncMatches(competition?.id));
@@ -339,6 +773,10 @@ export default function LivePage() {
 
   const handleRefresh = () => {
     dispatch(fetchLiveData(competition?.id));
+  };
+
+  const handleTestReset = () => {
+    dispatch(resetTestLeague(competition?.id));
   };
 
   const liveCount = data?.live.length ?? 0;
@@ -405,6 +843,26 @@ export default function LivePage() {
                 )}
               </Button>
             )}
+
+            {/* Reset test data — only visible on test competitions */}
+            {competition?.is_test && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTestReset}
+                disabled={testResetting || loading}
+                className="h-8 rounded-xl border-amber-500/30 bg-amber-500/10 px-3 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {testResetting ? (
+                  <>
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    {t("live.testLeagueResetting")}
+                  </>
+                ) : (
+                  t("live.testLeagueReset")
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -425,36 +883,85 @@ export default function LivePage() {
           </div>
         )}
 
-        {/* Active groups hint */}
+        {/* Test reset feedback pill */}
+        {(testResetResult || testResetError) && (
+          <div
+            className={`mb-4 rounded-xl border px-4 py-2.5 text-sm ${
+              testResetError
+                ? "border-red-500/20 bg-red-500/8 text-red-400"
+                : "border-amber-500/20 bg-amber-500/8 text-amber-400"
+            }`}
+          >
+            {testResetError ? testResetError : t("live.testLeagueResetDone")}
+          </div>
+        )}
+
+        {/* Active groups filter */}
         {sessionToken && myGroups.length > 0 && (
-          <div className="mb-5 flex flex-wrap gap-1.5">
+          <div className="mb-5 flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-foreground/40">
               {t("live.showingForGroups")}:
             </span>
+            {myGroups.length > 1 && (
+              <button
+                onClick={() => setSelectedGroupId(null)}
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition ${
+                  selectedGroupId === null
+                    ? "border-brand/40 bg-brand/15 text-brand"
+                    : "border-white/10 bg-white/5 text-foreground/50 hover:bg-white/10"
+                }`}
+              >
+                {t("live.allGroups")}
+              </button>
+            )}
             {myGroups.map((g) => (
-              <Link key={g.id} to={`/groups/${g.id}`}>
-                <Badge
-                  variant="secondary"
-                  className="cursor-pointer rounded-full border-white/8 bg-white/5 text-[10px] hover:bg-white/10"
+              <div key={g.id} className="flex items-center gap-0.5">
+                <button
+                  onClick={() =>
+                    setSelectedGroupId(selectedGroupId === g.id ? null : g.id)
+                  }
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition ${
+                    selectedGroupId === g.id
+                      ? "border-brand/40 bg-brand/15 text-brand"
+                      : "border-white/10 bg-white/5 text-foreground/50 hover:bg-white/10"
+                  }`}
                 >
                   {g.name}
-                  <ChevronRight className="ml-0.5 h-2.5 w-2.5 opacity-50" />
-                </Badge>
-              </Link>
+                </button>
+                <Link
+                  to={`/groups/${g.id}`}
+                  className="text-foreground/25 hover:text-foreground/50 transition"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
             ))}
           </div>
         )}
 
         {sessionToken && myGroups.length === 0 && data && (
-          <p className="mb-5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-xs text-foreground/40">
-            {t("live.noActiveGroups")}
-          </p>
-        )}
-
-        {!sessionToken && data && (
-          <p className="mb-5 text-xs text-foreground/40">
-            {t("live.signInToSeeGroups")}
-          </p>
+          <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+            <p className="mb-1 text-sm font-semibold text-foreground/70">
+              {t("live.noGroupsTitle")}
+            </p>
+            <p className="mb-4 text-xs text-foreground/40">
+              {t("live.noGroupsHint")}
+            </p>
+            <div className="flex justify-center gap-2">
+              <Link
+                to="/groups/new"
+                className="rounded-full bg-brand px-5 py-2 text-xs font-semibold text-slate-950 hover:bg-brand/90"
+              >
+                {t("live.createGroup")}
+              </Link>
+              <Link
+                to="/groups"
+                className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold text-foreground/60 hover:bg-white/10"
+              >
+                {t("live.joinGroup")}
+              </Link>
+            </div>
+          </div>
         )}
 
         {/* ── Tabs ───────────────────────────────────────────────── */}
@@ -506,7 +1013,7 @@ export default function LivePage() {
               <EmptyState icon={Radio} message={t("live.noLive")} />
             ) : (
               data!.live.map((m) => (
-                <MatchCard key={m.id} match={m} myGroups={myGroups} />
+                <MatchCard key={m.id} match={m} myGroups={visibleGroups} />
               ))
             )}
           </TabsContent>
@@ -521,7 +1028,7 @@ export default function LivePage() {
               <EmptyState icon={Calendar} message={t("live.noUpcoming")} />
             ) : (
               data!.upcoming.map((m) => (
-                <MatchCard key={m.id} match={m} myGroups={myGroups} />
+                <MatchCard key={m.id} match={m} myGroups={visibleGroups} />
               ))
             )}
           </TabsContent>
@@ -536,7 +1043,7 @@ export default function LivePage() {
               <EmptyState icon={Trophy} message={t("live.noResults")} />
             ) : (
               data!.recent.map((m) => (
-                <MatchCard key={m.id} match={m} myGroups={myGroups} />
+                <MatchCard key={m.id} match={m} myGroups={visibleGroups} />
               ))
             )}
           </TabsContent>

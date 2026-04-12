@@ -36,3 +36,4 @@ dist-ssr
 
 # Supabase local dev temp files
 supabase/.temp/
+.vercel

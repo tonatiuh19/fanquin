@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchGroupById } from "@/store/slices/groupsSlice";
+import { fetchSurvivor, clearSurvivor } from "@/store/slices/survivorSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,9 +40,35 @@ import {
   XCircle,
   ChevronDown,
   Info,
+  Zap,
+  Heart,
+  BarChart2,
+  Skull,
 } from "lucide-react";
 import axios from "axios";
-import type { GroupStatus } from "@shared/api";
+import type {
+  GroupStatus,
+  BonusCriteria,
+  BonusCriterionKey,
+} from "@shared/api";
+
+const BONUS_CRITERION_KEYS: BonusCriterionKey[] = [
+  "btts",
+  "total_goals_over",
+  "ft_winner",
+  "ht_winner",
+  "clean_sheet",
+];
+
+const DEFAULT_BONUS_CRITERIA: BonusCriteria = {
+  enabled: [],
+  btts_pts: 2,
+  total_goals_over_pts: 2,
+  total_goals_threshold: 2.5,
+  ft_winner_pts: 2,
+  ht_winner_pts: 2,
+  clean_sheet_pts: 1,
+};
 
 interface LeaderboardEntry {
   rank: number;
@@ -55,6 +82,9 @@ interface LeaderboardEntry {
   prediction_pts: number;
   ownership_pts: number;
   current_streak: number;
+  elo_rating?: number;
+  is_eliminated?: boolean;
+  survivor_lives?: number;
 }
 
 export default function GroupPage() {
@@ -64,6 +94,9 @@ export default function GroupPage() {
   const dispatch = useAppDispatch();
   const { currentGroup, currentGroupLoading } = useAppSelector((s) => s.groups);
   const userProfile = useAppSelector((s) => s.auth.userProfile);
+  const { data: survivorData, loading: survivorLoading } = useAppSelector(
+    (s) => s.survivor,
+  );
   const sessionToken = useAppSelector(
     (s) => s.auth.sessionToken ?? localStorage.getItem("fanquin_session"),
   );
@@ -78,13 +111,28 @@ export default function GroupPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsName, setSettingsName] = useState("");
   const [settingsMaxMembers, setSettingsMaxMembers] = useState(50);
+  const [settingsBonusCriteria, setSettingsBonusCriteria] =
+    useState<BonusCriteria>(DEFAULT_BONUS_CRITERIA);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   useEffect(() => {
     if (id) dispatch(fetchGroupById(id));
+    return () => {
+      dispatch(clearSurvivor());
+    };
   }, [dispatch, id]);
+
+  useEffect(() => {
+    if (!id || !currentGroup) return;
+    if (
+      currentGroup.status === "active" &&
+      (currentGroup.mode === "competitive" || currentGroup.mode === "global")
+    ) {
+      dispatch(fetchSurvivor(id));
+    }
+  }, [dispatch, id, currentGroup?.status, currentGroup?.mode]);
 
   useEffect(() => {
     if (!id || !sessionToken) return;
@@ -135,6 +183,10 @@ export default function GroupPage() {
     if (!currentGroup) return;
     setSettingsName(currentGroup.name);
     setSettingsMaxMembers(currentGroup.max_members);
+    setSettingsBonusCriteria({
+      ...DEFAULT_BONUS_CRITERIA,
+      ...((currentGroup as any).bonus_criteria ?? {}),
+    });
     setSettingsError(null);
     setSettingsSaved(false);
     setSettingsOpen(true);
@@ -152,7 +204,11 @@ export default function GroupPage() {
     try {
       await axios.patch(
         `/api/groups/${id}`,
-        { name: trimmed, max_members: settingsMaxMembers },
+        {
+          name: trimmed,
+          max_members: settingsMaxMembers,
+          bonus_criteria: settingsBonusCriteria,
+        },
         { headers: { Authorization: `Bearer ${sessionToken}` } },
       );
       dispatch(fetchGroupById(id));
@@ -454,11 +510,19 @@ export default function GroupPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-medium text-white">
+                        <p
+                          className={`truncate text-sm font-medium ${entry.is_eliminated ? "line-through text-foreground/40" : "text-white"}`}
+                        >
                           {name}
                           {isMe && (
                             <span className="ml-1.5 text-xs text-brand">
                               {t("groupPage.you")}
+                            </span>
+                          )}
+                          {entry.is_eliminated && (
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
+                              <Skull className="h-2.5 w-2.5" />
+                              {t("groupPage.eliminated")}
                             </span>
                           )}
                         </p>
@@ -466,11 +530,21 @@ export default function GroupPage() {
                           {t("groupPage.streak", { n: entry.current_streak })}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-white">
-                          {entry.total_points}
-                        </p>
-                        <p className="text-xs text-foreground/40">pts</p>
+                      <div className="flex items-center gap-2">
+                        {entry.elo_rating !== undefined &&
+                          (currentGroup.mode === "league" ||
+                            currentGroup.mode === "competitive") && (
+                            <span className="flex items-center gap-0.5 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 text-[11px] font-semibold text-blue-400">
+                              <BarChart2 className="h-3 w-3" />
+                              {entry.elo_rating}
+                            </span>
+                          )}
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-white">
+                            {entry.total_points}
+                          </p>
+                          <p className="text-xs text-foreground/40">pts</p>
+                        </div>
                       </div>
                     </div>
                   );
@@ -479,49 +553,158 @@ export default function GroupPage() {
             )}
           </div>
 
-          {/* Invite panel */}
+          {/* Invite panel — only shown while group is still accepting members */}
           <div className="space-y-4">
-            <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-5">
-              <div className="mb-4 flex items-center gap-2">
-                <Link2 className="h-4 w-4 text-brand" />
-                <h2 className="font-display text-base font-semibold text-white">
-                  {t("groupPage.invite")}
-                </h2>
-              </div>
+            {currentGroup.status === "waiting" && (
+              <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-brand" />
+                  <h2 className="font-display text-base font-semibold text-white">
+                    {t("groupPage.invite")}
+                  </h2>
+                </div>
 
-              {/* Code */}
-              <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-                <p className="mb-1 text-xs text-foreground/50">
-                  {t("groupPage.inviteCode")}
-                </p>
-                <p className="font-display text-2xl font-bold tracking-[0.25em] text-brand">
-                  {currentGroup.invite_code.toUpperCase()}
-                </p>
-              </div>
+                {/* Code */}
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                  <p className="mb-1 text-xs text-foreground/50">
+                    {t("groupPage.inviteCode")}
+                  </p>
+                  <p className="font-display text-2xl font-bold tracking-[0.25em] text-brand">
+                    {currentGroup.invite_code.toUpperCase()}
+                  </p>
+                </div>
 
-              {/* Link */}
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground/60">
-                <span className="flex-1 truncate">{inviteLink}</span>
-                <button
+                {/* Link */}
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground/60">
+                  <span className="flex-1 truncate">{inviteLink}</span>
+                  <button
+                    onClick={handleCopy}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-brand" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                <Button
                   onClick={handleCopy}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition hover:bg-white/10 hover:text-white"
+                  className="mt-4 w-full rounded-full bg-brand text-sm font-semibold text-slate-950 hover:bg-brand/90"
                 >
-                  {copied ? (
-                    <Check className="h-3.5 w-3.5 text-brand" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </button>
+                  {copied ? t("groupPage.copied") : t("groupPage.copyLink")}
+                </Button>
               </div>
-
-              <Button
-                onClick={handleCopy}
-                className="mt-4 w-full rounded-full bg-brand text-sm font-semibold text-slate-950 hover:bg-brand/90"
-              >
-                {copied ? t("groupPage.copied") : t("groupPage.copyLink")}
-              </Button>
-            </div>
-
+            )}{" "}
+            {/* end waiting-only invite panel */}
+            {/* Survivor panel — competitive/global active groups */}
+            {currentGroup.status === "active" &&
+              (currentGroup.mode === "competitive" ||
+                currentGroup.mode === "global") && (
+                <div className="rounded-[1.4rem] border border-rose-400/20 bg-rose-400/5 p-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-rose-400" />
+                    <h2 className="font-display text-base font-semibold text-white">
+                      {t("groupPage.survivorPanel")}
+                    </h2>
+                  </div>
+                  {survivorLoading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="h-8 rounded-lg bg-white/5 animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  ) : survivorData ? (
+                    <div className="space-y-2">
+                      {survivorData.members.map((m) => {
+                        const lbEntry = leaderboard.find(
+                          (e) => e.user_id === m.user_id,
+                        );
+                        const memberName = lbEntry
+                          ? lbEntry.display_name ||
+                            `${lbEntry.first_name ?? ""} ${lbEntry.last_name ?? ""}`.trim() ||
+                            lbEntry.username
+                          : m.user_id.slice(0, 8);
+                        const isMe = m.user_id === userProfile?.id;
+                        return (
+                          <div
+                            key={m.user_id}
+                            className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                              m.is_eliminated
+                                ? "opacity-40"
+                                : isMe
+                                  ? "border border-brand/20 bg-brand/5"
+                                  : "bg-white/[0.03]"
+                            }`}
+                          >
+                            <p
+                              className={`text-sm font-medium ${m.is_eliminated ? "line-through text-foreground/40" : "text-white"}`}
+                            >
+                              {memberName}
+                              {isMe && (
+                                <span className="ml-1 text-xs text-brand">
+                                  {t("groupPage.you")}
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-0.5">
+                              {m.is_eliminated ? (
+                                <span className="text-xs text-rose-400">
+                                  {t("groupPage.eliminated")}
+                                </span>
+                              ) : (
+                                Array.from({
+                                  length: survivorData.survivor_lives_start,
+                                }).map((_, i) => (
+                                  <Heart
+                                    key={i}
+                                    className={`h-3.5 w-3.5 ${
+                                      i < m.survivor_lives
+                                        ? "fill-rose-400 text-rose-400"
+                                        : "text-foreground/20"
+                                    }`}
+                                  />
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-foreground/40">
+                      {t("groupPage.survivorPanelEmpty")}
+                    </p>
+                  )}
+                </div>
+              )}
+            {/* Predict matches CTA — shown when group is active */}
+            {currentGroup.status === "active" && (
+              <div className="rounded-[1.4rem] border border-brand/20 bg-brand/5 p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-brand" />
+                  <h2 className="font-display text-base font-semibold text-white">
+                    {t("groupPage.predictTitle")}
+                  </h2>
+                </div>
+                <p className="mb-4 text-sm text-foreground/60">
+                  {t("groupPage.predictBody")}
+                </p>
+                <Button
+                  asChild
+                  className="w-full rounded-full bg-brand text-sm font-semibold text-slate-950 hover:bg-brand/90"
+                >
+                  <Link to="/live">
+                    <Radio className="mr-2 h-4 w-4" />
+                    {t("groupPage.goPredict")}
+                  </Link>
+                </Button>
+              </div>
+            )}
             {/* Quick actions */}
             <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-5 space-y-2">
               <h2 className="font-display text-base font-semibold text-white mb-3">
@@ -552,7 +735,7 @@ export default function GroupPage() {
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="glass-panel border-white/10 bg-[hsl(var(--surface))] sm:max-w-sm">
+        <DialogContent className="glass-panel border-white/10 bg-[hsl(var(--surface))] sm:max-w-md">
           <DialogHeader className="space-y-1">
             <DialogTitle className="font-display text-lg font-semibold text-white">
               {t("groupPage.settingsTitle")}
@@ -603,6 +786,127 @@ export default function GroupPage() {
                 className="rounded-xl border-white/15 bg-white/5 text-white focus:border-brand/50"
               />
             </div>
+
+            {/* Bonus prediction criteria */}
+            {status === "waiting" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5 text-amber-400" />
+                  <Label className="text-sm text-foreground/80">
+                    {t("groupPage.bonusCriteriaLabel")}
+                  </Label>
+                </div>
+                <p className="text-xs text-foreground/45">
+                  {t("groupPage.bonusCriteriaHint")}
+                </p>
+                <div className="space-y-3">
+                  {BONUS_CRITERION_KEYS.map((key) => {
+                    const isEnabled =
+                      settingsBonusCriteria.enabled.includes(key);
+                    const ptsKey =
+                      `${key === "btts" ? "btts_pts" : key === "total_goals_over" ? "total_goals_over_pts" : key === "ft_winner" ? "ft_winner_pts" : key === "ht_winner" ? "ht_winner_pts" : "clean_sheet_pts"}` as keyof Omit<
+                        BonusCriteria,
+                        "enabled"
+                      >;
+                    return (
+                      <div
+                        key={key}
+                        className={`rounded-xl border px-3 py-2.5 transition-all ${
+                          isEnabled
+                            ? "border-amber-500/30 bg-amber-500/5"
+                            : "border-white/8 bg-white/[0.02]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={settingsSaving}
+                              onClick={() => {
+                                setSettingsBonusCriteria((prev) => ({
+                                  ...prev,
+                                  enabled: isEnabled
+                                    ? prev.enabled.filter((k) => k !== key)
+                                    : [...prev.enabled, key],
+                                }));
+                              }}
+                              className={`relative flex h-4 w-7 shrink-0 rounded-full transition-colors ${
+                                isEnabled ? "bg-amber-500" : "bg-white/15"
+                              } disabled:opacity-40`}
+                            >
+                              <span
+                                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${
+                                  isEnabled ? "left-3.5" : "left-0.5"
+                                }`}
+                              />
+                            </button>
+                            <span className="text-[12px] font-medium text-foreground/75">
+                              {t(`groupPage.bonus.${key}.label`)}
+                            </span>
+                          </div>
+                          {isEnabled && (
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={50}
+                                value={settingsBonusCriteria[ptsKey] as number}
+                                onChange={(e) =>
+                                  setSettingsBonusCriteria((prev) => ({
+                                    ...prev,
+                                    [ptsKey]: Number(e.target.value),
+                                  }))
+                                }
+                                disabled={settingsSaving}
+                                className="w-10 rounded-lg border border-amber-500/30 bg-amber-500/10 px-1 py-0.5 text-center text-[12px] font-bold text-amber-300 outline-none focus:border-amber-500/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              />
+                              <span className="text-[10px] text-foreground/40">
+                                {t("live.pts")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {isEnabled && key === "total_goals_over" && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[11px] text-foreground/50">
+                              {t("groupPage.bonus.threshold")}:
+                            </span>
+                            <div className="flex gap-1">
+                              {[1.5, 2.5, 3.5, 4.5].map((v) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  disabled={settingsSaving}
+                                  onClick={() =>
+                                    setSettingsBonusCriteria((prev) => ({
+                                      ...prev,
+                                      total_goals_threshold: v,
+                                    }))
+                                  }
+                                  className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${
+                                    settingsBonusCriteria.total_goals_threshold ===
+                                    v
+                                      ? "bg-amber-500/20 text-amber-300"
+                                      : "bg-white/5 text-foreground/40 hover:bg-white/10"
+                                  } disabled:opacity-40`}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {isEnabled && (
+                          <p className="mt-1.5 text-[10px] text-foreground/40">
+                            {t(`groupPage.bonus.${key}.hint`)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {settingsError && (
               <p className="text-xs text-rose-400">{settingsError}</p>

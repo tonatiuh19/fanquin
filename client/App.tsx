@@ -33,6 +33,7 @@ import ProfilePage from "./pages/ProfilePage";
 import DraftPage from "./pages/DraftPage";
 import JoinPage from "./pages/JoinPage";
 import LivePage from "./pages/LivePage";
+import ScoringPage from "./pages/ScoringPage";
 import { useTranslation } from "react-i18next";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,14 @@ function AuthBootstrap() {
   useEffect(() => {
     dispatch(bootstrapAuth());
   }, [dispatch]);
+  return null;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
   return null;
 }
 
@@ -72,6 +81,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthBootstrap />
+              <ScrollToTop />
               <Routes>
                 <Route element={<AppShell />}>
                   <Route path="/" element={<Index />} />
@@ -85,25 +95,9 @@ const App = () => {
                     <Route path="/groups/:id" element={<GroupPage />} />
                     <Route path="/groups/:id/draft" element={<DraftPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/live" element={<LivePage />} />
                   </Route>
-                  <Route path="/live" element={<LivePage />} />
-                  <Route
-                    path="/scoring"
-                    element={
-                      <PlaceholderPage
-                        badge={t("placeholder.routes.scoring.badge")}
-                        title={t("placeholder.routes.scoring.title")}
-                        description={t(
-                          "placeholder.routes.scoring.description",
-                        )}
-                        highlights={
-                          t("placeholder.routes.scoring.highlights", {
-                            returnObjects: true,
-                          }) as string[]
-                        }
-                      />
-                    }
-                  />
+                  <Route path="/scoring" element={<ScoringPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/select";
 import { getCountries } from "react-phone-number-input";
 import type { Country as CountryCode } from "react-phone-number-input";
-import { Loader2, UserCircle, Save, CheckCircle2 } from "lucide-react";
+import { Loader2, UserCircle, Save, CheckCircle2, LogOut } from "lucide-react";
 import { useState } from "react";
+import { clearAuth } from "@/store/slices/authSlice";
 
 const _regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 const COUNTRIES = getCountries()
@@ -300,6 +301,18 @@ export default function ProfilePage() {
           {saved ? t("profile.saved") : t("profile.saveChanges")}
         </Button>
       </form>
+
+      {/* Mobile-only sign out */}
+      <div className="mt-4 md:hidden">
+        <button
+          type="button"
+          onClick={() => dispatch(clearAuth())}
+          className="flex w-full items-center justify-center gap-2 rounded-[1.4rem] border border-rose-500/20 bg-rose-500/5 py-3.5 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/10"
+        >
+          <LogOut className="h-4 w-4" />
+          {t("nav.signOut")}
+        </button>
+      </div>
     </div>
   );
 }

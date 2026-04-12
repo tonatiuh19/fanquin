@@ -14,6 +14,7 @@ type JoinState =
   | "success"
   | "already"
   | "full"
+  | "started"
   | "invalid"
   | "error";
 
@@ -56,7 +57,8 @@ export default function JoinPage() {
     } catch (err: any) {
       joinedRef.current = false;
       const msg: string = err?.response?.data?.message ?? "";
-      if (msg.includes("already")) setState("already");
+      if (msg.includes("already started")) setState("started");
+      else if (msg.includes("already")) setState("already");
       else if (msg.includes("full")) setState("full");
       else if (msg.includes("Invalid") || err?.response?.status === 404)
         setState("invalid");
@@ -163,13 +165,20 @@ export default function JoinPage() {
     );
   }
 
-  if (state === "full" || state === "invalid" || state === "error") {
+  if (
+    state === "full" ||
+    state === "started" ||
+    state === "invalid" ||
+    state === "error"
+  ) {
     const msg =
       state === "full"
         ? t("join.full")
-        : state === "invalid"
-          ? t("join.invalid")
-          : t("join.error");
+        : state === "started"
+          ? t("join.started")
+          : state === "invalid"
+            ? t("join.invalid")
+            : t("join.error");
     return (
       <div className="container flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
         <PageMeta
