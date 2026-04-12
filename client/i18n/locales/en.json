@@ -177,6 +177,25 @@
         "description": "Bonus criteria open extra scoring windows on every match. Trailing players can close the gap with smart bonus picks even from last place."
       }
     ],
+    "privateDesign": {
+      "badge": "Invite-only · Always",
+      "title": "Private by design. Every time.",
+      "description": "Every group on FanQuin is invite-only. There is no public feed, no discovery, no strangers — just a unique 8-character code you share with exactly who you want.",
+      "steps": [
+        {
+          "label": "Generate",
+          "desc": "A unique code is created the instant your group is born. No setup needed."
+        },
+        {
+          "label": "Share",
+          "desc": "Drop the code in WhatsApp, iMessage, or any group chat. One tap and they're in."
+        },
+        {
+          "label": "Play",
+          "desc": "Only invited players can see your group, your picks, and the leaderboard. Always."
+        }
+      ]
+    },
     "mobileApp": {
       "badge": "Web app fully live · Native app coming May 2026",
       "title": "Play now on the web — iOS & Android app arrives May 2026",
@@ -582,6 +601,7 @@
   "groupPage": {
     "backToGroups": "My Groups",
     "owner": "Owner",
+    "private": "Private",
     "members": "members",
     "settings": "Settings",
     "settingsTitle": "Group settings",

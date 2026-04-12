@@ -15,6 +15,7 @@ import {
   Crown,
   Shield,
   Clock,
+  Lock,
   Play,
   Radio,
   CheckCircle2,
@@ -242,6 +243,10 @@ export default function MyGroups() {
                     </span>
                     <span className="rounded bg-white/5 px-2 py-0.5">
                       {group.draft_type}
+                    </span>
+                    <span className="flex items-center gap-1 text-brand/70">
+                      <Lock className="h-3 w-3" />
+                      {t("groupPage.private")}
                     </span>
                   </div>
                 </div>

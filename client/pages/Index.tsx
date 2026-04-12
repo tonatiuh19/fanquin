@@ -9,7 +9,10 @@ import {
   BellRing,
   Flame,
   Gauge,
+  Key,
+  Lock,
   LogIn,
+  Share2,
   ShieldPlus,
   Shuffle,
   SlidersHorizontal,
@@ -261,6 +264,52 @@ export default function Index() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Private by design ── */}
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950 to-slate-900/60 px-5 py-8 md:px-8 md:py-10">
+          {/* ambient glows */}
+          <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand/8 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 right-0 h-56 w-56 rounded-full bg-brandAlt/8 blur-3xl" />
+
+          <div className="relative grid gap-10 xl:grid-cols-[1fr_1.1fr] xl:items-center">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-brand/20 bg-brand/10">
+                  <Lock className="h-5 w-5 text-brand" />
+                </div>
+                <span className="section-label">{t("index.privateDesign.badge")}</span>
+              </div>
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                {t("index.privateDesign.title")}
+              </h2>
+              <p className="max-w-xl text-base leading-7 text-foreground/[0.68]">
+                {t("index.privateDesign.description")}
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {(t("index.privateDesign.steps", { returnObjects: true }) as Array<{ label: string; desc: string }>).map((step, i) => {
+                const StepIcon = [Key, Share2, Lock][i];
+                return (
+                  <div
+                    key={step.label}
+                    className="relative flex flex-col gap-4 rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                        {StepIcon && <StepIcon className="h-4 w-4" />}
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
+                        {step.label}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-6 text-foreground/[0.65]">{step.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>

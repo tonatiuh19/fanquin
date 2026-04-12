@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   Trophy,
   Link2,
+  Lock,
   Settings,
   Shield,
   Play,
@@ -319,6 +320,10 @@ export default function GroupPage() {
                   </span>
                 )}
               </div>
+              <span className="flex w-fit items-center gap-1 rounded-full border border-brand/20 bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand">
+                <Lock className="h-3 w-3" />
+                {t("groupPage.private")}
+              </span>
               <h1 className="font-display text-2xl font-bold text-white md:text-3xl">
                 {currentGroup.name}
               </h1>

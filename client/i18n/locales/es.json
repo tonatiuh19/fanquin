@@ -177,6 +177,25 @@
         "description": "Los criterios de bonus abren ventanas de puntuación extra en cada partido. Los jugadores rezagados pueden remontar con predicciones de bonus acertadas, incluso desde el último lugar."
       }
     ],
+    "privateDesign": {
+      "badge": "Solo con invitación · Siempre",
+      "title": "Privado por diseño. Siempre.",
+      "description": "Todos los grupos en FanQuin son solo por invitación. Sin feed público, sin descubrimiento, sin desconocidos — solo un código único de 8 caracteres que compartes con exactamente quien tú quieras.",
+      "steps": [
+        {
+          "label": "Genera",
+          "desc": "Tu grupo recibe un código único en el momento en que lo creas. Sin configuración."
+        },
+        {
+          "label": "Comparte",
+          "desc": "Mándalo por WhatsApp, iMessage o cualquier chat. Un tap y ya están dentro."
+        },
+        {
+          "label": "Juega",
+          "desc": "Solo los jugadores que tú invites pueden ver tu grupo, tus picks y el ranking. Siempre."
+        }
+      ]
+    },
     "mobileApp": {
       "badge": "Web disponible ya · App nativa llega mayo 2026",
       "title": "Juega ahora en el navegador — app iOS y Android en mayo 2026",
@@ -583,6 +602,7 @@
   "groupPage": {
     "backToGroups": "Mis Grupos",
     "owner": "Propietario",
+    "private": "Privado",
     "members": "miembros",
     "settings": "Configuración",
     "settingsTitle": "Configuración del grupo",
