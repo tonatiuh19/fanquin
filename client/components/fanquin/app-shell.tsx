@@ -79,7 +79,7 @@ export function AppShell() {
     ...(userProfile
       ? [{ label: t("nav.myGroups"), to: "/groups" }]
       : [{ label: t("nav.groupHub"), to: "/groups/world-cup-crew" }]),
-    { label: t("nav.live"), to: "/live" },
+    ...(userProfile ? [{ label: t("nav.live"), to: "/live" }] : []),
     { label: t("nav.scoring"), to: "/scoring" },
   ];
 
@@ -97,7 +97,6 @@ export function AppShell() {
           to: "/groups/world-cup-crew",
           icon: LayoutGrid,
         },
-        { label: t("mobileNav.live"), to: "/live", icon: Radio },
         { label: t("mobileNav.groups"), to: "/groups", icon: Users },
       ];
 
