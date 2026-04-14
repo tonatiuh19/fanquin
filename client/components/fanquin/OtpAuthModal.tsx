@@ -69,7 +69,7 @@ export function OtpAuthModal({
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<
-    "idle" | "checking" | "available" | "taken" | "invalid"
+    "idle" | "checking" | "available" | "taken" | "invalid" | "blocked"
   >("idle");
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -91,10 +91,17 @@ export function OtpAuthModal({
     setUsernameStatus("checking");
     usernameDebounceRef.current = setTimeout(async () => {
       try {
-        const { data } = await axios.get<{ available: boolean }>(
-          `/api/auth/check-username?username=${encodeURIComponent(raw)}`,
-        );
-        setUsernameStatus(data.available ? "available" : "taken");
+        const { data } = await axios.get<{
+          available: boolean;
+          message?: string;
+        }>(`/api/auth/check-username?username=${encodeURIComponent(raw)}`);
+        if (data.available) {
+          setUsernameStatus("available");
+        } else if (data.message === "Username not allowed.") {
+          setUsernameStatus("blocked");
+        } else {
+          setUsernameStatus("taken");
+        }
       } catch {
         setUsernameStatus("idle");
       }
@@ -246,7 +253,11 @@ export function OtpAuthModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="glass-panel border-white/10 bg-[hsl(var(--surface))] p-0 sm:max-w-sm">
+      <DialogContent
+        className="glass-panel border-white/10 bg-[hsl(var(--surface))] p-0 sm:max-w-sm"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="max-h-[90dvh] overflow-y-auto p-8">
           <DialogHeader className="space-y-2 text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/15">
@@ -386,6 +397,7 @@ export function OtpAuthModal({
                         <Check className="h-4 w-4 text-brand" />
                       )}
                       {(usernameStatus === "taken" ||
+                        usernameStatus === "blocked" ||
                         usernameStatus === "invalid") && (
                         <X className="h-4 w-4 text-rose-400" />
                       )}
@@ -395,16 +407,18 @@ export function OtpAuthModal({
                     className={`text-xs ${
                       usernameStatus === "available"
                         ? "text-brand"
-                        : usernameStatus === "taken"
+                        : usernameStatus === "taken" ||
+                            usernameStatus === "blocked" ||
+                            usernameStatus === "invalid"
                           ? "text-rose-400"
-                          : usernameStatus === "invalid"
-                            ? "text-rose-400"
-                            : "text-foreground/40"
+                          : "text-foreground/40"
                     }`}
                   >
                     {usernameStatus === "available" &&
                       t("auth.usernameAvailable")}
                     {usernameStatus === "taken" && t("auth.usernameTaken")}
+                    {usernameStatus === "blocked" &&
+                      t("profile.usernameBlocked")}
                     {usernameStatus === "checking" &&
                       t("auth.usernameChecking")}
                     {(usernameStatus === "idle" ||

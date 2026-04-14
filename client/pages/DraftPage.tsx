@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -6,6 +6,7 @@ import {
   fetchDraftState,
   submitPick,
   clearPickError,
+  toggleAutoPick,
 } from "@/store/slices/draftSlice";
 import { fetchGroupById } from "@/store/slices/groupsSlice";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import {
   Crown,
   RefreshCw,
   Sparkles,
+  Bot,
+  Info,
 } from "lucide-react";
 import type { Team, DraftPick, GroupMember } from "@shared/api";
 
@@ -63,23 +66,113 @@ function TierBadge({ tier }: { tier: number }) {
   );
 }
 
-// ── Member avatar chip ─────────────────────────────────────────────
+// ── Pick deadline countdown ────────────────────────────────────────
+const PICK_SECONDS = 60;
+
+function PickDeadlineCountdown({
+  deadline,
+  onExpire,
+}: {
+  deadline: string | null;
+  onExpire?: () => void;
+}) {
+  const { t } = useTranslation();
+  const firedRef = useRef(false);
+  const [secsLeft, setSecsLeft] = useState<number>(() => {
+    if (!deadline) return PICK_SECONDS;
+    return Math.max(
+      0,
+      Math.round((new Date(deadline).getTime() - Date.now()) / 1000),
+    );
+  });
+
+  // Reset fired flag whenever deadline changes (new picker's turn)
+  useEffect(() => {
+    firedRef.current = false;
+  }, [deadline]);
+
+  useEffect(() => {
+    if (!deadline) return;
+    const tick = setInterval(() => {
+      const secs = Math.max(
+        0,
+        Math.round((new Date(deadline).getTime() - Date.now()) / 1000),
+      );
+      setSecsLeft(secs);
+      // Fire refresh exactly once when the timer hits 0
+      if (secs === 0 && !firedRef.current) {
+        firedRef.current = true;
+        onExpire?.();
+      }
+    }, 500);
+    return () => clearInterval(tick);
+  }, [deadline, onExpire]);
+
+  const pct = Math.min(100, (secsLeft / PICK_SECONDS) * 100);
+  const isUrgent = secsLeft <= 10;
+  const isExpired = secsLeft === 0;
+
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between text-xs sm:text-[11px]">
+        <span
+          className={`font-semibold ${isExpired ? "text-rose-400" : isUrgent ? "text-amber-400" : "text-foreground/70"}`}
+        >
+          {isExpired
+            ? t("draft.timeUp")
+            : t("draft.timeLeft", { time: `${secsLeft}s` })}
+        </span>
+        <span className="text-foreground/40">{PICK_SECONDS}s</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            isExpired ? "bg-rose-500" : isUrgent ? "bg-amber-400" : "bg-brand"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function MemberChip({
   member,
   isActive,
   isSelf,
+  isAdmin,
+  groupId,
 }: {
   member: GroupMember;
   isActive: boolean;
   isSelf: boolean;
+  isAdmin: boolean;
+  groupId: string;
 }) {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const name = member.display_name || member.username;
+  const isAutoPickEnabled = member.auto_pick ?? false;
+
+  const handleToggleAutoPick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch(
+      toggleAutoPick({
+        groupId,
+        userId: member.user_id,
+        enabled: !isAutoPickEnabled,
+      }),
+    );
+  };
+
   return (
     <div
       className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all ${
         isActive
           ? "border-brand/40 bg-brand/10 text-white shadow-glow"
-          : "border-white/10 bg-white/5 text-foreground/60"
+          : isAutoPickEnabled
+            ? "border-amber-400/30 bg-amber-400/5 text-foreground/70"
+            : "border-white/10 bg-white/5 text-foreground/60"
       }`}
     >
       <span
@@ -91,13 +184,41 @@ function MemberChip({
       >
         {name.charAt(0).toUpperCase()}
       </span>
-      <span className="truncate max-w-[90px]">{name}</span>
+      <span className="truncate max-w-[80px]">{name}</span>
       {isSelf && (
-        <span className="ml-auto shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-foreground/50">
-          you
+        <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-foreground/50">
+          {t("groupPage.you")}
         </span>
       )}
-      {isActive && <Crown className="ml-1 h-3.5 w-3.5 shrink-0 text-brand" />}
+      {isAutoPickEnabled && (
+        <span
+          title={t("draft.autoPickEnabled")}
+          className="flex shrink-0 items-center gap-0.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400"
+        >
+          <Bot className="h-2.5 w-2.5" />
+          {t("draft.autoPick")}
+        </span>
+      )}
+      {isActive && !isAutoPickEnabled && (
+        <Crown className="ml-1 h-3.5 w-3.5 shrink-0 text-brand" />
+      )}
+      {isAdmin && !isSelf && (
+        <button
+          onClick={handleToggleAutoPick}
+          title={
+            isAutoPickEnabled
+              ? t("draft.disableAutoPick")
+              : t("draft.enableAutoPick")
+          }
+          className={`ml-auto shrink-0 rounded-full border p-1 transition-colors ${
+            isAutoPickEnabled
+              ? "border-amber-400/40 bg-amber-400/15 text-amber-400 hover:bg-amber-400/25"
+              : "border-white/10 bg-white/5 text-foreground/30 hover:border-amber-400/30 hover:text-amber-400"
+          }`}
+        >
+          <Bot className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -321,6 +442,8 @@ export default function DraftPage() {
 
   const { session, picks, available_teams, members } = draftState;
   const isMyTurn = session.current_picker_id === userProfile?.id;
+  const isAdmin =
+    members.find((m) => m.user_id === userProfile?.id)?.role === "admin";
 
   // Group available teams by tier
   const teamsByTier = available_teams.reduce<Record<number, Team[]>>(
@@ -452,6 +575,14 @@ export default function DraftPage() {
           )}
         </div>
 
+        {/* Pick timer */}
+        {!session.is_complete && session.pick_deadline && (
+          <PickDeadlineCountdown
+            deadline={session.pick_deadline}
+            onExpire={() => id && dispatch(fetchDraftState(id))}
+          />
+        )}
+
         {/* Draft order chips */}
         <div className="mt-4 flex flex-wrap gap-2">
           {session.member_order.map((uid, i) => {
@@ -463,10 +594,20 @@ export default function DraftPage() {
                 member={member}
                 isActive={uid === session.current_picker_id}
                 isSelf={uid === userProfile?.id}
+                isAdmin={isAdmin}
+                groupId={id!}
               />
             );
           })}
         </div>
+
+        {/* Auto-pick legend */}
+        {!session.is_complete && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-3 text-xs text-foreground/50">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground/30" />
+            <span>{t("draft.autoPickLegend")}</span>
+          </div>
+        )}
       </div>
 
       {pickError && (
@@ -637,7 +778,10 @@ export default function DraftPage() {
                         )}
                       </p>
                     </div>
-                    {isSelf && (
+                    {pick.auto_picked && (
+                      <Bot className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                    )}
+                    {isSelf && !pick.auto_picked && (
                       <Trophy className="h-3.5 w-3.5 shrink-0 text-brand" />
                     )}
                   </div>

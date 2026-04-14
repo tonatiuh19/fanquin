@@ -57,6 +57,38 @@ export const submitPick = createAsyncThunk(
   },
 );
 
+export const toggleAutoPick = createAsyncThunk(
+  "draft/toggleAutoPick",
+  async (
+    {
+      groupId,
+      userId,
+      enabled,
+    }: { groupId: string; userId: string; enabled: boolean },
+    { getState, rejectWithValue },
+  ) => {
+    const token =
+      (getState() as RootState).auth.sessionToken ??
+      localStorage.getItem("fanquin_session");
+    if (!token) return rejectWithValue("not authenticated");
+    try {
+      const { data } = await axios.patch<{
+        success: boolean;
+        data: { user_id: string; auto_pick: boolean };
+      }>(
+        `/api/groups/${groupId}/members/${userId}/auto-pick`,
+        { enabled },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return data.data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message ?? "Failed to update auto-pick",
+      );
+    }
+  },
+);
+
 // ── State ─────────────────────────────────────────────────────────
 
 interface DraftSliceState {
@@ -120,6 +152,14 @@ const draftSlice = createSlice({
       .addCase(submitPick.rejected, (state, action) => {
         state.submitting = false;
         state.pickError = action.payload as string;
+      })
+      .addCase(toggleAutoPick.fulfilled, (state, action) => {
+        if (!state.draftState) return;
+        const { user_id, auto_pick } = action.payload;
+        const member = state.draftState.members.find(
+          (m) => m.user_id === user_id,
+        );
+        if (member) member.auto_pick = auto_pick;
       });
   },
 });

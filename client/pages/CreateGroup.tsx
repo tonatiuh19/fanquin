@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import leoProfanity from "leo-profanity";
+leoProfanity.loadDictionary("en");
+leoProfanity.loadDictionary("es");
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageMeta } from "@/components/fanquin/page-meta";
@@ -161,7 +164,7 @@ function StepMode() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
         {MODE_OPTIONS.map((opt) => {
           const isSelected = selected === opt.key;
           return (
@@ -237,7 +240,21 @@ function StepConfig({ onValid, submitRef }: StepConfigProps) {
       .trim()
       .min(3, t("createGroup.step2.nameMin"))
       .max(60, t("createGroup.step2.nameMax"))
-      .required(t("createGroup.step2.nameRequired")),
+      .required(t("createGroup.step2.nameRequired"))
+      .test("not-offensive", t("createGroup.step2.nameBlocked"), (val) => {
+        if (!val) return true;
+        const normalized = val
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/0/g, "o")
+          .replace(/1/g, "i")
+          .replace(/3/g, "e")
+          .replace(/4/g, "a")
+          .replace(/5/g, "s")
+          .replace(/8/g, "b");
+        return !leoProfanity.check(normalized);
+      }),
     competitionId: Yup.string().required(
       t("createGroup.step2.competitionRequired"),
     ),
@@ -269,147 +286,164 @@ function StepConfig({ onValid, submitRef }: StepConfigProps) {
       </div>
 
       <form onSubmit={formik.handleSubmit} className="space-y-5">
-        {/* Group name */}
-        <div className="space-y-2">
-          <Label htmlFor="group-name" className="text-sm text-foreground/80">
-            {t("createGroup.step2.nameLabel")}
-          </Label>
-          <Input
-            id="group-name"
-            name="name"
-            placeholder={t("createGroup.step2.namePlaceholder")}
-            value={formik.values.name}
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            className="rounded-xl border-white/15 bg-white/5 text-white placeholder:text-foreground/30 focus:border-brand/50"
-          />
-          {formik.touched.name && formik.errors.name && (
-            <p className="text-xs text-rose-400">{formik.errors.name}</p>
-          )}
-        </div>
-
-        {/* Competition */}
-        <div className="space-y-2">
-          <Label className="text-sm text-foreground/80">
-            {t("createGroup.step2.competitionLabel")}
-          </Label>
-          {competitionsLoading ? (
-            <div className="flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm text-foreground/50">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t("createGroup.step2.loadingCompetitions")}
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {competitions.map((comp) => (
-                <button
-                  key={comp.id}
-                  type="button"
-                  onClick={() => {
-                    formik.setFieldValue("competitionId", comp.id);
-                    dispatch(setCompetitionId(comp.id));
-                  }}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all",
-                    formik.values.competitionId === comp.id
-                      ? "border-brand/40 bg-brand/10 text-white"
-                      : "border-white/10 bg-white/5 text-foreground/70 hover:border-white/20",
-                  )}
-                >
-                  <div>
-                    <p className="font-semibold">{comp.name}</p>
-                    <p className="text-xs text-foreground/50">{comp.season}</p>
-                  </div>
-                  {formik.values.competitionId === comp.id && (
-                    <Check className="h-4 w-4 text-brand" />
-                  )}
-                </button>
-              ))}
-              {competitions.length === 0 && (
-                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground/50">
-                  {t("createGroup.step2.noCompetitions")}
-                </div>
+        <div className="grid gap-5 md:grid-cols-2">
+          {/* Left column: name + competition */}
+          <div className="space-y-5">
+            {/* Group name */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="group-name"
+                className="text-sm text-foreground/80"
+              >
+                {t("createGroup.step2.nameLabel")}
+              </Label>
+              <Input
+                id="group-name"
+                name="name"
+                placeholder={t("createGroup.step2.namePlaceholder")}
+                value={formik.values.name}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className="rounded-xl border-white/15 bg-white/5 text-white placeholder:text-foreground/30 focus:border-brand/50"
+              />
+              {formik.touched.name && formik.errors.name && (
+                <p className="text-xs text-rose-400">{formik.errors.name}</p>
               )}
             </div>
-          )}
-          {formik.touched.competitionId && formik.errors.competitionId && (
-            <p className="text-xs text-rose-400">
-              {formik.errors.competitionId}
-            </p>
-          )}
-        </div>
 
-        {/* Draft type */}
-        <div className="space-y-2">
-          <Label className="text-sm text-foreground/80">
-            {t("createGroup.step2.draftLabel")}
-          </Label>
-          <div className="grid gap-2">
-            {DRAFT_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => dispatch(setDraftType(opt.key))}
-                className={cn(
-                  "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all",
-                  draftType === opt.key
-                    ? "border-brand/40 bg-brand/10"
-                    : "border-white/10 bg-white/5 hover:border-white/20",
-                )}
-              >
-                <div
-                  className={cn(
-                    "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
-                    draftType === opt.key
-                      ? "border-brand bg-brand"
-                      : "border-white/30",
-                  )}
-                >
-                  {draftType === opt.key && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-foreground))]" />
+            {/* Competition */}
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground/80">
+                {t("createGroup.step2.competitionLabel")}
+              </Label>
+              {competitionsLoading ? (
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm text-foreground/50">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t("createGroup.step2.loadingCompetitions")}
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {competitions.map((comp) => (
+                    <button
+                      key={comp.id}
+                      type="button"
+                      onClick={() => {
+                        formik.setFieldValue("competitionId", comp.id);
+                        dispatch(setCompetitionId(comp.id));
+                      }}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all",
+                        formik.values.competitionId === comp.id
+                          ? "border-brand/40 bg-brand/10 text-white"
+                          : "border-white/10 bg-white/5 text-foreground/70 hover:border-white/20",
+                      )}
+                    >
+                      <div>
+                        <p className="font-semibold">{comp.name}</p>
+                        <p className="text-xs text-foreground/50">
+                          {comp.season}
+                        </p>
+                      </div>
+                      {formik.values.competitionId === comp.id && (
+                        <Check className="h-4 w-4 text-brand" />
+                      )}
+                    </button>
+                  ))}
+                  {competitions.length === 0 && (
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground/50">
+                      {t("createGroup.step2.noCompetitions")}
+                    </div>
                   )}
                 </div>
-                <div>
-                  <p
+              )}
+              {formik.touched.competitionId && formik.errors.competitionId && (
+                <p className="text-xs text-rose-400">
+                  {formik.errors.competitionId}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right column: draft type + max members */}
+          <div className="space-y-5">
+            {/* Draft type */}
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground/80">
+                {t("createGroup.step2.draftLabel")}
+              </Label>
+              <div className="grid gap-2">
+                {DRAFT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => dispatch(setDraftType(opt.key))}
                     className={cn(
-                      "text-sm font-semibold",
+                      "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all",
                       draftType === opt.key
-                        ? "text-white"
-                        : "text-foreground/80",
+                        ? "border-brand/40 bg-brand/10"
+                        : "border-white/10 bg-white/5 hover:border-white/20",
                     )}
                   >
-                    {t(`createGroup.step2.draftOptions.${opt.key}.label`)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-foreground/50">
-                    {t(`createGroup.step2.draftOptions.${opt.key}.description`)}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+                    <div
+                      className={cn(
+                        "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
+                        draftType === opt.key
+                          ? "border-brand bg-brand"
+                          : "border-white/30",
+                      )}
+                    >
+                      {draftType === opt.key && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary-foreground))]" />
+                      )}
+                    </div>
+                    <div>
+                      <p
+                        className={cn(
+                          "text-sm font-semibold",
+                          draftType === opt.key
+                            ? "text-white"
+                            : "text-foreground/80",
+                        )}
+                      >
+                        {t(`createGroup.step2.draftOptions.${opt.key}.label`)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-foreground/50">
+                        {t(
+                          `createGroup.step2.draftOptions.${opt.key}.description`,
+                        )}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Max members */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm text-foreground/80">
-              {t("createGroup.step2.maxMembersLabel")}
-            </Label>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-0.5 text-xs font-semibold text-white">
-              {maxMembers}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={4}
-            max={100}
-            step={1}
-            value={maxMembers}
-            onChange={(e) => dispatch(setMaxMembers(Number(e.target.value)))}
-            className="w-full accent-brand"
-          />
-          <div className="flex justify-between text-[10px] text-foreground/40">
-            <span>4</span>
-            <span>100</span>
+            {/* Max members */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-foreground/80">
+                  {t("createGroup.step2.maxMembersLabel")}
+                </Label>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-0.5 text-xs font-semibold text-white">
+                  {maxMembers}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={4}
+                max={100}
+                step={1}
+                value={maxMembers}
+                onChange={(e) =>
+                  dispatch(setMaxMembers(Number(e.target.value)))
+                }
+                className="w-full accent-brand"
+              />
+              <div className="flex justify-between text-[10px] text-foreground/40">
+                <span>4</span>
+                <span>100</span>
+              </div>
+            </div>
           </div>
         </div>
       </form>
@@ -436,7 +470,7 @@ function StepBonus() {
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {BONUS_CRITERION_KEYS.map((key) => {
           const isEnabled = enabled.includes(key);
           const ptsKey = CRITERION_PTS_KEY[key];
@@ -561,7 +595,7 @@ function StepReview() {
         </p>
       </div>
 
-      <div className="space-y-3 rounded-[1.4rem] border border-white/10 bg-white/5 p-5">
+      <div className="grid gap-3 rounded-[1.4rem] p-1 sm:grid-cols-2">
         <ReviewRow label={t("createGroup.step4.nameLabel")} value={name} />
         <ReviewRow
           label={t("createGroup.step4.modeLabel")}
@@ -619,8 +653,8 @@ function ReviewRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5">
-      <span className="text-sm text-foreground/50">{label}</span>
+    <div className="flex flex-col gap-0.5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+      <span className="text-xs text-foreground/50">{label}</span>
       <span className="text-sm font-semibold text-white">{value}</span>
     </div>
   );
@@ -837,7 +871,7 @@ export default function CreateGroup() {
         description={t("seo.createGroup.description")}
         canonicalPath="/groups/new"
       />
-      <div className="mx-auto max-w-lg">
+      <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <button

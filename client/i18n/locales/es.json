@@ -515,7 +515,7 @@
           },
           {
             "q": "¿Cómo funciona el draft serpiente?",
-            "a": "Todos los miembros del grupo se unen a una sala de draft en vivo. Los jugadores eligen equipos por turnos; el orden se invierte cada ronda (orden serpiente). El draft se bloquea cuando se llenan todos los lugares."
+            "a": "Todos los miembros del grupo se unen a una sala de draft en vivo. Los jugadores eligen equipos por turnos; el orden se invierte cada ronda (orden serpiente). Cada jugador tiene 60 segundos para elegir — si el tiempo se acaba (o alguien se desconecta), se asigna automáticamente un equipo y el draft continúa. El draft se bloquea cuando se llenan todos los lugares."
           },
           {
             "q": "¿Qué es la asignación por niveles balanceados?",
@@ -625,6 +625,7 @@
       "nameRequired": "El nombre del grupo es obligatorio.",
       "nameMin": "El nombre debe tener al menos 3 caracteres.",
       "nameMax": "El nombre no puede superar 60 caracteres.",
+      "nameBlocked": "Este nombre de grupo no está permitido",
       "competitionLabel": "Competición",
       "competitionRequired": "Por favor selecciona una competición.",
       "loadingCompetitions": "Cargando competiciones…",
@@ -760,6 +761,7 @@
     "usernameMin": "Mínimo 3 caracteres",
     "usernameMax": "Máximo 30 caracteres",
     "usernameInvalid": "Solo letras minúsculas, números y guiones bajos",
+    "usernameBlocked": "Este nombre de usuario no está permitido",
     "required": "Requerido",
     "saveChanges": "Guardar cambios",
     "saved": "¡Guardado!",
@@ -839,6 +841,7 @@
     "snakeExplainExRow2": "Ronda 2 ↩   C elige · B elige · A elige",
     "snakeExplainExRow3": "Ronda 3 →   A elige · B elige · C elige",
     "snakeExplainFair": "El jugador que elige último en una ronda elige primero en la siguiente, eliminando cualquier ventaja de posición permanente.",
+    "snakeExplainTimer": "⏱ 60 segundos por turno. Si un jugador se queda sin tiempo o se desconecta, se asigna automáticamente el equipo disponible más bajo y el draft continúa.",
     "eliminated": "Eliminado",
     "survivorPanel": "Vidas Survivor",
     "survivorPanelEmpty": "Aún no hay datos de survivor.",
@@ -904,7 +907,13 @@
     "boardTitle": "Tablero de draft",
     "notYourTurn": "Aún no es tu turno",
     "autoAssigned": "Equipos asignados automáticamente",
-    "autoAssignedBody": "Como elegiste el tipo de draft {{type}}, todos los equipos fueron distribuidos automáticamente. ¡El grupo está en vivo!"
+    "autoAssignedBody": "Como elegiste el tipo de draft {{type}}, todos los equipos fueron distribuidos automáticamente. ¡El grupo está en vivo!",
+    "autoPick": "Auto",
+    "autoPickEnabled": "Auto-pick activado",
+    "enableAutoPick": "Activar auto-pick para este jugador",
+    "disableAutoPick": "Desactivar auto-pick para este jugador",
+    "timeUp": "Se acabó el tiempo — asignando equipo...",
+    "autoPickLegend": "Cada jugador tiene 60 segundos para elegir. Si se acaba el tiempo o alguien se desconecta, se asigna un equipo automáticamente y el draft continúa."
   },
   "join": {
     "joining": "Uniéndose al grupo...",

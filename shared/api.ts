@@ -280,6 +280,7 @@ export interface GroupMember {
   role: "admin" | "member";
   total_points: number;
   joined_at: string;
+  auto_pick?: boolean;
 }
 
 // ── Live Page ─────────────────────────────────────────────────

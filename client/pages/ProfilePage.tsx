@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import leoProfanity from "leo-profanity";
+leoProfanity.loadDictionary("en");
+leoProfanity.loadDictionary("es");
 import axios from "axios";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setAuth } from "@/store/slices/authSlice";
@@ -78,7 +81,22 @@ export default function ProfilePage() {
       username: Yup.string()
         .min(3, t("profile.usernameMin"))
         .max(30, t("profile.usernameMax"))
-        .matches(/^[a-z0-9_]+$/, t("profile.usernameInvalid")),
+        .matches(/^[a-z0-9_]+$/, t("profile.usernameInvalid"))
+        .test("not-blocked", t("profile.usernameBlocked"), (val) => {
+          if (!val) return true;
+          const normalized = val
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/_/g, "")
+            .replace(/0/g, "o")
+            .replace(/1/g, "i")
+            .replace(/3/g, "e")
+            .replace(/4/g, "a")
+            .replace(/5/g, "s")
+            .replace(/8/g, "b");
+          return !leoProfanity.check(normalized);
+        }),
     }),
     onSubmit: async (values, { setSubmitting, setStatus }) => {
       setSaved(false);

@@ -466,6 +466,11 @@ export default function GroupPage() {
                   <p className="text-xs text-foreground/45 leading-relaxed italic">
                     {t("groupPage.snakeExplainFair")}
                   </p>
+
+                  {/* Timer / auto-pick note */}
+                  <p className="text-xs text-amber-400/70 leading-relaxed">
+                    {t("groupPage.snakeExplainTimer")}
+                  </p>
                 </CollapsibleContent>
               </Collapsible>
             )}

@@ -24,6 +24,41 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
 const isDev = process.env.NODE_ENV !== "production";
 
 // ─────────────────────────────────────────────────────────────────
+// USERNAME PROFANITY FILTER
+// Uses leo-profanity (EN + ES dictionaries) so offensive terms are
+// not stored in the repository. Regional slang not covered by the
+// library is added via environment variable USERNAME_EXTRA_BLOCKED
+// (comma-separated, optional).
+// ─────────────────────────────────────────────────────────────────
+import leoProfanity from "leo-profanity";
+leoProfanity.loadDictionary("en");
+leoProfanity.loadDictionary("es");
+if (process.env.USERNAME_EXTRA_BLOCKED) {
+  const extra = process.env.USERNAME_EXTRA_BLOCKED.split(",")
+    .map((w) => w.trim().toLowerCase())
+    .filter(Boolean);
+  if (extra.length) leoProfanity.add(extra);
+}
+
+function normalizeForBlocklist(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents: ó→o, é→e, etc.
+    .replace(/_/g, "")
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/5/g, "s")
+    .replace(/8/g, "b");
+}
+
+function isBlockedUsername(username: string): boolean {
+  return leoProfanity.check(normalizeForBlocklist(username));
+}
+
+// ─────────────────────────────────────────────────────────────────
 // SUPABASE ADMIN CLIENT (service role — server only, never on client)
 // ─────────────────────────────────────────────────────────────────
 function getSupabaseAdmin() {
@@ -206,6 +241,46 @@ const emailCopy = {
     groupTimingTitle: "⏱️ Prediction window",
     groupTimingBody:
       "Predictions lock at each match's kickoff time. Submit before the whistle or your pick won't count!",
+    groupOwnershipTimingTitle: "📺 Just watch & earn",
+    groupOwnershipTimingBody:
+      "No predictions needed! Points are awarded automatically whenever your teams win, score or keep a clean sheet.",
+    groupOwnershipWelcomeSteps: [
+      [
+        "🎲",
+        "Wait for the draft",
+        "Once all members have joined, the group owner will start the team draft.",
+      ],
+      [
+        "⚽",
+        "Your teams play for you",
+        "You earn points automatically every time your teams win, score or keep a clean sheet.",
+      ],
+      [
+        "📊",
+        "Track the leaderboard",
+        "Follow the standings and see how your teams are performing in real time.",
+      ],
+    ] as [string, string, string][],
+    groupOwnershipActiveSteps: [
+      [
+        "⚽",
+        "Check your teams",
+        "See which teams you own for this competition.",
+      ],
+      [
+        "📺",
+        "Just watch & earn",
+        "Points land automatically — win (+6), goal (+2), clean sheet (+4). No action needed.",
+      ],
+      [
+        "📊",
+        "Track the leaderboard",
+        "Watch the standings update in real time as matches finish.",
+      ],
+    ] as [string, string, string][],
+    groupOwnershipActiveIntro: (name: string) =>
+      `${name ? `Hey ${name}! ` : ""}Teams have been assigned. Sit back — points are earned automatically whenever your teams play. No predictions required.`,
+    groupOwnershipActiveStartCta: "Check the leaderboard and track your teams!",
     groupPts: "pts",
     groupDraftStartSubject: (groupName: string) =>
       `🏈 The draft is open — ${groupName}`,
@@ -218,7 +293,7 @@ const emailCopy = {
       [
         "⚡",
         "It's a live draft",
-        "Takes turns are live — don't keep your group waiting.",
+        "60 seconds per turn. Miss your window and a team is auto-assigned — don't keep your group waiting.",
       ],
       [
         "⚽",
@@ -372,6 +447,47 @@ const emailCopy = {
     groupTimingTitle: "⏱️ Ventana de predicción",
     groupTimingBody:
       "Las predicciones se cierran al inicio de cada partido. ¡Envíalas antes del pitido o no contarán!",
+    groupOwnershipTimingTitle: "📺 Solo mira y acumula",
+    groupOwnershipTimingBody:
+      "¡Sin predicciones! Los puntos se acreditan automáticamente cada vez que tus equipos ganan, marcan o dejan su portería a cero.",
+    groupOwnershipWelcomeSteps: [
+      [
+        "🎲",
+        "Espera el draft",
+        "Cuando estén todos los miembros, el dueño del grupo iniciará el draft.",
+      ],
+      [
+        "⚽",
+        "Tus equipos juegan por ti",
+        "Ganas puntos automáticamente cada vez que tus equipos ganan, marcan goles o dejan su portería a cero.",
+      ],
+      [
+        "📊",
+        "Sigue la clasificación",
+        "Consulta la tabla y mira cómo rinden tus equipos en tiempo real.",
+      ],
+    ] as [string, string, string][],
+    groupOwnershipActiveSteps: [
+      [
+        "⚽",
+        "Revisa tus equipos",
+        "Mira qué equipos tienes en esta competición.",
+      ],
+      [
+        "📺",
+        "Solo mira y acumula",
+        "Los puntos llegan automáticamente — victoria (+6), gol (+2), portería a cero (+4). Sin hacer nada.",
+      ],
+      [
+        "📊",
+        "Sigue la clasificación",
+        "La tabla se actualiza en tiempo real cuando terminan los partidos.",
+      ],
+    ] as [string, string, string][],
+    groupOwnershipActiveIntro: (name: string) =>
+      `${name ? `¡Hola ${name}! ` : ""}Los equipos han sido asignados. Relájate — los puntos se acumulan automáticamente cada vez que tus equipos juegan. No se necesitan predicciones.`,
+    groupOwnershipActiveStartCta:
+      "¡Revisa la clasificación y sigue tus equipos!",
     groupPts: "pts",
     groupDraftStartSubject: (groupName: string) =>
       `🏈 El draft está abierto — ${groupName}`,
@@ -384,7 +500,7 @@ const emailCopy = {
       [
         "⚡",
         "Es un draft en vivo",
-        "Los turnos son en tiempo real — no hagas esperar a tu grupo.",
+        "60 segundos por turno. Si se acaba el tiempo te asignan equipo automáticamente — no hagas esperar a tu grupo.",
       ],
       [
         "⚽",
@@ -487,6 +603,12 @@ type EmailCopyEntry = {
   groupBonusCleanSheet: string;
   groupTimingTitle: string;
   groupTimingBody: string;
+  groupOwnershipTimingTitle: string;
+  groupOwnershipTimingBody: string;
+  groupOwnershipWelcomeSteps: [string, string, string][];
+  groupOwnershipActiveSteps: [string, string, string][];
+  groupOwnershipActiveIntro: (name: string) => string;
+  groupOwnershipActiveStartCta: string;
   groupPts: string;
   groupDraftStartSubject: (groupName: string) => string;
   groupDraftStartBadge: string;
@@ -804,6 +926,7 @@ function buildGroupWelcomeEmail(
       league: "League",
       competitive: "Competitive",
       global: "Global",
+      ownership: "Team Ownership",
     },
     es: {
       friends: "Amigos",
@@ -811,6 +934,7 @@ function buildGroupWelcomeEmail(
       league: "Liga",
       competitive: "Competitivo",
       global: "Global",
+      ownership: "Seguimiento de equipos",
     },
   };
   const draftNames: Record<string, Record<string, string>> = {
@@ -933,22 +1057,37 @@ function buildGroupWelcomeEmail(
       <td style="background:#f8fafc;padding:28px 32px;border-top:2px solid #e5e7eb;">
         <p style="margin:0 0 20px 0;color:#111827;font-size:15px;font-weight:800;letter-spacing:0.3px;">📋 ${c.groupRulesTitle}</p>
         ${tableBlock(c.groupSettingsSubtitle, settingsHTML)}
-        ${tableBlock("🎯 " + c.groupScoringTitle, scoringHTML)}
-        ${tableBlock("🏆 " + c.groupOwnershipTitle, ownershipHTML)}
+        ${scoringHTML ? tableBlock("🎯 " + c.groupScoringTitle, scoringHTML) : ""}
+        ${ownershipHTML ? tableBlock("🏆 " + c.groupOwnershipTitle, ownershipHTML) : ""}
         ${tableBlock("⭐ " + c.groupBonusTitle, bonusHTML)}
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${
+          groupConfig?.mode !== "ownership"
+            ? `<table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;">
               <p style="margin:0 0 4px 0;color:#92400e;font-size:13px;font-weight:700;">${c.groupTimingTitle}</p>
               <p style="margin:0;color:#78350f;font-size:13px;line-height:1.5;">${c.groupTimingBody}</p>
             </td>
           </tr>
-        </table>
+        </table>`
+            : `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;">
+              <p style="margin:0 0 4px 0;color:#1e40af;font-size:13px;font-weight:700;">${c.groupOwnershipTimingTitle}</p>
+              <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.5;">${c.groupOwnershipTimingBody}</p>
+            </td>
+          </tr>
+        </table>`
+        }
       </td>
     </tr>`
     : "";
 
-  const stepsHTML = c.groupWelcomeSteps
+  const stepsHTML = (
+    groupConfig?.mode === "ownership"
+      ? c.groupOwnershipWelcomeSteps
+      : c.groupWelcomeSteps
+  )
     .map(
       ([icon, title, desc]) => `
       <tr>
@@ -1015,8 +1154,10 @@ function buildGroupStartEmail(
   appUrl: string,
   locale = "es",
   isDraft = true,
+  mode = "",
 ): string {
   const c = t(locale);
+  const isOwnership = mode === "ownership";
   const accentColor = isDraft ? "#7c3aed" : "#16a34a";
   const heroBg = isDraft
     ? "linear-gradient(135deg,#2e1065 0%,#5b21b6 50%,#7c3aed 100%)"
@@ -1031,9 +1172,19 @@ function buildGroupStartEmail(
     : c.groupActiveStartTitle(groupName);
   const intro = isDraft
     ? c.groupDraftStartIntro(displayName)
-    : c.groupActiveStartIntro(displayName);
-  const steps = isDraft ? c.groupDraftStartSteps : c.groupActiveStartSteps;
-  const cta = isDraft ? c.groupDraftStartCta : c.groupActiveStartCta;
+    : isOwnership
+      ? c.groupOwnershipActiveIntro(displayName)
+      : c.groupActiveStartIntro(displayName);
+  const steps = isDraft
+    ? c.groupDraftStartSteps
+    : isOwnership
+      ? c.groupOwnershipActiveSteps
+      : c.groupActiveStartSteps;
+  const cta = isDraft
+    ? c.groupDraftStartCta
+    : isOwnership
+      ? c.groupOwnershipActiveStartCta
+      : c.groupActiveStartCta;
   const btn = isDraft ? c.groupDraftStartBtn : c.groupActiveStartBtn;
   const targetUrl = isDraft
     ? `${appUrl}/groups/${groupId}/draft`
@@ -1241,6 +1392,14 @@ export function createApp() {
           success: false,
           available: false,
           message: "Invalid username format.",
+        });
+        return;
+      }
+      if (isBlockedUsername(raw)) {
+        res.status(200).json({
+          success: true,
+          available: false,
+          message: "Username not allowed.",
         });
         return;
       }
@@ -1504,9 +1663,12 @@ export function createApp() {
         .replace(/[^a-z0-9_]/gi, "_")
         .toLowerCase()
         .slice(0, 30);
+      const candidateUsername = username?.trim().toLowerCase();
       const resolvedUsername =
-        username?.trim() && usernameRegex.test(username.trim().toLowerCase())
-          ? username.trim().toLowerCase()
+        candidateUsername &&
+        usernameRegex.test(candidateUsername) &&
+        !isBlockedUsername(candidateUsername)
+          ? candidateUsername
           : usernameFromEmail;
 
       const displayName =
@@ -1785,11 +1947,19 @@ export function createApp() {
         const supabase = getSupabaseAdmin();
 
         const updates: Record<string, string> = {};
-        if (username)
-          updates.username = username
+        if (username) {
+          const cleaned = username
             .trim()
             .toLowerCase()
             .replace(/[^a-z0-9_]/g, "_");
+          if (isBlockedUsername(cleaned)) {
+            res
+              .status(400)
+              .json({ success: false, message: "Username not allowed." });
+            return;
+          }
+          updates.username = cleaned;
+        }
         if (display_name) updates.display_name = display_name.trim();
         if (first_name) updates.first_name = first_name.trim();
         if (last_name) updates.last_name = last_name.trim();
@@ -1906,6 +2076,14 @@ export function createApp() {
           res.status(400).json({
             success: false,
             message: "name, competition_id, and mode are required.",
+          });
+          return;
+        }
+
+        if (isBlockedUsername(name)) {
+          res.status(400).json({
+            success: false,
+            message: "Group name not allowed.",
           });
           return;
         }
@@ -2106,6 +2284,13 @@ export function createApp() {
             res.status(400).json({
               success: false,
               message: "Group name must be between 3 and 60 characters.",
+            });
+            return;
+          }
+          if (isBlockedUsername(trimmed)) {
+            res.status(400).json({
+              success: false,
+              message: "Group name not allowed.",
             });
             return;
           }
@@ -2371,6 +2556,7 @@ export function createApp() {
                     appUrl,
                     locale,
                     isDraft,
+                    group.mode ?? "",
                   ),
                 });
               } catch {
@@ -2391,7 +2577,7 @@ export function createApp() {
               member_order: shuffled,
               current_pick: 0,
               total_picks: teams.length,
-              pick_deadline: null,
+              pick_deadline: new Date(Date.now() + 60_000).toISOString(),
             });
 
           if (sessionErr) throw sessionErr;
@@ -2516,6 +2702,82 @@ export function createApp() {
         res.status(500).json({
           success: false,
           message: "Failed to activate group.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // PATCH /api/groups/:id/members/:userId/auto-pick  (admin only)
+  // Enable or disable auto-pick for a member during a live draft
+  // ──────────────────────────────────────────────────────────────
+  app.patch(
+    "/api/groups/:id/members/:userId/auto-pick",
+    requireAuth,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const groupId = req.params.id;
+        const targetUserId = req.params.userId;
+        const { enabled } = req.body as { enabled: boolean };
+
+        if (typeof enabled !== "boolean") {
+          res.status(400).json({
+            success: false,
+            message: "'enabled' (boolean) is required.",
+          });
+          return;
+        }
+
+        // Caller must be admin of the group
+        const { data: caller } = await supabase
+          .from("group_members")
+          .select("role")
+          .eq("group_id", groupId)
+          .eq("user_id", req.userId!)
+          .single();
+
+        if (!caller || caller.role !== "admin") {
+          res.status(403).json({
+            success: false,
+            message: "Only the group admin can manage auto-pick.",
+          });
+          return;
+        }
+
+        // Target must be a member of the group
+        const { data: target, error: targetErr } = await supabase
+          .from("group_members")
+          .select("id")
+          .eq("group_id", groupId)
+          .eq("user_id", targetUserId)
+          .single();
+
+        if (targetErr || !target) {
+          res.status(404).json({
+            success: false,
+            message: "Member not found in this group.",
+          });
+          return;
+        }
+
+        const { error: updateErr } = await supabase
+          .from("group_members")
+          .update({ auto_pick: enabled })
+          .eq("group_id", groupId)
+          .eq("user_id", targetUserId);
+
+        if (updateErr) throw updateErr;
+
+        res.json({
+          success: true,
+          data: { user_id: targetUserId, auto_pick: enabled },
+        });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to update auto-pick setting.",
           error: err instanceof Error ? err.message : "Unknown error",
         });
       }
@@ -2672,19 +2934,124 @@ export function createApp() {
             supabase
               .from("group_members")
               .select(
-                `id, group_id, user_id, role, total_points, joined_at,
+                `id, group_id, user_id, role, auto_pick, total_points, joined_at,
               profiles(username, display_name, avatar_url)`,
               )
               .eq("group_id", groupId),
           ]);
 
-        const pickedTeamIds = new Set((picks ?? []).map((p: any) => p.team_id));
+        // ── Auto-pick: if the current picker has auto_pick=true OR their
+        // pick_deadline has expired, execute picks on their behalf.
+        let sessionCurrentPick: number = session.current_pick;
+        let updatedPicks = picks ? [...picks] : [];
+
+        {
+          const memberAutoPickMap: Record<string, boolean> = {};
+          for (const m of members ?? []) {
+            memberAutoPickMap[(m as any).user_id] = !!(m as any).auto_pick;
+          }
+
+          const pickedSet = new Set(updatedPicks.map((p: any) => p.team_id));
+          const sortedTeams = (allTeams ?? [])
+            .slice()
+            .sort((a: any, b: any) => (a.tier ?? 99) - (b.tier ?? 99));
+
+          const memberOrder2: string[] = session.member_order ?? [];
+          const mLen = memberOrder2.length;
+          // Only the very first iteration may be triggered by a deadline expiry.
+          // Subsequent picks in the same loop are only due to explicit auto_pick=true.
+          let deadlineExpired =
+            !!session.pick_deadline &&
+            new Date(session.pick_deadline) < new Date();
+
+          while (sessionCurrentPick < session.total_picks) {
+            const r2 = Math.floor(sessionCurrentPick / mLen);
+            const pos2 = sessionCurrentPick % mLen;
+            const idx2 = r2 % 2 === 0 ? pos2 : mLen - 1 - pos2;
+            const pickerId = memberOrder2[idx2];
+
+            if (!memberAutoPickMap[pickerId] && !deadlineExpired) break; // human, not timed out
+            deadlineExpired = false; // only applies once per request
+
+            // Find the first available team (lowest tier first)
+            const autoTeam = sortedTeams.find((t: any) => !pickedSet.has(t.id));
+            if (!autoTeam) break;
+
+            const autoRound = r2 + 1;
+            const { error: autoPickErr } = await supabase
+              .from("draft_picks")
+              .insert({
+                group_id: groupId,
+                user_id: pickerId,
+                team_id: (autoTeam as any).id,
+                pick_number: sessionCurrentPick,
+                round: autoRound,
+                auto_picked: true,
+              });
+
+            if (autoPickErr) break; // stop on error, don't loop forever
+
+            await supabase.from("team_ownership").insert({
+              group_id: groupId,
+              user_id: pickerId,
+              team_id: (autoTeam as any).id,
+              draft_pick: sessionCurrentPick,
+            });
+
+            pickedSet.add((autoTeam as any).id);
+            sessionCurrentPick += 1;
+
+            // Add fake pick row to our in-memory list for the response
+            updatedPicks.push({
+              id: crypto.randomUUID(),
+              pick_number: sessionCurrentPick - 1,
+              round: autoRound,
+              auto_picked: true,
+              picked_at: new Date().toISOString(),
+              user_id: pickerId,
+              team_id: (autoTeam as any).id,
+              teams: autoTeam,
+              profiles: null,
+            } as any);
+          }
+
+          // Flush updated current_pick + new deadline to DB if any auto-picks happened
+          if (sessionCurrentPick !== session.current_pick) {
+            const isDraftDone = sessionCurrentPick >= session.total_picks;
+            await supabase
+              .from("draft_sessions")
+              .update({
+                current_pick: sessionCurrentPick,
+                pick_deadline: isDraftDone
+                  ? null
+                  : new Date(Date.now() + 60_000).toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("group_id", groupId);
+
+            if (isDraftDone) {
+              await supabase
+                .from("groups")
+                .update({
+                  status: "active",
+                  started_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", groupId);
+              seedSurvivorLives(supabase, groupId as string).catch(
+                console.error,
+              );
+            }
+          }
+        }
+
+        const pickedTeamIds = new Set(updatedPicks.map((p: any) => p.team_id));
         const availableTeams = (allTeams ?? []).filter(
           (t: any) => !pickedTeamIds.has(t.id),
         );
 
         const memberOrder: string[] = session.member_order ?? [];
-        const currentPick: number = session.current_pick;
+        const currentPick: number = sessionCurrentPick;
         const isComplete = currentPick >= session.total_picks;
         let currentPickerId: string | null = null;
         let round = 1;
@@ -2711,7 +3078,7 @@ export function createApp() {
               round,
               is_complete: isComplete,
             },
-            picks: (picks ?? []).map((p: any) => ({
+            picks: updatedPicks.map((p: any) => ({
               id: p.id,
               group_id: groupId,
               user_id: p.user_id,
@@ -2733,6 +3100,7 @@ export function createApp() {
               display_name: m.profiles?.display_name ?? null,
               avatar_url: m.profiles?.avatar_url ?? null,
               role: m.role,
+              auto_pick: m.auto_pick ?? false,
               total_points: m.total_points,
               joined_at: m.joined_at,
             })),
@@ -2888,6 +3256,9 @@ export function createApp() {
           .from("draft_sessions")
           .update({
             current_pick: nextPick,
+            pick_deadline: isComplete
+              ? null
+              : new Date(Date.now() + 60_000).toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq("group_id", groupId);

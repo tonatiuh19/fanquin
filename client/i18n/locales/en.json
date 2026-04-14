@@ -521,7 +521,7 @@
           },
           {
             "q": "How does the snake draft work?",
-            "a": "All group members join a live draft room. Players pick teams in turns; the order reverses every round (snake order). The draft locks when all spots are filled."
+            "a": "All group members join a live draft room. Players pick teams in turns; the order reverses every round (snake order). Each player has 60 seconds to choose — if the clock runs out (or someone disconnects) a team is automatically assigned and the draft moves on. The draft locks when all spots are filled."
           },
           {
             "q": "What is balanced tier assignment?",
@@ -631,6 +631,7 @@
       "nameRequired": "Group name is required.",
       "nameMin": "Name must be at least 3 characters.",
       "nameMax": "Name cannot exceed 60 characters.",
+      "nameBlocked": "This group name is not allowed",
       "competitionLabel": "Competition",
       "competitionRequired": "Please select a competition.",
       "loadingCompetitions": "Loading competitions…",
@@ -759,6 +760,7 @@
     "usernameMin": "Minimum 3 characters",
     "usernameMax": "Maximum 30 characters",
     "usernameInvalid": "Only lowercase letters, numbers, and underscores",
+    "usernameBlocked": "This username is not allowed",
     "required": "Required",
     "saveChanges": "Save changes",
     "saved": "Saved!",
@@ -838,6 +840,7 @@
     "snakeExplainExRow2": "Round 2 ↩   C picks · B picks · A picks",
     "snakeExplainExRow3": "Round 3 →   A picks · B picks · C picks",
     "snakeExplainFair": "The player who picks last in one round picks first in the next — eliminating any permanent positional advantage.",
+    "snakeExplainTimer": "⏱ 60 seconds per pick. If a player runs out of time or disconnects, the lowest available team is assigned automatically and the draft continues.",
     "eliminated": "Eliminated",
     "survivorPanel": "Survivor Lives",
     "survivorPanelEmpty": "No survivor data yet.",
@@ -903,7 +906,13 @@
     "boardTitle": "Draft board",
     "notYourTurn": "It's not your turn yet",
     "autoAssigned": "Teams were auto-assigned",
-    "autoAssignedBody": "Since you chose {{type}} draft, all teams were distributed automatically. The group is now live!"
+    "autoAssignedBody": "Since you chose {{type}} draft, all teams were distributed automatically. The group is now live!",
+    "autoPick": "Auto",
+    "autoPickEnabled": "Auto-pick enabled",
+    "enableAutoPick": "Enable auto-pick for this player",
+    "disableAutoPick": "Disable auto-pick for this player",
+    "timeUp": "Time's up — auto-picking...",
+    "autoPickLegend": "Each player has 60 seconds to pick. If time runs out or a player disconnects, a team is automatically assigned and the draft continues."
   },
   "join": {
     "joining": "Joining group...",
