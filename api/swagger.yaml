@@ -7,7 +7,29 @@ info:
     ## Authentication
     Most protected routes require a `Bearer` session token in the `Authorization` header.
     Tokens are obtained from `POST /api/auth/verify-code` and stored client-side
-    (e.g., `localStorage` key `fanquin_session`).
+    (localStorage key `fanquin_session`). Sessions expire after 30 days.
+
+    ## Product System Cross-Reference
+    This spec is designed to "handshake" with `docs/PRODUCT_SYSTEM.md`.
+    Endpoint descriptions reference specific sections (§) of that document.
+
+    ## Scoring Summary (defaults — per group `scoring_config`)
+    | Outcome | Default pts |
+    |---|---|
+    | exact_score | 5 |
+    | correct_winner | 3 |
+    | goal_difference | 2 |
+    | incorrect | 0 |
+    | team win | 6 |
+    | team goal | 2 |
+    | team clean sheet | 4 |
+
+    ## Group Modes
+    - `friends` / `casual` — predictions only, no ELO
+    - `league` — predictions + ELO ratings
+    - `competitive` — predictions + ELO + survivor lives
+    - `global` — all features + daily challenges
+    - `ownership` — team ownership points only (no score predictions)
   version: 1.0.0
   contact:
     name: FanQuin
@@ -44,6 +66,12 @@ tags:
     description: Power-up boosts for group matches
   - name: DailyChallenges
     description: Daily bonus challenges (global mode)
+  - name: Legal
+    description: Privacy policy and terms of service documents
+  - name: Support
+    description: User support case submission
+  - name: Draft
+    description: Live snake draft room — real-time team pick flow (60s per turn)
 
 # ─────────────────────────────────────────────────────────────────
 # REUSABLE SCHEMAS
@@ -119,18 +147,24 @@ components:
           minLength: 6
           maxLength: 6
           example: "482910"
+        username:
+          type: string
+          description: Desired username (3-30 chars, lowercase alphanumeric + underscore). Optional for new users.
         first_name:
           type: string
-          description: Required for new users only
+          description: Optional for new user profile setup.
         last_name:
           type: string
-          description: Required for new users only
+          description: Optional for new user profile setup.
         phone:
           type: string
-          description: Optional, for new users only
+          description: Optional for new user profile setup.
         country:
           type: string
-          description: Optional, for new users only
+          description: ISO 3166-1 alpha-2 country code. Optional for new user profile setup.
+        locale:
+          type: string
+          description: UI locale preference (en/es). Stored on the profile.
 
     VerifyCodeResponse:
       allOf:
@@ -166,6 +200,19 @@ components:
         display_name:
           type: string
           nullable: true
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+          description: ISO 3166-1 alpha-2 country code (e.g. MX, US, ES).
         avatar_url:
           type: string
           format: uri
@@ -183,6 +230,14 @@ components:
         username:
           type: string
         display_name:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+        country:
           type: string
         avatar_url:
           type: string
@@ -308,7 +363,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [scheduled, live, finished, cancelled]
+          enum: [scheduled, live, completed, cancelled]
         home_team:
           $ref: "#/components/schemas/Team"
         away_team:
@@ -424,9 +479,34 @@ components:
         mode:
           type: string
           enum: [casual, friends, league, competitive, global, ownership]
+        status:
+          type: string
+          enum: [waiting, draft, active, completed]
+          description: Group lifecycle state. See §1.3 of PRODUCT_SYSTEM.md.
         draft_type:
           type: string
-          enum: [snake, random, tier_balanced]
+          enum: [snake, random, balanced_tier]
+        scoring_config:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: boolean
+          description: |
+            Per-group scoring configuration. Default values — exact_score_pts: 5,
+            correct_winner_pts: 3, goal_difference_pts: 2, team_win_pts: 6,
+            team_goal_pts: 2, team_clean_sheet_pts: 4, streak_bonus_threshold: 3,
+            streak_bonus_pts: 2. See §6.4 of PRODUCT_SYSTEM.md.
+        draft_started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the snake draft was initiated (status → draft).
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the group became active (status → active).
         owner_id:
           type: string
           format: uuid
@@ -454,7 +534,7 @@ components:
           enum: [casual, friends, league, competitive, global, ownership]
         draft_type:
           type: string
-          enum: [snake, random, tier_balanced]
+          enum: [snake, random, balanced_tier]
           default: snake
         max_members:
           type: integer
@@ -573,7 +653,11 @@ components:
           type: integer
         result:
           type: string
-          enum: [pending, exact, correct_winner, wrong]
+          enum:
+            [pending, exact_score, correct_winner, goal_difference, incorrect]
+          description: |
+            Scoring outcome — exact_score: +5pts (default), correct_winner: +3pts,
+            goal_difference: +2pts, incorrect: 0pts. Points are per scoring_config. See §1.5 of PRODUCT_SYSTEM.md.
         points_earned:
           type: integer
           nullable: true
@@ -609,7 +693,8 @@ components:
         result:
           type: string
           nullable: true
-          enum: [pending, exact, correct_winner, goal_difference, wrong]
+          enum:
+            [pending, exact_score, correct_winner, goal_difference, incorrect]
         points_earned:
           type: integer
           nullable: true
@@ -710,7 +795,14 @@ components:
           format: uuid
         type:
           type: string
-          enum: [lock_reminder, rivalry_result, rank_swing, boost_ready, streak_broken]
+          enum:
+            [
+              lock_reminder,
+              rivalry_result,
+              rank_swing,
+              boost_ready,
+              streak_broken,
+            ]
         title:
           type: string
         body:
@@ -757,7 +849,13 @@ components:
           format: uuid
         boost_type:
           type: string
-          enum: [double_points, underdog_boost, last_minute_change, streak_insurance]
+          enum:
+            [
+              double_points,
+              underdog_boost,
+              last_minute_change,
+              streak_insurance,
+            ]
         match_id:
           type: string
           format: uuid
@@ -817,9 +915,266 @@ components:
           type: string
           format: date-time
 
+    # ── Group Members ─────────────────────────────────────────────
+    GroupMember:
+      type: object
+      description: A user's membership record within a group, including draft and scoring state.
+      required: [id, group_id, user_id, username, role, total_points, joined_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          type: string
+          enum: [admin, member]
+        total_points:
+          type: integer
+          default: 0
+        joined_at:
+          type: string
+          format: date-time
+        auto_pick:
+          type: boolean
+          nullable: true
+          description: When true, the next pick will be auto-assigned if the 60s timer expires.
+
+    # ── Draft ─────────────────────────────────────────────────────
+    DraftSession:
+      type: object
+      description: |
+        Live snake draft session state. See §4.5 of PRODUCT_SYSTEM.md.
+        Turn order reverses each round (snake pattern). Each picker has 60 seconds;
+        on timeout a team is auto-assigned and the session advances.
+      required:
+        [
+          group_id,
+          member_order,
+          current_pick,
+          total_picks,
+          current_picker_id,
+          round,
+          is_complete,
+        ]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        member_order:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: User IDs in round-1 pick order. Order reverses on even rounds (snake).
+        current_pick:
+          type: integer
+          description: 0-indexed overall pick counter.
+        total_picks:
+          type: integer
+          description: Total number of teams to be drafted (members × teams_per_member).
+        pick_deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO timestamp when the current pick expires. Null if draft is complete.
+        current_picker_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User ID whose turn it currently is. Null when draft is complete.
+        round:
+          type: integer
+          description: Current round number (1-based).
+        is_complete:
+          type: boolean
+          description: True once all total_picks have been made.
+
+    DraftPick:
+      type: object
+      description: A single recorded team pick made during the snake draft.
+      required:
+        [
+          id,
+          group_id,
+          user_id,
+          team_id,
+          pick_number,
+          round,
+          auto_picked,
+          picked_at,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        team_id:
+          type: string
+          format: uuid
+        pick_number:
+          type: integer
+          description: Overall pick number (1-based).
+        round:
+          type: integer
+          description: Round number this pick belongs to (1-based).
+        auto_picked:
+          type: boolean
+          description: True if this pick was made automatically due to timer expiry.
+        picked_at:
+          type: string
+          format: date-time
+        team:
+          $ref: "#/components/schemas/Team"
+        username:
+          type: string
+          nullable: true
+        display_name:
+          type: string
+          nullable: true
+
+    DraftState:
+      type: object
+      description: Full snapshot of draft room state returned by GET /groups/{id}/draft.
+      required: [session, picks, available_teams, members]
+      properties:
+        session:
+          $ref: "#/components/schemas/DraftSession"
+        picks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftPick"
+          description: All picks made so far, ordered by pick_number.
+        available_teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/Team"
+          description: Teams that have not yet been picked.
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupMember"
+          description: All group members with their draft metadata.
+
+    SubmitPickRequest:
+      type: object
+      required: [team_id]
+      description: Request body for POST /groups/{id}/picks. Only valid when it is the authenticated user's turn.
+      properties:
+        team_id:
+          type: string
+          format: uuid
+          description: UUID of the team to pick. Must be in available_teams from DraftState.
+
+    # ── Support Cases ─────────────────────────────────────────────
+    SupportCase:
+      type: object
+      required:
+        [
+          id,
+          user_id,
+          category,
+          subject,
+          message,
+          status,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum:
+            [account, group, predictions, scoring, technical, billing, other]
+        subject:
+          type: string
+          minLength: 3
+          maxLength: 200
+        message:
+          type: string
+          minLength: 10
+          maxLength: 5000
+        status:
+          type: string
+          enum: [open, in_review, resolved, closed]
+          default: open
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateSupportCaseRequest:
+      type: object
+      required: [category, subject, message]
+      properties:
+        category:
+          type: string
+          enum:
+            [account, group, predictions, scoring, technical, billing, other]
+        subject:
+          type: string
+          minLength: 3
+          maxLength: 200
+        message:
+          type: string
+          minLength: 10
+          maxLength: 5000
+
+    UpdateGroupRequest:
+      type: object
+      description: Partial update for a group (owner only, while status is waiting).
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        max_members:
+          type: integer
+          minimum: 2
+          maximum: 100
+        bonus_criteria:
+          $ref: "#/components/schemas/BonusCriteria"
+
+    # ── Legal Documents ────────────────────────────────────────────
     LegalDocument:
       type: object
-      required: [id, type, version, title, content, jurisdiction, effective_date, is_active, created_at]
+      required:
+        [
+          id,
+          type,
+          version,
+          title,
+          content,
+          jurisdiction,
+          effective_date,
+          is_active,
+          created_at,
+        ]
       properties:
         id:
           type: string
@@ -872,7 +1227,8 @@ paths:
                           message:
                             type: string
 
-  # ── Auth ─────────────────────────────────────────────────────  /auth/check-email:
+  # ── Auth ─────────────────────────────────────────────────────
+  /auth/check-email:
     get:
       tags: [Auth]
       summary: Check if a user exists by email
@@ -936,6 +1292,12 @@ paths:
     post:
       tags: [Auth]
       summary: Send a 6-digit OTP to the provided email
+      description: |
+        Generates a 6-digit OTP, bcrypt-hashes it, stores it in `otp_requests`,
+        and emails it to the user. Rate-limited to 5 requests per identifier per
+        15-minute window (returns 429 on breach). OTP expires after 10 minutes.
+        Up to 5 incorrect verify attempts are allowed before the OTP is invalidated.
+        See §11.1 of PRODUCT_SYSTEM.md for security details.
       requestBody:
         required: true
         content:
@@ -967,8 +1329,13 @@ paths:
       tags: [Auth]
       summary: Verify the OTP and obtain a session token
       description: |
-        On first sign-in, a new user account and profile are created automatically.
-        A welcome email is sent to new users.
+        Verifies the submitted OTP against the bcrypt hash in `otp_requests`.
+        On first sign-in, a Supabase Auth user + profile row are created automatically
+        and a welcome email is sent. Returns a 96-char hex session token (store in
+        `localStorage` key `fanquin_session`). Sessions expire after 30 days.
+        Accepts optional profile fields (`first_name`, `last_name`, `phone`,
+        `country`, `username`, `locale`) for new user profile setup.
+        See §4.3 and §11.1 of PRODUCT_SYSTEM.md.
       requestBody:
         required: true
         content:
@@ -1034,9 +1401,15 @@ paths:
       tags: [Live]
       summary: Get live page data (reads DB only)
       description: |
-        Returns matches grouped into three bands: live, upcoming (next 20), and recent (last 20 completed).
-        Optionally enriches each match with the authenticated user's predictions across their active groups.
+        Returns matches grouped into three bands: `live`, `upcoming` (next 20), and
+        `recent` (last 20 completed). Optionally enriches each match with the
+        authenticated user's predictions across their active groups.
+
         This endpoint never calls an external API — it only reads the database.
+        To sync match data from football-data.org, call `POST /sync-matches` first.
+
+        `my_active_groups` is only populated when authenticated and includes
+        `owned_team_ids` for ownership-mode groups. See §4.7 of PRODUCT_SYSTEM.md.
       security:
         - BearerAuth: []
       parameters:
@@ -1064,10 +1437,15 @@ paths:
       tags: [Live]
       summary: Pull latest match data from football-data.org and update DB
       description: |
-        Calls the football-data.org API for the target competition, updates match statuses and scores,
-        scores any pending predictions for newly-completed matches, and awards ownership points.
-        Rate-limited to once per 5 minutes per competition.
-        Requires authentication.
+        Calls the football-data.org API for the target competition, updates match
+        statuses and scores, scores any pending predictions for newly-completed
+        matches, and awards team ownership points (win +6, goal +2, clean sheet +4
+        by default). Also applies streak bonus and ELO updates.
+
+        Rate-limited to once per 5 minutes per competition. Requires auth.
+        Requires `FOOTBALL_DATA_API_KEY` env var.
+
+        See §5.4 (data flow) and §6.3 (scoring tables) of PRODUCT_SYSTEM.md.
       security:
         - BearerAuth: []
       requestBody:
@@ -1270,6 +1648,10 @@ paths:
     get:
       tags: [Groups]
       summary: List groups the authenticated user belongs to
+      description: |
+        Returns all groups the user is a member of, including `member_count`.
+        Groups can be in modes: `casual`, `friends`, `league`, `competitive`,
+        `global`, or `ownership`. See §1.3 of PRODUCT_SYSTEM.md for mode differences.
       security:
         - BearerAuth: []
       responses:
@@ -1290,7 +1672,15 @@ paths:
     post:
       tags: [Groups]
       summary: Create a new group
-      description: The authenticated user becomes the group owner and is automatically joined as admin.
+      description: |
+        The authenticated user becomes the group owner and is automatically joined
+        as admin. The group starts in `waiting` status until the owner calls
+        `PATCH /groups/{id}/start`. Draft types:
+        - `snake` — live draft room with 60s per turn (requires members to pick)
+        - `random` — teams assigned instantly at random on start
+        - `balanced_tier` — auto-assigns teams ensuring equal tier distribution
+
+        See §1.4 and §4.4 of PRODUCT_SYSTEM.md.
       security:
         - BearerAuth: []
       requestBody:
@@ -1386,11 +1776,288 @@ paths:
           $ref: "#/components/schemas/ApiError"
         "404":
           $ref: "#/components/schemas/ApiError"
+    patch:
+      tags: [Groups]
+      summary: Update group settings (owner only, while status is waiting)
+      description: |
+        Allows the group owner to change the group name, max_members, or bonus_criteria
+        before the draft has started. Only valid while group.status is `waiting`.
+        See §4.4 of PRODUCT_SYSTEM.md.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/start:
+    patch:
+      tags: [Groups]
+      summary: Start the group — triggers draft or auto-assigns teams (owner only)
+      description: |
+        Transitions the group from `waiting` to either `draft` or `active`.
+
+        - **snake draft_type**: creates a `draft_sessions` row, sends draft-start
+          emails to all members, sets status → `draft`. Members must then visit
+          the draft room (`GET /groups/{id}/draft`) and submit picks via
+          `POST /groups/{id}/picks`.
+        - **random / balanced_tier**: auto-assigns teams immediately, sets
+          status → `active`, and sends active-start emails.
+
+        See §4.5 of PRODUCT_SYSTEM.md for the full snake draft flow.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Group updated; for snake draft includes draft session details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/activate:
+    patch:
+      tags: [Groups]
+      summary: Activate group after draft completes (owner only)
+      description: |
+        Transitions the group from `draft` → `active` after all draft picks are in.
+        This is typically called automatically when the last pick is submitted, but
+        can also be triggered manually by the owner. Seeds initial survivor lives
+        for competitive/global groups. See §4.5 of PRODUCT_SYSTEM.md.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Group is now active
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/draft:
+    get:
+      tags: [Draft]
+      summary: Get full draft state (member only)
+      description: |
+        Returns the complete draft room snapshot: active session, all picks made so
+        far, available teams, and all member metadata. Poll this endpoint (or use
+        the same data with client-side timers) to drive the live draft UI.
+
+        Only accessible while group.status is `draft`. Returns 400 if group is not
+        in draft mode.
+
+        See §4.5 of PRODUCT_SYSTEM.md — snake draft: 60s per turn, auto-pick on
+        timeout, order reverses each round.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current draft state
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/DraftState"
+        "400":
+          description: Group is not in draft mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/picks:
+    post:
+      tags: [Draft]
+      summary: Submit a team pick during the snake draft
+      description: |
+        Submits a team pick for the authenticated user. Only valid when:
+        - group.status is `draft`
+        - It is currently the authenticated user's turn
+        - The team_id is still in available_teams
+        - The pick_deadline has not passed
+
+        On submission the session advances to the next picker. If this was the
+        last pick, the group is automatically transitioned to `active` and a
+        draft-complete email is sent to all members.
+
+        If the 60-second timer expires before a pick is submitted, a team is
+        auto-assigned and the session advances automatically (server-side timer job).
+        See §4.5 of PRODUCT_SYSTEM.md.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPickRequest"
+      responses:
+        "200":
+          description: Pick accepted; returns updated draft session
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/DraftSession"
+        "400":
+          description: Not your turn, team already picked, draft not active, or deadline passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+
+  /groups/{id}/members/{userId}/auto-pick:
+    patch:
+      tags: [Draft]
+      summary: Enable or disable auto-pick for a draft member (owner only)
+      description: |
+        Allows the group owner to toggle auto-pick for any member during an active
+        snake draft. When enabled, the member's next turn is auto-assigned instead
+        of waiting for the 60s timer to expire. Useful when a member is absent.
+        See §4.5 of PRODUCT_SYSTEM.md.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Auto-pick preference updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/schemas/ApiError"
 
   /groups/{id}/leaderboard:
     get:
       tags: [Groups]
       summary: Get the group leaderboard (member only)
+      description: |
+        Returns all members sorted by `total_points` descending. Points are the sum
+        of `prediction_pts` (from scored predictions) and `ownership_pts` (from team
+        performance). Default scoring: exact_score=5pts, correct_winner=3pts,
+        goal_difference=2pts. Ownership: win=6pts, goal=2pts, clean_sheet=4pts.
+        All values are per-group `scoring_config` overrides. Streak bonus applies
+        after `streak_bonus_threshold` consecutive correct predictions.
+
+        For league/competitive/global groups also includes `elo_rating`.
+        For competitive/global groups also includes `is_eliminated` and
+        `survivor_lives`. See §1.5 and §6.3 of PRODUCT_SYSTEM.md.
       security:
         - BearerAuth: []
       parameters:
@@ -1478,9 +2145,19 @@ paths:
       tags: [Predictions]
       summary: Submit or update a score prediction (before lock)
       description: |
-        Upserts on `(group_id, user_id, match_id)`.
-        Returns 409 if the match prediction window is closed or the match has already started.
-        Returns 403 if the user has drafted teams in the group and the match does not involve any of their owned teams.
+        Upserts a prediction on `(group_id, user_id, match_id)`.
+        Predictions lock at `match.prediction_lock` (typically match kickoff).
+        Returns 409 if the lock time has passed.
+
+        **Scoring** (applied when `POST /sync-matches` processes match results):
+        - `exact_score`: predicted home + away both match → default 5 pts
+        - `correct_winner`: correct winner or draw, wrong scores → default 3 pts
+        - `goal_difference`: correct goal difference, wrong winner → default 2 pts
+        - `incorrect`: wrong result → 0 pts
+
+        Point values are per group `scoring_config`. Bonus criteria predictions
+        (e.g., btts, ht_winner) can be submitted in `details` when the group
+        has those criteria enabled. See §4.6 and §6.5 of PRODUCT_SYSTEM.md.
       security:
         - BearerAuth: []
       requestBody:
@@ -1705,7 +2382,18 @@ paths:
     get:
       tags: [Notifications]
       summary: List user notifications
-      description: Returns paginated notifications for the authenticated user, with unread count.
+      description: |
+        Returns paginated notifications for the authenticated user, newest first,
+        along with the count of unread notifications.
+
+        Notification types:
+        - `lock_reminder` — upcoming match prediction deadline warning
+        - `rivalry_result` — weekly 1v1 rivalry outcome
+        - `rank_swing` — significant leaderboard position change
+        - `boost_ready` — a boost is available to use
+        - `streak_broken` — user's prediction streak ended
+
+        See §6.3 of PRODUCT_SYSTEM.md for the `notifications` table schema.
       security:
         - BearerAuth: []
       parameters:
@@ -2068,7 +2756,7 @@ paths:
           $ref: "#/components/schemas/ApiError"
 
   # ── Legal Documents ────────────────────────────────────────────
-  /api/legal/{type}:
+  /legal/{type}:
     get:
       tags: [Legal]
       summary: Get the active legal document by type
@@ -2099,35 +2787,31 @@ paths:
           $ref: "#/components/schemas/ApiError"
 
   # ── Support Cases ────────────────────────────────────────────
-  /api/support/cases:
+  /support/cases:
     post:
       tags: [Support]
       summary: Submit a support case
       description: Authenticated users can submit a support case. Returns the created case record.
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [category, subject, message]
-              properties:
-                category:
-                  type: string
-                  enum: [account, group, predictions, scoring, technical, billing, other]
-                subject:
-                  type: string
-                  minLength: 3
-                  maxLength: 200
-                message:
-                  type: string
-                  minLength: 10
-                  maxLength: 5000
+              $ref: "#/components/schemas/CreateSupportCaseRequest"
       responses:
         "201":
           description: Support case created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SupportCase"
         "400":
           $ref: "#/components/schemas/ApiError"
         "401":

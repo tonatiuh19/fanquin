@@ -12,7 +12,7 @@
 - **When using any console logging for debugging use logger functions from `client/utils/logger.ts` for consistent formatting and log levels only in UI components**
 - **NEVER Patch issues, always fix the root cause of type errors or bugs immediately**
 - **if any update is made to api/index.ts, update swagger.yaml accordingly**
-- **if any update is needed in DESIGN_SYSTEM.md, update it immediately and ensure changes are reflected in client/global.css and tailwind.config.ts**
+- **if any update is is made in swagger.yaml and/or in UI, update PRODUCT_SYSTEM.md immediately**
 
 ## Internationalization (i18n)
 
