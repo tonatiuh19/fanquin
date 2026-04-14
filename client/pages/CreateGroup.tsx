@@ -19,6 +19,7 @@ import {
   Trophy,
   Users,
   Zap,
+  Shield,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -91,6 +92,11 @@ const MODE_OPTIONS: ModeOption[] = [
     key: "casual",
     icon: <Sparkles className="h-5 w-5" />,
     color: "text-amber-400",
+  },
+  {
+    key: "ownership",
+    icon: <Shield className="h-5 w-5" />,
+    color: "text-violet-300",
   },
   {
     key: "friends",
@@ -760,7 +766,14 @@ export default function CreateGroup() {
     const modeParam = searchParams.get("mode") as
       | import("@shared/api").GroupMode
       | null;
-    const validModes = ["casual", "friends", "league", "competitive", "global"];
+    const validModes = [
+      "casual",
+      "friends",
+      "league",
+      "competitive",
+      "global",
+      "ownership",
+    ];
     if (modeParam && validModes.includes(modeParam)) {
       dispatch(setMode(modeParam));
       dispatch(setStep(1));
@@ -809,6 +822,9 @@ export default function CreateGroup() {
   const handleBack = () => {
     if (step === 1) {
       navigate(-1);
+    } else if (step === 4 && mode === "ownership") {
+      // Skip bonus criteria step for ownership mode
+      dispatch(setStep(2));
     } else {
       dispatch(setStep(step - 1));
     }
@@ -853,7 +869,9 @@ export default function CreateGroup() {
               {step === 2 && (
                 <StepConfig
                   submitRef={step2SubmitRef}
-                  onValid={() => dispatch(setStep(3))}
+                  onValid={() =>
+                    dispatch(setStep(mode === "ownership" ? 4 : 3))
+                  }
                 />
               )}
               {step === 3 && <StepBonus />}

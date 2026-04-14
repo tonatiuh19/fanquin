@@ -132,7 +132,8 @@ export type GroupMode =
   | "friends"
   | "league"
   | "competitive"
-  | "global";
+  | "global"
+  | "ownership";
 
 export type GroupStatus = "waiting" | "draft" | "active" | "completed";
 
@@ -315,7 +316,9 @@ export interface LivePageData {
     id: string;
     name: string;
     competition_id: string;
+    mode: GroupMode;
     bonus_criteria: BonusCriteria;
+    owned_team_ids?: string[];
   }[];
   last_synced_at: string | null;
   competition: Competition | null;

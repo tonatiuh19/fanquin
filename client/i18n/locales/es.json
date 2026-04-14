@@ -35,7 +35,7 @@
     "badge": "FIFA Copa del Mundo 2026 — Ya en vivo",
     "hero": {
       "title": "Posee equipos. Predice partidos. Domina el ranking.",
-      "description": "Arma una quiniela con amigos, familia, compañeros de clase o colegas en minutos. Predice marcadores, posee selecciones nacionales, desbloquea boosts y ve la rivalidad desenvolverse en tiempo real. FanQuin arranca con la Copa del Mundo 2026 y se expande a todas las ligas y deportes.",
+      "description": "Arma una quiniela con amigos, familia, compañeros de clase o colegas en minutos. Predice marcadores, posee selecciones nacionales, desbloquea boosts y ve la rivalidad en tiempo real. ¿Te atreves a predecir en contra de tu propio equipo? Si pierden y tú lo acertaste, igual sumas puntos de predicción.",
       "ctaPrimary": "Crea tu grupo ahora",
       "ctaSecondary": "Ver cómo funciona la puntuación",
       "joinPlaceholder": "¿Tienes un código? Pégalo aquí",
@@ -92,8 +92,8 @@
         "description": "Crea un grupo privado, elige tu modo y configuración de puntuación, invita con un solo enlace. Sin hojas de cálculo, sin confusión — solo un código que tus amigos tocan una vez."
       },
       {
-        "title": "3 formas de asignar equipos",
-        "description": "Sala de draft snake en vivo donde cada jugador elige en tiempo real. Sorteo aleatorio resuelto al instante antes del pitido. Niveles balanceados que reparten equipos fuertes y débiles de forma equitativa."
+        "title": "4 formas de jugar",
+        "description": "Sala de draft snake en vivo donde cada jugador elige en tiempo real. Sorteo aleatorio resuelto al instante. Asignación por niveles balanceados. O desactiva las predicciones con el modo Seguimiento de Equipo — acumula puntos solo por poseer un equipo, sin ninguna elección de partido."
       },
       {
         "title": "Predicciones de bonus en cada partido",
@@ -115,6 +115,16 @@
           "Link de invitación en un tap",
           "Sorteo aleatorio de equipos",
           "Criterios de bonus opcionales"
+        ]
+      },
+      {
+        "title": "Seguimiento de Equipo",
+        "audience": "Familia y fans casuales",
+        "description": "Sin predicciones. Elige tu selección nacional y acumula puntos automáticamente cada vez que ganen, anoten o dejen la portería a cero. Ideal para familias y fans casuales que solo quieren seguir a su equipo.",
+        "features": [
+          "Puntos automáticos por partido",
+          "Sin pronósticos requeridos",
+          "Draft o sorteo aleatorio"
         ]
       },
       {
@@ -148,7 +158,7 @@
       {
         "title": "Posesión de equipo",
         "value": "+4 / +1 / +3",
-        "description": "Las victorias de tu equipo (+4 pts), cada gol que marcan (+1 pt por gol) y las porterías a cero (+3 pts) se acumulan en cada partido del torneo."
+        "description": "Las victorias de tu equipo (+4 pts), cada gol que marcan (+1 pt por gol) y las porterías a cero (+3 pts) se acumulan en el torneo. ¿Te atreves a más? Predice en contra de tu propio equipo — si pierden y lo acertaste, igual sumas puntos de predicción."
       },
       {
         "title": "Criterios de bonus",
@@ -488,6 +498,10 @@
           {
             "q": "¿Qué es la puntuación por racha?",
             "a": "Acierta al ganador de forma consecutiva y gana puntos bonus en cada partido tras el umbral. El umbral y el bonus exactos dependen de la configuración de puntuación de tu grupo."
+          },
+          {
+            "q": "¿Puedo predecir en contra de mi propio equipo?",
+            "a": "Sí — y tiene sentido estratégico. En los modos de predicción solo puedes pronosticar partidos donde juega al menos uno de tus equipos, pero puedes elegir cualquier resultado, incluso que tu equipo pierda. Si pierden y tú lo acertaste, ganas puntos de predicción aunque tu puntuación de posesión reciba el golpe. Alto riesgo, alta recompensa."
           }
         ]
       },
@@ -510,6 +524,10 @@
           {
             "q": "¿Puedo cambiar mi equipo después del draft?",
             "a": "No. Una vez completado el draft las asignaciones quedan bloqueadas durante la competición."
+          },
+          {
+            "q": "¿Qué es el modo Seguimiento de Equipo?",
+            "a": "Seguimiento de Equipo es un modo sin predicciones. Eliges una selección nacional y ganas puntos automáticamente con cada resultado — victorias (+6 pts), goles (+2 pts por gol) o portería a cero (+4 pts). Sin pronósticos de partidos. Ideal para familias y fans casuales que solo quieren seguir el camino de su equipo en el torneo."
           }
         ]
       },
@@ -659,23 +677,28 @@
     "modes": {
       "casual": {
         "title": "Casual",
-        "audience": "2 – 5 jugadores",
+        "audience": "Amigos que disfrutan el fútbol",
         "description": "Predicciones simples y equipos al azar. Perfecto para familia y sorteos rápidos de oficina."
       },
       "friends": {
         "title": "Amigos",
-        "audience": "6 – 12 jugadores",
+        "audience": "Grupos de amigos y chats",
         "description": "Draft de serpiente, bonos por upset, rachas y rivalidades semanales. Hecho para el grupo de chat."
       },
       "league": {
         "title": "Liga",
-        "audience": "13 – 100 jugadores",
+        "audience": "Oficinas y escuelas",
         "description": "Ranking ELO, niveles de equipo balanceados, modo supervivencia y brackets para escuelas y oficinas."
       },
       "competitive": {
         "title": "Competitivo",
-        "audience": "Cualquier tamaño",
+        "audience": "Jugadores serios",
         "description": "Reglas completas, rankings en vivo, vidas en modo supervivencia y puntuación estricta para jugadores serios."
+      },
+      "ownership": {
+        "title": "Seguimiento de Equipos",
+        "audience": "Familia y amigos",
+        "description": "Sin predicciones. Haz el draft de tus equipos y gana puntos automáticamente cada vez que ganen, marquen gol o dejen la portería a cero."
       }
     }
   },
@@ -969,6 +992,8 @@
     "liveLabel": "EN VIVO",
     "completedLabel": "FT",
     "noPrediction": "Sin pronóstico enviado",
+    "ownershipTracking": "Puntos calculados automáticamente",
+    "notYourTeam": "Ninguno de tus equipos juega aquí",
     "pending": "Pendiente",
     "pts": "pts",
     "predict": "Tu pronóstico",

@@ -48,7 +48,7 @@ export default function Index() {
       description: string;
     }>
   ).map((p, i) => ({ ...p, icon: pillarIcons[i] }));
-  const GROUP_MODE_KEYS = ["casual", "friends", "league"] as const;
+  const GROUP_MODE_KEYS = ["casual", "ownership", "friends", "league"] as const;
   const groupModes = (
     t("index.groupModes", { returnObjects: true }) as Array<{
       title: string;

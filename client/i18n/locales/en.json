@@ -35,7 +35,7 @@
     "badge": "FIFA World Cup 2026 — Now Live",
     "hero": {
       "title": "Own teams. Predict matches. Dominate the leaderboard.",
-      "description": "Start a quiniela with friends, family, classmates, or coworkers in minutes. Pick scores, own national teams, unlock boosts, and watch the rivalry unfold in real time. FanQuin launches with the FIFA World Cup 2026 and expands into every major league and sport.",
+      "description": "Start a quiniela with friends, family, classmates, or coworkers in minutes. Pick scores, own national teams, unlock boosts, and watch the rivalry unfold in real time. Dare to predict against your own team — if they lose and you called it, you earn prediction points too. FanQuin launches with the FIFA World Cup 2026 and expands into every major league and sport.",
       "ctaPrimary": "Start your group now",
       "ctaSecondary": "See how scoring works",
       "joinPlaceholder": "Have a code? Paste it here",
@@ -92,8 +92,8 @@
         "description": "Create a private group, pick your mode and scoring config, invite with a single link. No spreadsheets, no confusion — just a code your friends tap once."
       },
       {
-        "title": "3 ways to assign teams",
-        "description": "Live snake draft room where each player picks in real time. Instant random draw settled before kickoff. Balanced tier assignment that spreads strong and weak teams fairly."
+        "title": "4 ways to play",
+        "description": "Live snake draft room where each player picks in real time. Instant random draw settled before kickoff. Balanced tier assignment that spreads strong and weak teams fairly. Or skip predictions entirely with Team Tracking — earn points just by owning a team, no picks needed."
       },
       {
         "title": "Bonus predictions on every match",
@@ -115,6 +115,16 @@
           "One-tap invite link",
           "Random team draw",
           "Optional bonus criteria"
+        ]
+      },
+      {
+        "title": "Team Tracking",
+        "audience": "Family & casual fans",
+        "description": "No predictions needed. Draft your national team and rack up points automatically every time they win, score, or keep a clean sheet. Perfect for families and casual fans who just want to follow their teams.",
+        "features": [
+          "Auto points every match",
+          "No picks required",
+          "Draft or random draw"
         ]
       },
       {
@@ -148,7 +158,7 @@
       {
         "title": "Team ownership",
         "value": "+4 / +1 / +3",
-        "description": "Your team's wins (+4 pts), every goal they score (+1 pt each), and clean sheets (+3 pts) accumulate across every match in the tournament."
+        "description": "Your team's wins (+4 pts), goals scored (+1 pt each), and clean sheets (+3 pts) stack across the tournament. Feeling bold? Predict against your own team — if they lose and you called it, you still earn prediction points."
       },
       {
         "title": "Bonus criteria",
@@ -494,6 +504,10 @@
           {
             "q": "What is streak scoring?",
             "a": "Hit a consecutive correct-winner streak and earn bonus points every match after the threshold. The exact threshold and bonus depend on your group\u2019s scoring config."
+          },
+          {
+            "q": "Can I predict against my own team?",
+            "a": "Yes \u2014 and there's a strategic reason to do it. In prediction modes you can only pick matches where at least one of your owned teams plays, but you can predict any outcome, including your team losing. If they lose and you called it, you earn prediction points even while your ownership score takes the hit. High risk, high reward."
           }
         ]
       },
@@ -516,6 +530,10 @@
           {
             "q": "Can I change my team after the draft?",
             "a": "No. Once the draft is completed the assignments are locked for the duration of the competition."
+          },
+          {
+            "q": "What is Team Tracking mode?",
+            "a": "Team Tracking is a no-prediction game mode. You draft a national team and earn points automatically from every result — wins (+6 pts), goals scored (+2 pts each), or clean sheets (+4 pts). No match picks needed. Great for families and casual fans who just want to follow their team’s journey through the tournament."
           }
         ]
       },
@@ -665,23 +683,28 @@
     "modes": {
       "casual": {
         "title": "Casual",
-        "audience": "2 – 5 players",
+        "audience": "Friends who love football",
         "description": "Simple picks and random team assignment. Perfect for family and quick office sweeps."
       },
       "friends": {
         "title": "Friends",
-        "audience": "6 – 12 players",
+        "audience": "Friend groups & chats",
         "description": "Snake draft ownership, upset bonuses, streaks, and weekly rivalries. Built for banter."
       },
       "league": {
         "title": "League",
-        "audience": "13 – 100 players",
+        "audience": "Offices & schools",
         "description": "ELO ranking, balanced team tiers, survivor mode, and brackets for schools and offices."
       },
       "competitive": {
         "title": "Competitive",
-        "audience": "Any size",
+        "audience": "Serious players",
         "description": "Full rules, live rankings, survivor lives, and stricter scoring for serious players."
+      },
+      "ownership": {
+        "title": "Team Tracking",
+        "audience": "Family & friends",
+        "description": "No predictions needed. Draft your teams, sit back, and earn points automatically every time your teams win, score, or keep a clean sheet."
       }
     }
   },
@@ -968,6 +991,8 @@
     "liveLabel": "LIVE",
     "completedLabel": "FT",
     "noPrediction": "No prediction submitted",
+    "ownershipTracking": "Points tracked automatically",
+    "notYourTeam": "None of your teams play here",
     "pending": "Pending",
     "pts": "pts",
     "predict": "Your pick",

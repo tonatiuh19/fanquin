@@ -16,6 +16,7 @@ import {
   Loader2,
   Target,
   Zap,
+  Lock as LockIcon,
 } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -298,7 +299,13 @@ function MatchCard({
   myGroups,
 }: {
   match: LiveMatch;
-  myGroups: { id: string; name: string; bonus_criteria: BonusCriteria }[];
+  myGroups: {
+    id: string;
+    name: string;
+    mode?: string;
+    bonus_criteria: BonusCriteria;
+    owned_team_ids?: string[];
+  }[];
 }) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -318,6 +325,27 @@ function MatchCard({
   const isPredictionLocked =
     match.prediction_lock != null &&
     new Date(match.prediction_lock) <= new Date();
+
+  // Only show prediction form for groups where the match involves an owned team
+  // (if the group has no owned teams yet, show for all matches)
+  const predictableGroups = myGroups.filter((g) => {
+    if (g.mode === "ownership") return false; // ownership mode: no predictions ever
+    if (!g.owned_team_ids || g.owned_team_ids.length === 0) return true;
+    return (
+      g.owned_team_ids.includes(match.home_team?.id ?? "") ||
+      g.owned_team_ids.includes(match.away_team?.id ?? "")
+    );
+  });
+
+  // Ownership-mode groups whose team is playing this match (show tracking badge)
+  const ownershipGroupsPlaying = myGroups.filter(
+    (g) =>
+      g.mode === "ownership" &&
+      g.owned_team_ids &&
+      g.owned_team_ids.length > 0 &&
+      (g.owned_team_ids.includes(match.home_team?.id ?? "") ||
+        g.owned_team_ids.includes(match.away_team?.id ?? "")),
+  );
 
   // Local score inputs, pre-filled from existing predictions
   const [scores, setScores] = useState<
@@ -420,9 +448,16 @@ function MatchCard({
                 <Flag className="h-4 w-4" />
               </div>
             )}
-            <span className="truncate text-sm font-semibold text-foreground">
-              {match.home_team?.name ?? "TBD"}
-            </span>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-semibold text-foreground">
+                {match.home_team?.name ?? "TBD"}
+              </span>
+              {match.home_team?.short_name && (
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/35">
+                  {match.home_team.short_name}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Score / VS */}
@@ -444,9 +479,16 @@ function MatchCard({
 
           {/* Away */}
           <div className="flex flex-1 items-center justify-end gap-2.5">
-            <span className="truncate text-right text-sm font-semibold text-foreground">
-              {match.away_team?.name ?? "TBD"}
-            </span>
+            <div className="flex min-w-0 flex-col items-end">
+              <span className="truncate text-right text-sm font-semibold text-foreground">
+                {match.away_team?.name ?? "TBD"}
+              </span>
+              {match.away_team?.short_name && (
+                <span className="text-[10px] font-medium uppercase tracking-wider text-foreground/35">
+                  {match.away_team.short_name}
+                </span>
+              )}
+            </div>
             {awayFlag ? (
               <img
                 src={awayFlag}
@@ -466,6 +508,43 @@ function MatchCard({
           <p className="mt-2 text-center text-[11px] text-foreground/30">
             {match.venue.name} · {match.venue.city}
           </p>
+        )}
+
+        {/* Ownership-mode groups — passive tracking banner */}
+        {ownershipGroupsPlaying.length > 0 && (
+          <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
+            {ownershipGroupsPlaying.map((g) => {
+              const ownedHomeTeam = g.owned_team_ids?.includes(
+                match.home_team?.id ?? "",
+              );
+              const trackedTeam = ownedHomeTeam
+                ? match.home_team
+                : match.away_team;
+              return (
+                <div
+                  key={g.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-violet-500/8 px-2.5 py-1.5"
+                >
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {trackedTeam?.flag_url && (
+                      <img
+                        src={trackedTeam.flag_url}
+                        alt={trackedTeam.short_name ?? ""}
+                        className="h-4 w-4 rounded-full object-cover"
+                      />
+                    )}
+                    <span className="truncate text-[11px] font-medium text-violet-300">
+                      {trackedTeam?.name ?? "Your team"}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1 text-[10px] text-violet-300/70">
+                    <Trophy className="h-2.5 w-2.5" />
+                    <span>{t("live.ownershipTracking")}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {/* Predictions per group — read-only for live/completed */}
@@ -511,8 +590,42 @@ function MatchCard({
             </p>
           )}
 
+        {/* Not-your-team notice — scheduled matches where some groups are locked out */}
+        {isScheduled &&
+          (() => {
+            const lockedGroups = myGroups.filter((g) => {
+              if (g.mode === "ownership") return false; // handled separately above
+              if (!g.owned_team_ids || g.owned_team_ids.length === 0)
+                return false;
+              return (
+                !g.owned_team_ids.includes(match.home_team?.id ?? "") &&
+                !g.owned_team_ids.includes(match.away_team?.id ?? "")
+              );
+            });
+            if (lockedGroups.length === 0) return null;
+            return (
+              <div className="mt-3 space-y-1.5 border-t border-white/6 pt-3">
+                {lockedGroups.map((g) => (
+                  <div
+                    key={g.id}
+                    className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-2.5 py-1.5"
+                  >
+                    <LockIcon className="h-3 w-3 shrink-0 text-foreground/30" />
+                    <span className="truncate text-[11px] text-foreground/40">
+                      <span className="font-medium text-foreground/55">
+                        {g.name}
+                      </span>
+                      {" — "}
+                      {t("live.notYourTeam")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
         {/* Prediction form — upcoming/scheduled matches */}
-        {isScheduled && myGroups.length > 0 && (
+        {isScheduled && predictableGroups.length > 0 && (
           <div className="mt-3 space-y-2 border-t border-white/6 pt-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/35">
               {t("live.predict")}
@@ -523,7 +636,7 @@ function MatchCard({
                 {t("live.predictionLocked")}
               </p>
             ) : (
-              myGroups.map((group) => {
+              predictableGroups.map((group) => {
                 const stateKey = `${group.id}_${match.id}`;
                 const isSubmitting = !!predictState.submitting[stateKey];
                 const hasSaved = !!predictState.succeeded[stateKey];

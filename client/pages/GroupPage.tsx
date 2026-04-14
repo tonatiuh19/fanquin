@@ -104,6 +104,7 @@ export default function GroupPage() {
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [lbLoading, setLbLoading] = useState(false);
+  const [ownedTeams, setOwnedTeams] = useState<OwnedTeam[]>([]);
   const [copied, setCopied] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -147,6 +148,20 @@ export default function GroupPage() {
       .catch(() => setLeaderboard([]))
       .finally(() => setLbLoading(false));
   }, [id, sessionToken]);
+
+  useEffect(() => {
+    if (!id || !sessionToken || !currentGroup) return;
+    if (currentGroup.status !== "active") return;
+    // Only fetch ownership when the group has gone through a draft
+    if (!currentGroup.draft_type || currentGroup.draft_type === null) return;
+    axios
+      .get<{ success: boolean; data: OwnedTeam[] }>(
+        `/api/groups/${id}/ownership`,
+        { headers: { Authorization: `Bearer ${sessionToken}` } },
+      )
+      .then((res) => setOwnedTeams(res.data.data ?? []))
+      .catch(() => setOwnedTeams([]));
+  }, [id, sessionToken, currentGroup?.status, currentGroup?.draft_type]);
 
   const inviteLink = currentGroup
     ? `${window.location.origin}/join/${currentGroup.invite_code}`
@@ -534,6 +549,34 @@ export default function GroupPage() {
                         <p className="text-xs text-foreground/40">
                           {t("groupPage.streak", { n: entry.current_streak })}
                         </p>
+                        {/* Owned teams */}
+                        {(() => {
+                          const teams = ownedTeams
+                            .filter(
+                              (o) => o.user_id === entry.user_id && o.team,
+                            )
+                            .map((o) => o.team!);
+                          if (teams.length === 0) return null;
+                          return (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {teams.map((team) => (
+                                <span
+                                  key={team.id}
+                                  className="flex items-center gap-1 rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-foreground/60"
+                                >
+                                  {team.flag_url && (
+                                    <img
+                                      src={team.flag_url}
+                                      alt={team.short_name ?? team.name}
+                                      className="h-3 w-3 rounded-full object-cover"
+                                    />
+                                  )}
+                                  {team.short_name ?? team.name}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-2">
                         {entry.elo_rating !== undefined &&

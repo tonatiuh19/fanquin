@@ -1916,6 +1916,7 @@ export function createApp() {
           "league",
           "competitive",
           "global",
+          "ownership",
         ];
         if (!validModes.includes(mode)) {
           res.status(400).json({
@@ -2001,6 +2002,21 @@ export function createApp() {
             elo_k_factor: 16,
             survivor_lives: 1,
             weekly_reset_enabled: true,
+          },
+          // ownership — no predictions; points come entirely from team results
+          ownership: {
+            exact_score_pts: 0,
+            correct_winner_pts: 0,
+            goal_difference_pts: 0,
+            team_win_pts: 6,
+            team_goal_pts: 2,
+            team_clean_sheet_pts: 4,
+            upset_base_pts: 0,
+            streak_bonus_threshold: 3,
+            streak_bonus_pts: 2,
+            elo_k_factor: 0,
+            survivor_lives: 1,
+            weekly_reset_enabled: false,
           },
         };
 
@@ -3417,7 +3433,7 @@ export function createApp() {
         // Check prediction lock
         const { data: match, error: matchErr } = await supabase
           .from("matches")
-          .select("id, prediction_lock, status")
+          .select("id, prediction_lock, status, home_team_id, away_team_id")
           .eq("id", match_id)
           .single();
 
@@ -3441,6 +3457,45 @@ export function createApp() {
             message: "Prediction window has closed for this match.",
           });
           return;
+        }
+
+        // Block predictions entirely for ownership-mode groups
+        const { data: groupRecord } = await supabase
+          .from("groups")
+          .select("mode")
+          .eq("id", group_id)
+          .single();
+
+        if ((groupRecord as any)?.mode === "ownership") {
+          res.status(403).json({
+            success: false,
+            message:
+              "This group uses Team Tracking mode — points are earned automatically from your teams' results. No predictions are allowed.",
+          });
+          return;
+        }
+
+        // Enforce draft ownership: if the user has drafted teams in this group,
+        // they may only predict matches involving one of those teams.
+        const { data: ownedTeams } = await supabase
+          .from("team_ownership")
+          .select("team_id")
+          .eq("group_id", group_id)
+          .eq("user_id", req.userId!);
+
+        if (ownedTeams && ownedTeams.length > 0) {
+          const ownedIds = new Set(ownedTeams.map((o: any) => o.team_id));
+          if (
+            !ownedIds.has((match as any).home_team_id) &&
+            !ownedIds.has((match as any).away_team_id)
+          ) {
+            res.status(403).json({
+              success: false,
+              message:
+                "You can only predict matches involving your drafted teams.",
+            });
+            return;
+          }
         }
 
         const { data: prediction, error } = await supabase
@@ -3723,7 +3778,9 @@ export function createApp() {
         // User's active groups for this competition (include bonus_criteria)
         const { data: memberships } = await supabase
           .from("group_members")
-          .select("groups(id, name, competition_id, status, bonus_criteria)")
+          .select(
+            "groups(id, name, competition_id, status, mode, bonus_criteria)",
+          )
           .eq("user_id", userId);
 
         const activeGroupsFull = (memberships ?? [])
@@ -3739,6 +3796,7 @@ export function createApp() {
           id: g.id,
           name: g.name,
           competition_id: g.competition_id,
+          mode: g.mode,
           bonus_criteria: g.bonus_criteria ?? {
             enabled: [],
             btts_pts: 2,
@@ -3782,6 +3840,23 @@ export function createApp() {
               },
             };
           }
+
+          // Enrich each group with the user's owned team IDs from the draft
+          const { data: ownerships } = await supabase
+            .from("team_ownership")
+            .select("group_id, team_id")
+            .eq("user_id", userId as string)
+            .in("group_id", groupIds);
+
+          const ownersByGroup: Record<string, string[]> = {};
+          for (const o of ownerships ?? []) {
+            if (!ownersByGroup[o.group_id]) ownersByGroup[o.group_id] = [];
+            ownersByGroup[o.group_id].push(o.team_id);
+          }
+          myActiveGroups = myActiveGroups.map((g) => ({
+            ...g,
+            owned_team_ids: ownersByGroup[g.id] ?? [],
+          }));
         }
       }
 
@@ -5783,12 +5858,10 @@ export function createApp() {
         subject.trim().length < 3 ||
         subject.trim().length > 200
       ) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Subject must be between 3 and 200 characters",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Subject must be between 3 and 200 characters",
+        });
       }
       if (
         !message ||
@@ -5796,12 +5869,10 @@ export function createApp() {
         message.trim().length < 10 ||
         message.trim().length > 5000
       ) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Message must be between 10 and 5000 characters",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Message must be between 10 and 5000 characters",
+        });
       }
 
       try {

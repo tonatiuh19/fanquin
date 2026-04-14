@@ -11,7 +11,7 @@ create extension if not exists "pgcrypto";
 -- ENUMS
 -- ============================================================
 
-create type group_mode as enum ('casual', 'friends', 'league', 'competitive', 'global');
+create type group_mode as enum ('casual', 'friends', 'league', 'competitive', 'global', 'ownership');
 create type draft_type as enum ('snake', 'random', 'balanced_tier');
 create type boost_type as enum ('double_points', 'underdog_boost', 'last_minute_change', 'streak_insurance');
 create type prediction_result as enum ('pending', 'exact_score', 'correct_winner', 'goal_difference', 'incorrect');

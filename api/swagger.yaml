@@ -423,7 +423,7 @@ components:
           format: uuid
         mode:
           type: string
-          enum: [casual, friends, league, competitive, global]
+          enum: [casual, friends, league, competitive, global, ownership]
         draft_type:
           type: string
           enum: [snake, random, tier_balanced]
@@ -451,7 +451,7 @@ components:
           format: uuid
         mode:
           type: string
-          enum: [casual, friends, league, competitive, global]
+          enum: [casual, friends, league, competitive, global, ownership]
         draft_type:
           type: string
           enum: [snake, random, tier_balanced]
@@ -659,6 +659,12 @@ components:
                 format: uuid
               bonus_criteria:
                 $ref: "#/components/schemas/BonusCriteria"
+              owned_team_ids:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: Team IDs the user has drafted in this group. Empty array means no draft has been completed yet.
           description: User's active groups for this competition (only when authenticated).
         last_synced_at:
           type: string
@@ -1474,6 +1480,7 @@ paths:
       description: |
         Upserts on `(group_id, user_id, match_id)`.
         Returns 409 if the match prediction window is closed or the match has already started.
+        Returns 403 if the user has drafted teams in the group and the match does not involve any of their owned teams.
       security:
         - BearerAuth: []
       requestBody:
