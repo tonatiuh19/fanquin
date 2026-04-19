@@ -1437,3 +1437,60 @@ insert into public.groups (id, name, invite_code, competition_id, mode, draft_ty
   ('ffffffff-4444-0000-0000-000000000004','Test: Competitive Mode', 'TSTCMPET','ffffffff-0000-0000-0000-000000000001','competitive', 'snake',        null,20, 'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":32,"survivor_lives":3,"weekly_reset_enabled":true}'),
   ('ffffffff-4444-0000-0000-000000000005','Test: Global Mode',      'TSTGLOBL','ffffffff-0000-0000-0000-000000000001','global',      'random',       null,200,'waiting',true,true,'{"exact_score_pts":5,"correct_winner_pts":3,"goal_difference_pts":2,"team_win_pts":4,"team_goal_pts":1,"team_clean_sheet_pts":3,"upset_base_pts":5,"streak_bonus_threshold":3,"streak_bonus_pts":2,"elo_k_factor":16,"survivor_lives":1,"weekly_reset_enabled":true}')
 on conflict (id) do nothing;
+
+-- ================================================================
+-- ADMIN BACK-OFFICE
+-- Admin accounts are completely independent of profiles/auth.users.
+-- Service-role key is the only consumer (RLS blocks anon/authed).
+-- ================================================================
+
+-- ── Admin accounts ───────────────────────────────────────────────
+create table public.admin_users (
+  id            uuid primary key default gen_random_uuid(),
+  email         text unique not null,
+  username      text unique not null,
+  display_name  text,
+  first_name    text,
+  last_name     text,
+  phone         text,
+  country       text,
+  locale        text not null default 'en',
+  is_active     boolean not null default true,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create trigger admin_users_updated_at
+  before update on public.admin_users
+  for each row execute function public.handle_updated_at();
+
+-- ── Admin sessions ───────────────────────────────────────────────
+-- Raw token lives only on the client; only its SHA-256 hash is stored.
+create table public.admin_sessions (
+  id              uuid primary key default gen_random_uuid(),
+  admin_user_id   uuid not null references public.admin_users(id) on delete cascade,
+  token_hash      text not null unique,
+  expires_at      timestamptz not null,
+  revoked_at      timestamptz,
+  ip_address      inet,
+  user_agent      text,
+  created_at      timestamptz not null default now()
+);
+
+create index admin_sessions_token_hash_idx    on public.admin_sessions (token_hash);
+create index admin_sessions_admin_user_id_idx on public.admin_sessions (admin_user_id);
+
+-- ── RLS: service-role only ───────────────────────────────────────
+alter table public.admin_users    enable row level security;
+alter table public.admin_sessions enable row level security;
+-- No policies for anon/authenticated roles.
+-- getSupabaseAdmin() uses the service role which bypasses RLS.
+
+-- ── First admin seed ────────────────────────────────────────────
+insert into public.admin_users (email, username, display_name, first_name, last_name, locale, is_active)
+values ('axgoomez@gmail.com', 'axgomez', 'Alex Gomez', 'Alex', 'Gomez', 'en', true)
+on conflict (email) do update
+  set display_name = excluded.display_name,
+      first_name   = excluded.first_name,
+      last_name    = excluded.last_name,
+      is_active    = true;

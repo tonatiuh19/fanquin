@@ -2816,3 +2816,322 @@ paths:
           $ref: "#/components/schemas/ApiError"
         "401":
           $ref: "#/components/schemas/ApiError"
+
+  # == ADMIN BACK-OFFICE ==================================================
+
+  /admin/auth/send-code:
+    post:
+      tags: [Admin]
+      summary: Send OTP code to admin email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier]
+              properties:
+                identifier:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Code sent (or silently ignored if email not in admin_users)
+        "400":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/auth/verify-code:
+    post:
+      tags: [Admin]
+      summary: Verify OTP and obtain admin session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, code]
+              properties:
+                identifier:
+                  type: string
+                  format: email
+                code:
+                  type: string
+      responses:
+        "200":
+          description: Admin authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sessionToken:
+                    type: string
+                  adminProfile:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      username:
+                        type: string
+                      display_name:
+                        type: string
+                        nullable: true
+                      email:
+                        type: string
+                        format: email
+        "401":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/profile:
+    get:
+      tags: [Admin]
+      summary: Get authenticated admin profile
+      description: Returns the admin_users row for the authenticated admin (independent of regular user profiles).
+      security:
+        - AdminBearerAuth: []
+      responses:
+        "200":
+          description: Admin profile data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        ref: "#/components/schemas/AdminPerson"
+        "401":
+          ref: "#/components/schemas/ApiError"
+    patch:
+      tags: [Admin]
+      summary: Update authenticated admin profile
+      description: Updates editable fields on the authenticated admin own admin_users record.
+      security:
+        - AdminBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                phone:
+                  type: string
+                country:
+                  type: string
+                locale:
+                  type: string
+                  enum: [en, es]
+      responses:
+        "200":
+          description: Updated admin profile
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        ref: "#/components/schemas/AdminPerson"
+        "400":
+          ref: "#/components/schemas/ApiError"
+        "401":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/people:
+    get:
+      tags: [Admin]
+      summary: List all admin team members
+      description: Returns all rows from admin_users ordered by created_at ascending.
+      security:
+        - AdminBearerAuth: []
+      responses:
+        "200":
+          description: Admin team list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          ref: "#/components/schemas/AdminPerson"
+        "401":
+          ref: "#/components/schemas/ApiError"
+    post:
+      tags: [Admin]
+      summary: Create a new admin user
+      security:
+        - AdminBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username]
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                display_name:
+                  type: string
+                  maxLength: 60
+                first_name:
+                  type: string
+                  maxLength: 50
+                last_name:
+                  type: string
+                  maxLength: 50
+                locale:
+                  type: string
+                  enum: [en, es]
+      responses:
+        "201":
+          description: Admin user created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        ref: "#/components/schemas/AdminPerson"
+        "400":
+          ref: "#/components/schemas/ApiError"
+        "401":
+          ref: "#/components/schemas/ApiError"
+        "409":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/people/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update an admin user
+      description: Update editable fields including is_active. Cannot deactivate yourself.
+      security:
+        - AdminBearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                phone:
+                  type: string
+                country:
+                  type: string
+                locale:
+                  type: string
+                  enum: [en, es]
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated admin user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        ref: "#/components/schemas/AdminPerson"
+        "400":
+          ref: "#/components/schemas/ApiError"
+        "401":
+          ref: "#/components/schemas/ApiError"
+        "404":
+          ref: "#/components/schemas/ApiError"
+    delete:
+      tags: [Admin]
+      summary: Delete an admin user
+      description: Hard-deletes an admin_users row. Cannot delete yourself.
+      security:
+        - AdminBearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          ref: "#/components/schemas/ApiSuccess"
+        "400":
+          ref: "#/components/schemas/ApiError"
+        "401":
+          ref: "#/components/schemas/ApiError"
+
+    AdminPerson:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        display_name:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        locale:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

@@ -9,6 +9,7 @@ import survivorReducer from "./slices/survivorSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import legalReducer from "./slices/legalSlice";
 import supportReducer from "./slices/supportSlice";
+import adminReducer from "./slices/adminSlice";
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     legal: legalReducer,
     support: supportReducer,
+    admin: adminReducer,
   },
 });
 

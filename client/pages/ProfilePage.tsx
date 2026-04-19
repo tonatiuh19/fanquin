@@ -176,7 +176,7 @@ export default function ProfilePage() {
         </div>
 
         {/* First + Last */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-foreground/80">
               {t("auth.firstName")} <span className="text-rose-400">*</span>

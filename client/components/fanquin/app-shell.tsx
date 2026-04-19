@@ -354,6 +354,13 @@ export function AppShell() {
               >
                 Términos
               </Link>
+              <Link
+                to="/admin/login"
+                className="text-xs text-foreground/10 hover:text-foreground/40 transition"
+                aria-label="Back Office"
+              >
+                BO
+              </Link>
             </div>
             <a
               href="https://intelinota.com"

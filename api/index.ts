@@ -3,13 +3,14 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 import express, { type RequestHandler } from "express";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import bcrypt from "bcryptjs";
 import type {
   SendCodeResponse,
   VerifyCodeResponse,
   ValidateSessionResponse,
   UserProfile,
+  AdminLoginResponse,
 } from "@shared/api";
 
 // ─────────────────────────────────────────────────────────────────
@@ -115,22 +116,13 @@ async function seedSurvivorLives(supabase: any, groupId: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// EMAIL: NODEMAILER TRANSPORTER
+// EMAIL: RESEND CLIENT
 // ─────────────────────────────────────────────────────────────────
-function createTransporter() {
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
-  ) {
+function createResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
     return null;
   }
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
-  });
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1251,13 +1243,15 @@ async function sendEmail(opts: {
   subject: string;
   html: string;
 }): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.warn("⚠️  SMTP not configured — email not sent to:", opts.to);
+  const resend = createResendClient();
+  if (!resend) {
+    console.warn("⚠️  Resend not configured — email not sent to:", opts.to);
     return;
   }
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+  await resend.emails.send({
+    from:
+      process.env.RESEND_FROM ||
+      "FanQuin <no-reply-fanquin@disruptinglabs.com>",
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
@@ -6273,6 +6267,2204 @@ export function createApp() {
       }
     },
   );
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: requireAdmin middleware
+  // Validates that the request carries a session token stored in admin_sessions
+  // belonging to an active admin_users row. Completely independent of auth.users.
+  // ─────────────────────────────────────────────────────────────────
+  const requireAdmin: RequestHandler = async (req, res, next) => {
+    const authHeader = req.headers.authorization ?? "";
+    const rawToken = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : "";
+    if (!rawToken) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+    const tokenHash = hashToken(rawToken);
+    const supabase = getSupabaseAdmin();
+    const { data: session } = await supabase
+      .from("admin_sessions")
+      .select("admin_user_id, expires_at")
+      .eq("token_hash", tokenHash)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .single();
+    if (!session) {
+      res.status(401).json({ success: false, message: "Unauthorized." });
+      return;
+    }
+    const { data: adminUser } = await supabase
+      .from("admin_users")
+      .select("id, is_active")
+      .eq("id", session.admin_user_id)
+      .single();
+    if (!adminUser?.is_active) {
+      res.status(403).json({ success: false, message: "Forbidden." });
+      return;
+    }
+    res.locals.adminUserId = session.admin_user_id;
+    next();
+  };
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN AUTH: POST /api/admin/auth/send-code
+  // Sends an OTP to the given email if it belongs to an admin user.
+  // Uses the same OTP table and Resend infrastructure as user auth.
+  // Returns a vague success regardless to avoid email enumeration.
+  // ─────────────────────────────────────────────────────────────────
+  app.post("/api/admin/auth/send-code", async (req, res) => {
+    try {
+      const { identifier } = req.body as { identifier?: string };
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!identifier || !emailRegex.test(identifier)) {
+        res
+          .status(400)
+          .json({ success: false, message: "Valid email required." });
+        return;
+      }
+      const normalizedEmail = identifier.trim().toLowerCase();
+      const supabase = getSupabaseAdmin();
+
+      // Look up in admin_users — completely separate from profiles/auth.users
+      const { data: adminUser } = await supabase
+        .from("admin_users")
+        .select("id, display_name, locale, is_active")
+        .eq("email", normalizedEmail)
+        .single();
+
+      if (adminUser?.is_active) {
+        // Rate-limit: max 5 OTPs per identifier in 15 min
+        const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from("otp_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("identifier", normalizedEmail)
+          .gte("created_at", windowStart);
+        if ((count ?? 0) < 5) {
+          const code = Math.floor(100000 + Math.random() * 900000);
+          const salt = await bcrypt.genSalt(10);
+          const codeHash = await bcrypt.hash(String(code), salt);
+          const ip =
+            (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+            req.socket.remoteAddress ||
+            null;
+          await supabase.from("otp_requests").insert({
+            identifier: normalizedEmail,
+            delivery_method: "email",
+            code_hash: codeHash,
+            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            ip_address: ip,
+          });
+          const locale = adminUser.locale || "es";
+          const copy = emailCopy[locale as Locale] ?? emailCopy.es;
+          sendEmail({
+            to: normalizedEmail,
+            subject: copy.otpSubject(code),
+            html: buildOtpEmail(adminUser.display_name || "", code, 10, locale),
+          }).catch((e) => console.error("Admin OTP email failed:", e));
+          if (isDev) {
+            res.json({ success: true, debug_code: code });
+            return;
+          }
+        }
+      }
+      // Always return success to prevent enumeration
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error in admin send-code:", err);
+      res.status(500).json({ success: false, message: "Failed to send code." });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN AUTH: POST /api/admin/auth/verify-code
+  // Verifies OTP, checks is_admin, creates session, returns token.
+  // ─────────────────────────────────────────────────────────────────
+  app.post("/api/admin/auth/verify-code", async (req, res) => {
+    try {
+      const { identifier, code } = req.body as {
+        identifier?: string;
+        code?: string;
+      };
+      if (!identifier || !code) {
+        res.status(400).json({
+          success: false,
+          message: "identifier and code are required.",
+        });
+        return;
+      }
+      const normalizedEmail = identifier.trim().toLowerCase();
+      const supabase = getSupabaseAdmin();
+
+      const { data: otpRow } = await supabase
+        .from("otp_requests")
+        .select("id, code_hash, attempt_count, is_used, expires_at")
+        .eq("identifier", normalizedEmail)
+        .eq("is_used", false)
+        .gt("expires_at", new Date().toISOString())
+        .lt("attempt_count", 5)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!otpRow) {
+        res.status(401).json({
+          success: false,
+          message: "No valid code found. Please request a new one.",
+        });
+        return;
+      }
+
+      const codeMatch = await bcrypt.compare(
+        String(code).trim(),
+        otpRow.code_hash,
+      );
+      if (!codeMatch) {
+        await supabase
+          .from("otp_requests")
+          .update({ attempt_count: otpRow.attempt_count + 1 })
+          .eq("id", otpRow.id);
+        res.status(401).json({ success: false, message: "Invalid code." });
+        return;
+      }
+
+      await supabase
+        .from("otp_requests")
+        .update({ is_used: true, verified_at: new Date().toISOString() })
+        .eq("id", otpRow.id);
+
+      // Resolve from admin_users (independent of auth.users / profiles)
+      const { data: adminUser } = await supabase
+        .from("admin_users")
+        .select("id, username, display_name, is_active")
+        .eq("email", normalizedEmail)
+        .single();
+
+      if (!adminUser?.is_active) {
+        res.status(403).json({ success: false, message: "Not authorized." });
+        return;
+      }
+
+      // Create admin session (admin_sessions — separate from user_sessions)
+      const rawToken = generateSessionToken();
+      const tokenHash = hashToken(rawToken);
+      const ip =
+        (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+        req.socket.remoteAddress ||
+        null;
+      await supabase.from("admin_sessions").insert({
+        admin_user_id: adminUser.id,
+        token_hash: tokenHash,
+        ip_address: ip,
+        expires_at: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+      });
+
+      res.json({
+        success: true,
+        sessionToken: rawToken,
+        adminProfile: {
+          id: adminUser.id,
+          username: adminUser.username,
+          display_name: adminUser.display_name,
+          email: normalizedEmail,
+        },
+      });
+    } catch (err) {
+      console.error("Error in admin verify-code:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to verify code." });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Services health check
+  // Pings Supabase, Football Data API, and Resend.
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/services/health", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    const checkedAt = new Date().toISOString();
+
+    const results: Array<{
+      name: string;
+      status: "healthy" | "degraded" | "down";
+      latency_ms: number | null;
+      message?: string;
+      checked_at: string;
+    }> = [];
+
+    // 1. Supabase DB
+    const t0 = Date.now();
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true });
+      const latency = Date.now() - t0;
+      results.push({
+        name: "Supabase",
+        status: error ? "degraded" : "healthy",
+        latency_ms: latency,
+        message: error?.message,
+        checked_at: checkedAt,
+      });
+    } catch (e) {
+      results.push({
+        name: "Supabase",
+        status: "down",
+        latency_ms: null,
+        message: e instanceof Error ? e.message : "Unknown",
+        checked_at: checkedAt,
+      });
+    }
+
+    // 2. Football Data API
+    const fdKey = process.env.FOOTBALL_DATA_API_KEY;
+    if (fdKey) {
+      const t1 = Date.now();
+      try {
+        const fdRes = await fetch(
+          "https://api.football-data.org/v4/competitions",
+          {
+            headers: { "X-Auth-Token": fdKey },
+            signal: AbortSignal.timeout(5000),
+          },
+        );
+        const latency = Date.now() - t1;
+        results.push({
+          name: "Football Data API",
+          status: fdRes.ok ? "healthy" : "degraded",
+          latency_ms: latency,
+          message: fdRes.ok ? undefined : `HTTP ${fdRes.status}`,
+          checked_at: checkedAt,
+        });
+      } catch (e) {
+        results.push({
+          name: "Football Data API",
+          status: "down",
+          latency_ms: null,
+          message: e instanceof Error ? e.message : "Timeout",
+          checked_at: checkedAt,
+        });
+      }
+    } else {
+      results.push({
+        name: "Football Data API",
+        status: "degraded",
+        latency_ms: null,
+        message: "API key not configured",
+        checked_at: checkedAt,
+      });
+    }
+
+    // 3. Resend
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      const t2 = Date.now();
+      try {
+        const rRes = await fetch("https://api.resend.com/domains", {
+          headers: { Authorization: `Bearer ${resendKey}` },
+          signal: AbortSignal.timeout(5000),
+        });
+        const latency = Date.now() - t2;
+        results.push({
+          name: "Resend",
+          status: rRes.ok ? "healthy" : "degraded",
+          latency_ms: latency,
+          message: rRes.ok ? undefined : `HTTP ${rRes.status}`,
+          checked_at: checkedAt,
+        });
+      } catch (e) {
+        results.push({
+          name: "Resend",
+          status: "down",
+          latency_ms: null,
+          message: e instanceof Error ? e.message : "Timeout",
+          checked_at: checkedAt,
+        });
+      }
+    } else {
+      results.push({
+        name: "Resend",
+        status: "degraded",
+        latency_ms: null,
+        message: "API key not configured",
+        checked_at: checkedAt,
+      });
+    }
+
+    res.json({ success: true, services: results });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Dashboard stats
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const [
+        usersRes,
+        groupsRes,
+        predictionsRes,
+        matchesRes,
+        sessionsRes,
+        liveMatchesRes,
+        recentUsersRes,
+        recentGroupsRes,
+        groupsByModeRes,
+      ] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("groups").select("id", { count: "exact", head: true }),
+        supabase
+          .from("predictions")
+          .select("id", { count: "exact", head: true }),
+        supabase.from("matches").select("id", { count: "exact", head: true }),
+        supabase
+          .from("user_sessions")
+          .select("id", { count: "exact", head: true })
+          .is("revoked_at", null)
+          .gt("expires_at", new Date().toISOString()),
+        supabase
+          .from("matches")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "live"),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .gte(
+            "created_at",
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          ),
+        supabase
+          .from("groups")
+          .select("id", { count: "exact", head: true })
+          .gte(
+            "created_at",
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          ),
+        supabase.from("groups").select("mode"),
+      ]);
+
+      const groups_by_mode: Record<string, number> = {};
+      if (groupsByModeRes.data) {
+        for (const g of groupsByModeRes.data) {
+          groups_by_mode[g.mode] = (groups_by_mode[g.mode] ?? 0) + 1;
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          total_users: usersRes.count ?? 0,
+          total_groups: groupsRes.count ?? 0,
+          total_predictions: predictionsRes.count ?? 0,
+          total_matches: matchesRes.count ?? 0,
+          active_sessions: sessionsRes.count ?? 0,
+          live_matches: liveMatchesRes.count ?? 0,
+          groups_by_mode,
+          recent_signups: recentUsersRes.count ?? 0,
+          recent_groups: recentGroupsRes.count ?? 0,
+        },
+      });
+    } catch (err) {
+      console.error("Admin stats error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Users
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const search = String(req.query.search ?? "").trim();
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    try {
+      let query = supabase
+        .from("profiles")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (search) {
+        query = query.or(
+          `username.ilike.%${search}%,display_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`,
+        );
+      }
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      // Enrich with group/prediction/session counts
+      const userIds = (data ?? []).map((u) => u.id);
+      const [groupCountsRes, predCountsRes, sessionCountsRes] =
+        await Promise.all([
+          supabase
+            .from("group_members")
+            .select("user_id")
+            .in("user_id", userIds),
+          supabase.from("predictions").select("user_id").in("user_id", userIds),
+          supabase
+            .from("user_sessions")
+            .select("user_id")
+            .in("user_id", userIds)
+            .is("revoked_at", null)
+            .gt("expires_at", new Date().toISOString()),
+        ]);
+
+      const groupCounts: Record<string, number> = {};
+      const predCounts: Record<string, number> = {};
+      const sessionCounts: Record<string, number> = {};
+      for (const r of groupCountsRes.data ?? [])
+        groupCounts[r.user_id] = (groupCounts[r.user_id] ?? 0) + 1;
+      for (const r of predCountsRes.data ?? [])
+        predCounts[r.user_id] = (predCounts[r.user_id] ?? 0) + 1;
+      for (const r of sessionCountsRes.data ?? [])
+        sessionCounts[r.user_id] = (sessionCounts[r.user_id] ?? 0) + 1;
+
+      const items = (data ?? []).map((u) => ({
+        ...u,
+        groups_count: groupCounts[u.id] ?? 0,
+        predictions_count: predCounts[u.id] ?? 0,
+        active_sessions: sessionCounts[u.id] ?? 0,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin users error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", req.params.id)
+        .single();
+      if (error || !data)
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+
+      const [groupsRes, predsRes, sessionsRes] = await Promise.all([
+        supabase
+          .from("group_members")
+          .select("id")
+          .eq("user_id", req.params.id),
+        supabase.from("predictions").select("id").eq("user_id", req.params.id),
+        supabase
+          .from("user_sessions")
+          .select("id")
+          .eq("user_id", req.params.id)
+          .is("revoked_at", null)
+          .gt("expires_at", new Date().toISOString()),
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          ...data,
+          groups_count: groupsRes.data?.length ?? 0,
+          predictions_count: predsRes.data?.length ?? 0,
+          active_sessions: sessionsRes.data?.length ?? 0,
+        },
+      });
+    } catch (err) {
+      console.error("Admin user detail error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = [
+      "username",
+      "display_name",
+      "first_name",
+      "last_name",
+      "phone",
+      "country",
+      "locale",
+    ];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+    updates.updated_at = new Date().toISOString();
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update user error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const userId = String(req.params.id);
+    try {
+      // Delete from Supabase Auth (cascades to profiles)
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: userId } });
+    } catch (err) {
+      console.error("Admin delete user error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // POST /api/admin/users — create a new regular user manually
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const {
+      email,
+      password,
+      username,
+      first_name,
+      last_name,
+      phone,
+      country,
+      locale,
+    } = req.body as {
+      email?: string;
+      password?: string;
+      username?: string;
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      country?: string;
+      locale?: string;
+    };
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      res
+        .status(400)
+        .json({ success: false, message: "Valid email required." });
+      return;
+    }
+    if (!password || password.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters.",
+      });
+      return;
+    }
+
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const defaultUsername = username?.trim() || normalizedEmail.split("@")[0];
+
+      // Derive display_name exactly like verify-code does — never ask for it explicitly
+      const derivedDisplayName =
+        first_name?.trim() && last_name?.trim()
+          ? `${first_name.trim()} ${last_name.trim()}`
+          : defaultUsername;
+
+      // Create auth user (email_confirm: true skips verification email)
+      const { data: authData, error: authError } =
+        await supabase.auth.admin.createUser({
+          email: normalizedEmail,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            username: defaultUsername,
+            display_name: derivedDisplayName,
+          },
+        });
+
+      if (authError) {
+        res.status(400).json({ success: false, message: authError.message });
+        return;
+      }
+
+      const userId = authData.user.id;
+
+      // Apply extra profile fields (trigger auto-created the profile row)
+      const profileUpdates: Record<string, unknown> = {
+        // Always sync username and derived display_name so the profile
+        // matches what verify-code would produce
+        username: defaultUsername,
+        display_name: derivedDisplayName,
+      };
+      if (first_name?.trim()) profileUpdates.first_name = first_name.trim();
+      if (last_name?.trim()) profileUpdates.last_name = last_name.trim();
+      if (phone?.trim()) profileUpdates.phone = phone.trim();
+      if (country?.trim()) profileUpdates.country = country.trim();
+      if (locale) profileUpdates.locale = locale;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        await supabase.from("profiles").update(profileUpdates).eq("id", userId);
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      res.status(201).json({
+        success: true,
+        data: {
+          ...(profile ?? {}),
+          groups_count: 0,
+          predictions_count: 0,
+          active_sessions: 0,
+        },
+      });
+    } catch (err) {
+      console.error("Admin create user error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/sessions", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    try {
+      const { data, count, error } = await supabase
+        .from("user_sessions")
+        .select(
+          "id, user_id, delivery_method, device_info, ip_address, last_seen_at, expires_at, created_at, profiles!user_sessions_user_id_fkey(username)",
+          { count: "exact" },
+        )
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("last_seen_at", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      const items = (data ?? []).map((s: any) => ({
+        id: s.id,
+        user_id: s.user_id,
+        username: s.profiles?.username ?? null,
+        delivery_method: s.delivery_method,
+        device_info: s.device_info,
+        ip_address: s.ip_address,
+        last_seen_at: s.last_seen_at,
+        expires_at: s.expires_at,
+        created_at: s.created_at,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin sessions error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/sessions/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin revoke session error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Competitions
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/competitions", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { data, error } = await supabase
+        .from("competitions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const ids = (data ?? []).map((c) => c.id);
+      const [teamsRes, matchesRes, groupsRes] = await Promise.all([
+        supabase
+          .from("teams")
+          .select("competition_id")
+          .in("competition_id", ids),
+        supabase
+          .from("matches")
+          .select("competition_id")
+          .in("competition_id", ids),
+        supabase
+          .from("groups")
+          .select("competition_id")
+          .in("competition_id", ids),
+      ]);
+
+      const teamCounts: Record<string, number> = {};
+      const matchCounts: Record<string, number> = {};
+      const groupCounts: Record<string, number> = {};
+      for (const r of teamsRes.data ?? [])
+        teamCounts[r.competition_id] = (teamCounts[r.competition_id] ?? 0) + 1;
+      for (const r of matchesRes.data ?? [])
+        matchCounts[r.competition_id] =
+          (matchCounts[r.competition_id] ?? 0) + 1;
+      for (const r of groupsRes.data ?? [])
+        groupCounts[r.competition_id] =
+          (groupCounts[r.competition_id] ?? 0) + 1;
+
+      const items = (data ?? []).map((c) => ({
+        ...c,
+        teams_count: teamCounts[c.id] ?? 0,
+        matches_count: matchCounts[c.id] ?? 0,
+        groups_count: groupCounts[c.id] ?? 0,
+      }));
+
+      res.json({ success: true, data: items });
+    } catch (err) {
+      console.error("Admin competitions error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/competitions", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const {
+      name,
+      short_name,
+      type,
+      season,
+      starts_at,
+      ends_at,
+      is_active,
+      is_test,
+      logo_url,
+      external_id,
+    } = req.body ?? {};
+
+    if (!name || !type || !season)
+      return res.status(400).json({
+        success: false,
+        message: "name, type and season are required",
+      });
+
+    try {
+      const { data, error } = await supabase
+        .from("competitions")
+        .insert({
+          name,
+          short_name: short_name ?? null,
+          type,
+          season,
+          starts_at: starts_at ?? null,
+          ends_at: ends_at ?? null,
+          is_active: is_active ?? true,
+          is_test: is_test ?? false,
+          logo_url: logo_url ?? null,
+          external_id: external_id ?? null,
+        })
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      console.error("Admin create competition error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/competitions/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = [
+      "name",
+      "short_name",
+      "type",
+      "season",
+      "starts_at",
+      "ends_at",
+      "is_active",
+      "is_test",
+      "logo_url",
+      "external_id",
+    ];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("competitions")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update competition error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/competitions/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("competitions")
+        .delete()
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin delete competition error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Teams
+  // ─────────────────────────────────────────────────────────────────
+  app.get(
+    "/api/admin/competitions/:id/teams",
+    requireAdmin,
+    async (req, res) => {
+      const supabase = getSupabaseAdmin();
+      try {
+        const { data, error } = await supabase
+          .from("teams")
+          .select("*, competitions!teams_competition_id_fkey(name)")
+          .eq("competition_id", req.params.id)
+          .order("name");
+        if (error) throw error;
+
+        const items = (data ?? []).map((t: any) => ({
+          id: t.id,
+          competition_id: t.competition_id,
+          competition_name: t.competitions?.name ?? null,
+          name: t.name,
+          short_name: t.short_name,
+          country_code: t.country_code,
+          flag_url: t.flag_url,
+          tier: t.tier,
+          external_id: t.external_id,
+          created_at: t.created_at,
+        }));
+
+        res.json({ success: true, data: items });
+      } catch (err) {
+        console.error("Admin teams error:", err);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/competitions/:id/teams",
+    requireAdmin,
+    async (req, res) => {
+      const supabase = getSupabaseAdmin();
+      const { name, short_name, country_code, flag_url, tier, external_id } =
+        req.body ?? {};
+      if (!name)
+        return res
+          .status(400)
+          .json({ success: false, message: "name is required" });
+
+      try {
+        const { data, error } = await supabase
+          .from("teams")
+          .insert({
+            competition_id: req.params.id,
+            name,
+            short_name: short_name ?? null,
+            country_code: country_code ?? null,
+            flag_url: flag_url ?? null,
+            tier: tier ?? 1,
+            external_id: external_id ?? null,
+          })
+          .select()
+          .single();
+        if (error)
+          return res
+            .status(400)
+            .json({ success: false, message: error.message });
+        res.status(201).json({ success: true, data });
+      } catch (err) {
+        console.error("Admin create team error:", err);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    },
+  );
+
+  app.patch("/api/admin/teams/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = [
+      "name",
+      "short_name",
+      "country_code",
+      "flag_url",
+      "tier",
+      "external_id",
+    ];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("teams")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update team error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/teams/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .delete()
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin delete team error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Matches
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/matches", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const competition_id = req.query.competition_id as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    try {
+      let query = supabase
+        .from("matches")
+        .select(
+          "*, competitions!matches_competition_id_fkey(name), home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)",
+          { count: "exact" },
+        )
+        .order("match_date", { ascending: false })
+        .range(from, to);
+
+      if (competition_id) query = query.eq("competition_id", competition_id);
+      if (status) query = query.eq("status", status);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      const items = (data ?? []).map((m: any) => ({
+        id: m.id,
+        competition_id: m.competition_id,
+        competition_name: m.competitions?.name ?? null,
+        home_team_id: m.home_team_id,
+        home_team_name: m.home_team?.name ?? null,
+        away_team_id: m.away_team_id,
+        away_team_name: m.away_team?.name ?? null,
+        stage: m.stage,
+        match_date: m.match_date,
+        prediction_lock: m.prediction_lock,
+        home_score: m.home_score,
+        away_score: m.away_score,
+        ht_score_home: m.ht_score_home,
+        ht_score_away: m.ht_score_away,
+        status: m.status,
+        external_id: m.external_id,
+        last_synced_at: m.last_synced_at,
+        created_at: m.created_at,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin matches error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/matches", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const {
+      competition_id,
+      home_team_id,
+      away_team_id,
+      stage,
+      match_date,
+      prediction_lock,
+      home_score,
+      away_score,
+      ht_score_home,
+      ht_score_away,
+      status,
+      external_id,
+    } = req.body ?? {};
+
+    if (!competition_id || !match_date)
+      return res.status(400).json({
+        success: false,
+        message: "competition_id and match_date are required",
+      });
+
+    try {
+      const { data, error } = await supabase
+        .from("matches")
+        .insert({
+          competition_id,
+          home_team_id: home_team_id ?? null,
+          away_team_id: away_team_id ?? null,
+          stage: stage ?? null,
+          match_date,
+          prediction_lock: prediction_lock ?? null,
+          home_score: home_score ?? null,
+          away_score: away_score ?? null,
+          ht_score_home: ht_score_home ?? null,
+          ht_score_away: ht_score_away ?? null,
+          status: status ?? "scheduled",
+          external_id: external_id ?? null,
+        })
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      console.error("Admin create match error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/matches/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = [
+      "home_team_id",
+      "away_team_id",
+      "stage",
+      "match_date",
+      "prediction_lock",
+      "home_score",
+      "away_score",
+      "ht_score_home",
+      "ht_score_away",
+      "status",
+      "external_id",
+    ];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("matches")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update match error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/matches/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("matches")
+        .delete()
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin delete match error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Venues
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/venues", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { data, error } = await supabase
+        .from("venues")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      res.json({ success: true, data: data ?? [] });
+    } catch (err) {
+      console.error("Admin venues error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/venues", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { name, city, country, country_code, capacity, latitude, longitude } =
+      req.body ?? {};
+    if (!name || !city || !country)
+      return res.status(400).json({
+        success: false,
+        message: "name, city and country are required",
+      });
+
+    try {
+      const { data, error } = await supabase
+        .from("venues")
+        .insert({
+          name,
+          city,
+          country,
+          country_code: country_code ?? null,
+          capacity: capacity ?? null,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
+        })
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      console.error("Admin create venue error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/venues/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = [
+      "name",
+      "city",
+      "country",
+      "country_code",
+      "capacity",
+      "latitude",
+      "longitude",
+    ];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("venues")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update venue error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/venues/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("venues")
+        .delete()
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin delete venue error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Groups
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/groups", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const search = String(req.query.search ?? "").trim();
+
+    try {
+      let query = supabase
+        .from("groups")
+        .select(
+          "*, competitions!groups_competition_id_fkey(name), profiles!groups_owner_id_fkey(username)",
+          { count: "exact" },
+        )
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (search) query = query.ilike("name", `%${search}%`);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      const groupIds = (data ?? []).map((g) => g.id);
+      const membersRes = await supabase
+        .from("group_members")
+        .select("group_id")
+        .in("group_id", groupIds);
+      const memberCounts: Record<string, number> = {};
+      for (const m of membersRes.data ?? [])
+        memberCounts[m.group_id] = (memberCounts[m.group_id] ?? 0) + 1;
+
+      const items = (data ?? []).map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        invite_code: g.invite_code,
+        competition_id: g.competition_id,
+        competition_name: g.competitions?.name ?? null,
+        mode: g.mode,
+        draft_type: g.draft_type,
+        owner_id: g.owner_id,
+        owner_username: g.profiles?.username ?? null,
+        max_members: g.max_members,
+        status: g.status,
+        member_count: memberCounts[g.id] ?? 0,
+        is_active: g.is_active,
+        is_test: g.is_test,
+        created_at: g.created_at,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin groups error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/admin/groups/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const allowed = ["name", "is_active", "is_test", "status", "max_members"];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+    updates.updated_at = new Date().toISOString();
+
+    try {
+      const { data, error } = await supabase
+        .from("groups")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin update group error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/admin/groups/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { error } = await supabase
+        .from("groups")
+        .delete()
+        .eq("id", req.params.id);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+      res.json({ success: true, data: { id: req.params.id } });
+    } catch (err) {
+      console.error("Admin delete group error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/groups/:id/members", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { data, error } = await supabase
+        .from("group_members")
+        .select(
+          "*, profiles!group_members_user_id_fkey(username, display_name, avatar_url)",
+        )
+        .eq("group_id", req.params.id)
+        .order("total_points", { ascending: false });
+      if (error) throw error;
+
+      const items = (data ?? []).map((m: any) => ({
+        id: m.id,
+        group_id: m.group_id,
+        user_id: m.user_id,
+        username: m.profiles?.username ?? null,
+        display_name: m.profiles?.display_name ?? null,
+        avatar_url: m.profiles?.avatar_url ?? null,
+        role: m.role,
+        total_points: m.total_points,
+        joined_at: m.joined_at,
+      }));
+
+      res.json({ success: true, data: items });
+    } catch (err) {
+      console.error("Admin group members error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.delete(
+    "/api/admin/groups/:id/members/:userId",
+    requireAdmin,
+    async (req, res) => {
+      const supabase = getSupabaseAdmin();
+      try {
+        const { error } = await supabase
+          .from("group_members")
+          .delete()
+          .eq("group_id", req.params.id)
+          .eq("user_id", req.params.userId);
+        if (error)
+          return res
+            .status(400)
+            .json({ success: false, message: error.message });
+        res.json({
+          success: true,
+          data: { group_id: req.params.id, user_id: req.params.userId },
+        });
+      } catch (err) {
+        console.error("Admin remove member error:", err);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    },
+  );
+
+  // POST /api/admin/groups — create a group manually
+  app.post("/api/admin/groups", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { name, competition_id, mode, draft_type, max_members, is_test } =
+      req.body as {
+        name?: string;
+        competition_id?: string;
+        mode?: string;
+        draft_type?: string;
+        max_members?: number;
+        is_test?: boolean;
+      };
+
+    if (!name?.trim()) {
+      res.status(400).json({ success: false, message: "name is required." });
+      return;
+    }
+    const validModes = [
+      "friends",
+      "casual",
+      "league",
+      "competitive",
+      "global",
+      "ownership",
+    ];
+    if (!mode || !validModes.includes(mode)) {
+      res.status(400).json({ success: false, message: "Valid mode required." });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("groups")
+        .insert({
+          name: name.trim(),
+          competition_id: competition_id || null,
+          mode,
+          draft_type: draft_type || "snake",
+          max_members: max_members || 50,
+          is_test: is_test ?? false,
+          is_active: true,
+          status: "waiting",
+        })
+        .select(
+          "*, competitions!groups_competition_id_fkey(name), profiles!groups_owner_id_fkey(username)",
+        )
+        .single();
+
+      if (error) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        data: {
+          id: data.id,
+          name: data.name,
+          invite_code: data.invite_code,
+          competition_id: data.competition_id,
+          competition_name: (data as any).competitions?.name ?? null,
+          mode: data.mode,
+          draft_type: data.draft_type,
+          owner_id: data.owner_id,
+          owner_username: (data as any).profiles?.username ?? null,
+          max_members: data.max_members,
+          status: data.status,
+          member_count: 0,
+          is_active: data.is_active,
+          is_test: data.is_test,
+          created_at: data.created_at,
+        },
+      });
+    } catch (err) {
+      console.error("Admin create group error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // POST /api/admin/groups/:id/members — add a user to a group by email or username
+  app.post("/api/admin/groups/:id/members", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const groupId = req.params.id;
+    const { identifier, role } = req.body as {
+      identifier?: string; // email or username
+      role?: string;
+    };
+
+    if (!identifier?.trim()) {
+      res.status(400).json({
+        success: false,
+        message: "identifier (email or username) is required.",
+      });
+      return;
+    }
+
+    try {
+      // Resolve user — try email first, then username
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(identifier.trim());
+
+      // We need email from auth.users, so we look up auth users
+      let userId: string | null = null;
+      let profileRow: Record<string, unknown> | null = null;
+
+      if (isEmail) {
+        // Try to find via auth.users email
+        const { data: listData } = await supabase.auth.admin.listUsers({
+          perPage: 1000,
+        });
+        const authUser = (listData?.users ?? []).find(
+          (u) => u.email?.toLowerCase() === identifier.trim().toLowerCase(),
+        );
+        if (authUser) userId = authUser.id;
+      } else {
+        // Look up by username in profiles
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", identifier.trim())
+          .single();
+        if (profile) userId = profile.id;
+      }
+
+      if (!userId) {
+        res.status(404).json({ success: false, message: "User not found." });
+        return;
+      }
+
+      // Fetch profile for response
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .eq("id", userId)
+        .single();
+      profileRow = profile;
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from("group_members")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("user_id", userId)
+        .single();
+
+      if (existing) {
+        res
+          .status(409)
+          .json({ success: false, message: "User is already a member." });
+        return;
+      }
+
+      const memberRole = ["admin", "member"].includes(role ?? "")
+        ? role
+        : "member";
+      const { data: member, error: insertError } = await supabase
+        .from("group_members")
+        .insert({ group_id: groupId, user_id: userId, role: memberRole })
+        .select("id, group_id, user_id, role, total_points, joined_at")
+        .single();
+
+      if (insertError) {
+        res.status(400).json({ success: false, message: insertError.message });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        data: {
+          ...(member ?? {}),
+          username: (profileRow as any)?.username ?? null,
+          display_name: (profileRow as any)?.display_name ?? null,
+          avatar_url: (profileRow as any)?.avatar_url ?? null,
+        },
+      });
+    } catch (err) {
+      console.error("Admin add member error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // PATCH /api/admin/groups/:id/members/:userId — change member role
+  app.patch(
+    "/api/admin/groups/:id/members/:userId",
+    requireAdmin,
+    async (req, res) => {
+      const supabase = getSupabaseAdmin();
+      const { role } = req.body as { role?: string };
+      if (!["admin", "member"].includes(role ?? "")) {
+        res.status(400).json({
+          success: false,
+          message: "role must be 'admin' or 'member'.",
+        });
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("group_members")
+          .update({ role })
+          .eq("group_id", req.params.id)
+          .eq("user_id", req.params.userId)
+          .select("id, group_id, user_id, role, total_points, joined_at")
+          .single();
+        if (error) {
+          res.status(400).json({ success: false, message: error.message });
+          return;
+        }
+        res.json({ success: true, data });
+      } catch (err) {
+        console.error("Admin update member role error:", err);
+        res
+          .status(500)
+          .json({ success: false, message: "Internal server error" });
+      }
+    },
+  );
+
+  // PATCH /api/admin/groups/:id/owner — transfer group ownership
+  app.patch("/api/admin/groups/:id/owner", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const groupId = req.params.id;
+    const { user_id } = req.body as { user_id?: string };
+    if (!user_id) {
+      res.status(400).json({ success: false, message: "user_id is required." });
+      return;
+    }
+    try {
+      // Ensure new owner is a member (add if not)
+      const { data: existing } = await supabase
+        .from("group_members")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("user_id", user_id)
+        .single();
+      if (!existing) {
+        await supabase
+          .from("group_members")
+          .insert({ group_id: groupId, user_id, role: "admin" });
+      } else {
+        await supabase
+          .from("group_members")
+          .update({ role: "admin" })
+          .eq("group_id", groupId)
+          .eq("user_id", user_id);
+      }
+      const { data, error } = await supabase
+        .from("groups")
+        .update({ owner_id: user_id })
+        .eq("id", groupId)
+        .select("id, owner_id")
+        .single();
+      if (error) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
+      }
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin transfer ownership error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Predictions (read-only view)
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/predictions", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    const group_id = req.query.group_id as string | undefined;
+    const user_id = req.query.user_id as string | undefined;
+
+    try {
+      let query = supabase
+        .from("predictions")
+        .select(
+          "*, groups!predictions_group_id_fkey(name), profiles!predictions_user_id_fkey(username), matches!predictions_match_id_fkey(match_date, home_team_id, away_team_id, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name))",
+          { count: "exact" },
+        )
+        .order("submitted_at", { ascending: false })
+        .range(from, to);
+
+      if (group_id) query = query.eq("group_id", group_id);
+      if (user_id) query = query.eq("user_id", user_id);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      const items = (data ?? []).map((p: any) => ({
+        id: p.id,
+        group_id: p.group_id,
+        group_name: p.groups?.name ?? null,
+        user_id: p.user_id,
+        username: p.profiles?.username ?? null,
+        match_id: p.match_id,
+        match_label: p.matches
+          ? `${p.matches.home_team?.name ?? "?"} vs ${p.matches.away_team?.name ?? "?"}`
+          : null,
+        predicted_home: p.predicted_home,
+        predicted_away: p.predicted_away,
+        result: p.result,
+        points_earned: p.points_earned,
+        bonus_pts: p.bonus_pts,
+        submitted_at: p.submitted_at,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin predictions error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: Notifications (view & bulk send)
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/notifications", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    try {
+      const { data, count, error } = await supabase
+        .from("notifications")
+        .select("*, profiles!notifications_user_id_fkey(username)", {
+          count: "exact",
+        })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+
+      const items = (data ?? []).map((n: any) => ({
+        id: n.id,
+        user_id: n.user_id,
+        username: n.profiles?.username ?? null,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        is_read: n.is_read,
+        created_at: n.created_at,
+      }));
+
+      res.json({
+        success: true,
+        data: { items, total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin notifications error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/notifications", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { user_ids, type, title, body, metadata } = req.body ?? {};
+    if (!type || !title)
+      return res
+        .status(400)
+        .json({ success: false, message: "type and title are required" });
+
+    try {
+      let targetIds: string[] = user_ids ?? [];
+      if (!targetIds.length) {
+        const { data } = await supabase.from("profiles").select("id");
+        targetIds = (data ?? []).map((p) => p.id);
+      }
+
+      const rows = targetIds.map((uid: string) => ({
+        user_id: uid,
+        type,
+        title,
+        body: body ?? null,
+        metadata: metadata ?? null,
+        is_read: false,
+      }));
+
+      const { error } = await supabase.from("notifications").insert(rows);
+      if (error)
+        return res.status(400).json({ success: false, message: error.message });
+
+      res.status(201).json({
+        success: true,
+        data: { sent_to: targetIds.length },
+      });
+    } catch (err) {
+      console.error("Admin bulk notification error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN: OTP Requests (audit log)
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/otp-requests", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1")));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(String(req.query.limit ?? "25"))),
+    );
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    try {
+      const { data, count, error } = await supabase
+        .from("otp_requests")
+        .select(
+          "id, identifier, delivery_method, expires_at, verified_at, attempt_count, is_used, ip_address, created_at",
+          { count: "exact" },
+        )
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: { items: data ?? [], total: count ?? 0, page, limit },
+      });
+    } catch (err) {
+      console.error("Admin OTP requests error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN PROFILE: GET /api/admin/profile
+  // Returns the full admin_users row for the authenticated admin.
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/profile", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    const userId = res.locals.adminUserId as string;
+    try {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select(
+          "id, email, username, display_name, first_name, last_name, phone, country, locale, is_active, created_at",
+        )
+        .eq("id", userId)
+        .single();
+      if (error || !data) throw error ?? new Error("Profile not found");
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin profile fetch error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN PROFILE: PATCH /api/admin/profile
+  // Updates editable fields on the authenticated admin's own record.
+  // ─────────────────────────────────────────────────────────────────
+  app.patch("/api/admin/profile", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const userId = res.locals.adminUserId as string;
+    const ALLOWED = [
+      "display_name",
+      "first_name",
+      "last_name",
+      "phone",
+      "country",
+      "locale",
+    ] as const;
+    const updates: Record<string, unknown> = {};
+    for (const key of ALLOWED) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+    if (Object.keys(updates).length === 0) {
+      res
+        .status(400)
+        .json({ success: false, message: "No valid fields to update." });
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .update(updates)
+        .eq("id", userId)
+        .select(
+          "id, email, username, display_name, first_name, last_name, phone, country, locale, is_active",
+        )
+        .single();
+      if (error) throw error;
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin profile update error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // ADMIN PEOPLE: GET /api/admin/people
+  // Lists all admin_users rows (the admin team, not regular users).
+  // ─────────────────────────────────────────────────────────────────
+  app.get("/api/admin/people", requireAdmin, async (_req, res) => {
+    const supabase = getSupabaseAdmin();
+    try {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select(
+          "id, email, username, display_name, first_name, last_name, phone, country, locale, is_active, created_at, updated_at",
+        )
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      res.json({ success: true, data: data ?? [] });
+    } catch (err) {
+      console.error("Admin people list error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN PEOPLE: POST /api/admin/people
+  // Creates a new admin user. Email + username must be unique.
+  app.post("/api/admin/people", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const {
+      email,
+      username,
+      display_name,
+      first_name,
+      last_name,
+      phone,
+      country,
+      locale,
+    } = req.body as {
+      email?: string;
+      username?: string;
+      display_name?: string;
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      country?: string;
+      locale?: string;
+    };
+    if (!email || !username) {
+      res
+        .status(400)
+        .json({ success: false, message: "email and username are required." });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ success: false, message: "Invalid email." });
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .insert({
+          email: email.trim().toLowerCase(),
+          username: username.trim(),
+          display_name: display_name ?? null,
+          first_name: first_name ?? null,
+          last_name: last_name ?? null,
+          phone: phone ?? null,
+          country: country ?? null,
+          locale: locale ?? "en",
+          is_active: true,
+        })
+        .select(
+          "id, email, username, display_name, first_name, last_name, phone, country, locale, is_active, created_at, updated_at",
+        )
+        .single();
+      if (error) {
+        if (error.code === "23505") {
+          res.status(409).json({
+            success: false,
+            message: "Email or username already in use.",
+          });
+          return;
+        }
+        throw error;
+      }
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      console.error("Admin people create error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN PEOPLE: PATCH /api/admin/people/:id
+  app.patch("/api/admin/people/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { id } = req.params;
+    const ALLOWED = [
+      "display_name",
+      "first_name",
+      "last_name",
+      "phone",
+      "country",
+      "locale",
+      "is_active",
+    ] as const;
+    const updates: Record<string, unknown> = {};
+    for (const key of ALLOWED) {
+      if (key in req.body) updates[key] = req.body[key];
+    }
+    if (Object.keys(updates).length === 0) {
+      res
+        .status(400)
+        .json({ success: false, message: "No valid fields to update." });
+      return;
+    }
+    // Prevent deactivating yourself
+    if (
+      updates.is_active === false &&
+      id === (res.locals.adminUserId as string)
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Cannot deactivate your own account.",
+      });
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("admin_users")
+        .update(updates)
+        .eq("id", id)
+        .select(
+          "id, email, username, display_name, first_name, last_name, phone, country, locale, is_active, created_at, updated_at",
+        )
+        .single();
+      if (error) throw error;
+      if (!data) {
+        res
+          .status(404)
+          .json({ success: false, message: "Admin user not found." });
+        return;
+      }
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin people update error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN PEOPLE: DELETE /api/admin/people/:id
+  // Hard-deletes an admin user. Cannot delete yourself.
+  app.delete("/api/admin/people/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { id } = req.params;
+    if (id === (res.locals.adminUserId as string)) {
+      res
+        .status(400)
+        .json({ success: false, message: "Cannot delete your own account." });
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("admin_users")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Admin people delete error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
 
   return app;
 }

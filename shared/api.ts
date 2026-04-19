@@ -418,3 +418,392 @@ export interface CreateSupportCaseRequest {
 }
 
 export type CreateSupportCaseResponse = ApiSuccess<SupportCase>;
+
+// ── Admin ──────────────────────────────────────────────────────
+
+export interface AdminStats {
+  total_users: number;
+  total_groups: number;
+  total_predictions: number;
+  total_matches: number;
+  active_sessions: number;
+  live_matches: number;
+  groups_by_mode: Record<string, number>;
+  recent_signups: number; // last 7 days
+  recent_groups: number; // last 7 days
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  country: string | null;
+  avatar_url: string | null;
+  locale: string;
+  created_at: string;
+  updated_at: string;
+  groups_count: number;
+  predictions_count: number;
+  active_sessions: number;
+}
+
+export interface AdminSession {
+  id: string;
+  user_id: string;
+  username: string | null;
+  delivery_method: string | null;
+  device_info: Record<string, unknown> | null;
+  ip_address: string | null;
+  last_seen_at: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface AdminGroup {
+  id: string;
+  name: string;
+  invite_code: string;
+  competition_id: string;
+  competition_name: string | null;
+  mode: string;
+  draft_type: string;
+  owner_id: string | null;
+  owner_username: string | null;
+  max_members: number;
+  status: string;
+  member_count: number;
+  is_active: boolean;
+  is_test: boolean;
+  created_at: string;
+}
+
+export interface AdminGroupMember {
+  id: string;
+  group_id: string;
+  user_id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: string;
+  total_points: number;
+  joined_at: string;
+}
+
+export interface AdminMatch {
+  id: string;
+  competition_id: string;
+  competition_name: string | null;
+  home_team_id: string | null;
+  home_team_name: string | null;
+  away_team_id: string | null;
+  away_team_name: string | null;
+  stage: string | null;
+  match_date: string;
+  prediction_lock: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  ht_score_home: number | null;
+  ht_score_away: number | null;
+  status: string;
+  external_id: number | null;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface AdminCompetition {
+  id: string;
+  name: string;
+  short_name: string | null;
+  type: string;
+  season: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  is_test: boolean;
+  logo_url: string | null;
+  external_id: number | null;
+  last_synced_at: string | null;
+  created_at: string;
+  teams_count: number;
+  matches_count: number;
+  groups_count: number;
+}
+
+export interface AdminTeam {
+  id: string;
+  competition_id: string;
+  competition_name: string | null;
+  name: string;
+  short_name: string | null;
+  country_code: string | null;
+  flag_url: string | null;
+  tier: number;
+  external_id: number | null;
+  created_at: string;
+}
+
+export interface AdminVenue {
+  id: string;
+  name: string;
+  city: string;
+  country: string;
+  country_code: string | null;
+  capacity: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
+
+export interface AdminPrediction {
+  id: string;
+  group_id: string;
+  group_name: string | null;
+  user_id: string;
+  username: string | null;
+  match_id: string;
+  match_label: string | null;
+  predicted_home: number;
+  predicted_away: number;
+  result: string;
+  points_earned: number;
+  bonus_pts: number;
+  submitted_at: string;
+}
+
+export interface AdminNotification {
+  id: string;
+  user_id: string;
+  username: string | null;
+  type: string;
+  title: string;
+  body: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface AdminOtpRequest {
+  id: string;
+  identifier: string;
+  delivery_method: string;
+  expires_at: string;
+  verified_at: string | null;
+  attempt_count: number;
+  is_used: boolean;
+  ip_address: string | null;
+  created_at: string;
+}
+
+// paginated list wrapper
+export interface AdminPaginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// Admin request bodies
+export interface AdminUpdateUserRequest {
+  username?: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  country?: string;
+  locale?: string;
+}
+
+export interface AdminCreateCompetitionRequest {
+  name: string;
+  short_name?: string;
+  type: string;
+  season: string;
+  starts_at?: string;
+  ends_at?: string;
+  is_active?: boolean;
+  is_test?: boolean;
+  logo_url?: string;
+  external_id?: number;
+}
+
+export interface AdminUpdateCompetitionRequest {
+  name?: string;
+  short_name?: string;
+  type?: string;
+  season?: string;
+  starts_at?: string;
+  ends_at?: string;
+  is_active?: boolean;
+  is_test?: boolean;
+  logo_url?: string;
+  external_id?: number;
+}
+
+export interface AdminCreateTeamRequest {
+  name: string;
+  short_name?: string;
+  country_code?: string;
+  flag_url?: string;
+  tier?: number;
+  external_id?: number;
+}
+
+export interface AdminUpdateTeamRequest {
+  name?: string;
+  short_name?: string;
+  country_code?: string;
+  flag_url?: string;
+  tier?: number;
+  external_id?: number;
+}
+
+export interface AdminCreateMatchRequest {
+  competition_id: string;
+  home_team_id?: string;
+  away_team_id?: string;
+  stage?: string;
+  match_date: string;
+  prediction_lock?: string;
+  home_score?: number;
+  away_score?: number;
+  ht_score_home?: number;
+  ht_score_away?: number;
+  status?: string;
+  external_id?: number;
+}
+
+export interface AdminUpdateMatchRequest {
+  home_team_id?: string;
+  away_team_id?: string;
+  stage?: string;
+  match_date?: string;
+  prediction_lock?: string;
+  home_score?: number | null;
+  away_score?: number | null;
+  ht_score_home?: number | null;
+  ht_score_away?: number | null;
+  status?: string;
+  external_id?: number | null;
+}
+
+export interface AdminCreateVenueRequest {
+  name: string;
+  city: string;
+  country: string;
+  country_code?: string;
+  capacity?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface AdminUpdateVenueRequest {
+  name?: string;
+  city?: string;
+  country?: string;
+  country_code?: string;
+  capacity?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface AdminUpdateGroupRequest {
+  name?: string;
+  is_active?: boolean;
+  is_test?: boolean;
+  status?: string;
+  max_members?: number;
+}
+
+export interface AdminBulkNotificationRequest {
+  user_ids?: string[]; // if empty → send to all users
+  type: string;
+  title: string;
+  body?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Admin OTP auth
+export interface AdminSendCodeRequest {
+  identifier: string; // email
+}
+
+export interface AdminSendCodeResponse {
+  success: boolean;
+  debug_code?: number; // dev only
+}
+
+export interface AdminVerifyCodeRequest {
+  identifier: string;
+  code: string;
+}
+
+export interface AdminVerifyCodeResponse {
+  success: boolean;
+  sessionToken: string;
+  adminProfile: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    email: string;
+  };
+}
+
+// Services health monitoring
+export interface AdminServiceStatus {
+  name: string;
+  status: "healthy" | "degraded" | "down";
+  latency_ms: number | null;
+  message?: string;
+  checked_at: string;
+}
+
+export interface AdminServicesHealthResponse {
+  success: boolean;
+  services: AdminServiceStatus[];
+}
+
+// Keep for backward compat — no longer used by new OTP flow
+export interface AdminLoginResponse {
+  success: boolean;
+  token: string;
+}
+
+// ── Admin people (admin_users table) ──────────────────────────
+// Completely separate from regular profiles / auth.users.
+export interface AdminPerson {
+  id: string;
+  email: string;
+  username: string;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  country: string | null;
+  locale: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminCreatePersonRequest {
+  email: string;
+  username: string;
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  country?: string;
+  locale?: string;
+}
+
+export interface AdminUpdatePersonRequest {
+  display_name?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  country?: string;
+  locale?: string;
+  is_active?: boolean;
+}

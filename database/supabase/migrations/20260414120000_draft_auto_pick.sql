@@ -4,3 +4,4 @@
 
 alter table public.group_members
   add column if not exists auto_pick boolean not null default false;
+

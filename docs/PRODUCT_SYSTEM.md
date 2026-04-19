@@ -22,6 +22,7 @@ This document is the single source of truth for the FanQuin product system. Ever
 10. [Performance & Best Practices](#10-performance--best-practices)
 11. [Security](#11-security)
 12. [Governance & Scalability](#12-governance--scalability)
+13. [Back-Office Admin Panel](#13-back-office-admin-panel) — [Access](#131-access-point) · [Auth](#132-authentication) · [State](#133-admin-state-redux) · [Sections](#135-admin-sections) · [Services](#136-services-monitoring)
 
 ---
 
@@ -2002,6 +2003,86 @@ Never use `console.log` or `console.error` directly in client code. Backend (`ap
 - API versioning: currently unversioned (`/api/`). Breaking changes require a new version prefix (`/api/v2/`) and backwards compatibility period.
 - Schema versioning: managed via migration files with timestamps
 - This document: update version header and "Last updated" date on any significant change
+
+---
+
+## 13. Back-Office Admin Panel
+
+FanQuin includes a full back-office admin panel accessible only to users with `profiles.is_admin = true`. The panel is completely isolated from the regular user experience — separate auth state, separate Redux slice, separate routes.
+
+### 13.1 Access Point
+
+A subtle **"BO"** link is embedded in the bottom-right of the app footer (`app-shell.tsx`). It navigates to `/admin/login` and is intentionally low-visibility (10% opacity, hover to 40%).
+
+### 13.2 Authentication
+
+Admin auth reuses the exact same OTP infrastructure as the regular user flow:
+
+| Step | Action                                                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Admin navigates to `/admin/login` and enters their email                                                                        |
+| 2    | Frontend dispatches `adminSendCode(email)` → `POST /api/admin/auth/send-code`                                                   |
+| 3    | Backend silently checks `profiles.is_admin = true` for that email. If not admin, returns generic success (prevents enumeration) |
+| 4    | Admin receives 6-digit OTP via Resend email                                                                                     |
+| 5    | Admin enters OTP → `adminVerifyCode({email, code})` → `POST /api/admin/auth/verify-code`                                        |
+| 6    | Backend verifies OTP + confirms `is_admin = true`, creates a 30-day `user_sessions` row, returns `sessionToken`                 |
+| 7    | Token stored in `localStorage` key `fanquin_admin_token`                                                                        |
+
+**Granting admin access** (run once in Supabase SQL editor):
+
+```sql
+UPDATE public.profiles SET is_admin = true WHERE username = 'your_admin_username';
+```
+
+**`requireAdmin` middleware** validates every protected route:
+
+1. Extracts Bearer token from `Authorization` header
+2. Looks up token hash in `user_sessions` table
+3. Verifies `profiles.is_admin = true` for the session owner
+4. Returns 401/403 on any failure
+
+### 13.3 Admin State (Redux)
+
+The admin panel has its own independent Redux slice (`client/store/slices/adminSlice.ts`) registered as `state.admin`. It is completely separate from `state.auth`.
+
+Key state fields: `adminToken`, `isAuthenticated`, `adminProfile`, `loginStep`, `loginEmail`, `loginLoading`, `loginError`, plus separate loading/data fields for each admin section (users, sessions, competitions, teams, matches, venues, groups, predictions, notifications, otpRequests, services).
+
+### 13.4 Route Guard
+
+`RequireAdmin` component in `client/App.tsx` wraps all `/admin/*` routes (except `/admin/login`). Unauthenticated requests redirect to `/admin/login`.
+
+### 13.5 Admin Sections
+
+| Section              | Route                  | Description                                                                                                                       |
+| -------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard            | `/admin`               | Aggregated platform stats (users, groups, matches, predictions)                                                                   |
+| Users                | `/admin/users`         | Paginated, debounced-search user table. Edit profile fields or hard-delete (cascades auth + profile)                              |
+| Competitions + Teams | `/admin/competitions`  | Full CRUD for competitions. Click a competition to manage its teams                                                               |
+| Matches              | `/admin/matches`       | Full CRUD. Filter by competition and status (scheduled / live / completed / cancelled)                                            |
+| Groups               | `/admin/groups`        | Paginated group table. Edit config (mode, scoring toggles, max members) or delete (cascades members + predictions)                |
+| Venues               | `/admin/venues`        | Full CRUD for match venues (small list, no pagination)                                                                            |
+| Predictions          | `/admin/predictions`   | Read-only paginated log. Result badges: gold=exact score, green=correct winner, blue=goal difference, red=incorrect, gray=pending |
+| Notifications        | `/admin/notifications` | Paginated list. Send bulk notifications — leave `user_ids` empty to target all users                                              |
+| OTP Audit            | `/admin/otp-requests`  | Read-only log of all OTP send/verify attempts with email, IP, and timestamps                                                      |
+| **Services**         | `/admin/services`      | Real-time health monitoring of external integrations (see §13.6)                                                                  |
+
+### 13.6 Services Monitoring
+
+`GET /api/admin/services/health` pings each integration in parallel (5 s timeout each) and returns:
+
+| Service               | Check                                 |
+| --------------------- | ------------------------------------- |
+| **Supabase**          | PostgreSQL `SELECT 1` query           |
+| **Football Data API** | `GET /v4/competitions` with API token |
+| **Resend**            | `GET /domains` with API key           |
+
+Each result contains `name`, `status` (`healthy` / `degraded` / `down`), `latency_ms`, `message`, and `checked_at`.
+
+The Services page (`AdminServices.tsx`) displays an animated status dot (green ping = healthy, yellow = degraded, red = down), latency badge, and an overall banner. There is a manual Refresh button.
+
+### 13.7 Navigation
+
+`admin-shell.tsx` provides the sidebar layout with the following nav items: Dashboard, Users, Competitions, Matches, Groups, Predictions, Venues, Notifications, OTP Audit, Services. Logout dispatches `adminLogout()` and clears `localStorage`.
 
 ---
 

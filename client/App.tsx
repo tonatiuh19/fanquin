@@ -36,6 +36,20 @@ import ScoringPage from "./pages/ScoringPage";
 import LegalDocPage from "./pages/LegalDocPage";
 import FaqPage from "./pages/FaqPage";
 import { useTranslation } from "react-i18next";
+import { AdminShell } from "./components/fanquin/admin-shell";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCompetitions from "./pages/admin/AdminCompetitions";
+import AdminMatches from "./pages/admin/AdminMatches";
+import AdminGroups from "./pages/admin/AdminGroups";
+import AdminVenues from "./pages/admin/AdminVenues";
+import AdminPredictions from "./pages/admin/AdminPredictions";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminOtpRequests from "./pages/admin/AdminOtpRequests";
+import AdminServices from "./pages/admin/AdminServices";
+import AdminProfile from "./pages/admin/AdminProfile";
+import AdminPeople from "./pages/admin/AdminPeople";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +80,18 @@ function RequireAuth() {
 
   if (!sessionToken) {
     return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return <Outlet />;
+}
+
+/** Redirects to "/admin/login" if not authenticated as admin. */
+function RequireAdmin() {
+  const isAuthenticated = useAppSelector((s) => s.admin.isAuthenticated);
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   return <Outlet />;
@@ -109,6 +135,37 @@ const App = () => {
                   />
                   <Route path="/faq" element={<FaqPage />} />
                   <Route path="*" element={<NotFound />} />
+                </Route>
+
+                {/* Admin routes — completely separate from main app */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route element={<RequireAdmin />}>
+                  <Route element={<AdminShell />}>
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route
+                      path="/admin/competitions"
+                      element={<AdminCompetitions />}
+                    />
+                    <Route path="/admin/matches" element={<AdminMatches />} />
+                    <Route path="/admin/groups" element={<AdminGroups />} />
+                    <Route path="/admin/venues" element={<AdminVenues />} />
+                    <Route
+                      path="/admin/predictions"
+                      element={<AdminPredictions />}
+                    />
+                    <Route
+                      path="/admin/notifications"
+                      element={<AdminNotifications />}
+                    />
+                    <Route
+                      path="/admin/otp-requests"
+                      element={<AdminOtpRequests />}
+                    />
+                    <Route path="/admin/services" element={<AdminServices />} />
+                    <Route path="/admin/profile" element={<AdminProfile />} />
+                    <Route path="/admin/people" element={<AdminPeople />} />
+                  </Route>
                 </Route>
               </Routes>
             </BrowserRouter>
