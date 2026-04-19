@@ -8466,6 +8466,247 @@ export function createApp() {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────
+  // ADVERTISE WITH US
+  // ─────────────────────────────────────────────────────────────────
+
+  // PUBLIC: POST /api/advertise
+  // Submits an advertising inquiry. No auth required.
+  // Sends an email notification to the admin.
+  app.post("/api/advertise", async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const {
+      brand_name,
+      contact_name,
+      contact_email,
+      contact_phone,
+      website_url,
+      ad_format,
+      budget_range,
+      campaign_goal,
+      message,
+    } = req.body as {
+      brand_name: string;
+      contact_name: string;
+      contact_email: string;
+      contact_phone?: string;
+      website_url?: string;
+      ad_format: string;
+      budget_range?: string;
+      campaign_goal?: string;
+      message?: string;
+    };
+
+    // Basic validation
+    if (!brand_name || !contact_name || !contact_email || !ad_format) {
+      res.status(400).json({
+        success: false,
+        message:
+          "brand_name, contact_name, contact_email, and ad_format are required.",
+      });
+      return;
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(contact_email)) {
+      res
+        .status(400)
+        .json({ success: false, message: "Invalid contact_email." });
+      return;
+    }
+    const validFormats = [
+      "banner",
+      "sponsored_group",
+      "email_marketing",
+      "homepage_spotlight",
+      "other",
+    ];
+    if (!validFormats.includes(ad_format)) {
+      res.status(400).json({ success: false, message: "Invalid ad_format." });
+      return;
+    }
+
+    try {
+      const ipAddress =
+        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+        req.socket.remoteAddress ||
+        null;
+
+      const { data, error } = await supabase
+        .from("ad_requests")
+        .insert({
+          brand_name,
+          contact_name,
+          contact_email,
+          contact_phone: contact_phone || null,
+          website_url: website_url || null,
+          ad_format,
+          budget_range: budget_range || null,
+          campaign_goal: campaign_goal || null,
+          message: message || null,
+          ip_address: ipAddress,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      // Notify admin via email (non-blocking)
+      const adminNotifyEmail =
+        process.env.ADMIN_NOTIFY_EMAIL || process.env.RESEND_FROM || null;
+      if (adminNotifyEmail) {
+        const formatLabels: Record<string, string> = {
+          banner: "Banner Ad",
+          sponsored_group: "Sponsored Group",
+          email_marketing: "Email Marketing",
+          homepage_spotlight: "Homepage Spotlight",
+          other: "Other",
+        };
+        sendEmail({
+          to: adminNotifyEmail,
+          subject: `[FanQuin] New Ad Request from ${brand_name}`,
+          html: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0d0d14;color:#e2e8f0;padding:32px;border-radius:12px;">
+  <h2 style="color:#a78bfa;margin-top:0;">New Advertising Inquiry 📣</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr><td style="padding:8px 0;color:#94a3b8;width:140px;">Brand</td><td style="padding:8px 0;font-weight:600;color:#fff;">${brand_name}</td></tr>
+    <tr><td style="padding:8px 0;color:#94a3b8;">Contact</td><td style="padding:8px 0;color:#fff;">${contact_name}</td></tr>
+    <tr><td style="padding:8px 0;color:#94a3b8;">Email</td><td style="padding:8px 0;color:#a78bfa;">${contact_email}</td></tr>
+    ${contact_phone ? `<tr><td style="padding:8px 0;color:#94a3b8;">Phone</td><td style="padding:8px 0;color:#fff;">${contact_phone}</td></tr>` : ""}
+    ${website_url ? `<tr><td style="padding:8px 0;color:#94a3b8;">Website</td><td style="padding:8px 0;color:#fff;">${website_url}</td></tr>` : ""}
+    <tr><td style="padding:8px 0;color:#94a3b8;">Ad Format</td><td style="padding:8px 0;color:#fff;">${formatLabels[ad_format] ?? ad_format}</td></tr>
+    ${budget_range ? `<tr><td style="padding:8px 0;color:#94a3b8;">Budget</td><td style="padding:8px 0;color:#fff;">${budget_range}</td></tr>` : ""}
+    ${campaign_goal ? `<tr><td style="padding:8px 0;color:#94a3b8;">Goal</td><td style="padding:8px 0;color:#fff;">${campaign_goal}</td></tr>` : ""}
+  </table>
+  ${message ? `<div style="margin-top:16px;padding:16px;background:#1e1b4b;border-radius:8px;font-size:14px;color:#c4b5fd;">${message}</div>` : ""}
+  <p style="margin-top:24px;font-size:12px;color:#475569;">View in admin: ${process.env.APP_URL || "https://fanquin.com"}/admin/ads</p>
+</div>`.trim(),
+        }).catch((e) => console.error("Ad request email failed:", e));
+      }
+
+      res.json({ success: true, data: { id: data.id } });
+    } catch (err) {
+      console.error("Advertise submit error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN: GET /api/admin/ad-requests
+  // Lists all ad requests, newest first. Paginated.
+  app.get("/api/admin/ad-requests", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const page = Math.max(1, parseInt((req.query.page as string) || "1", 10));
+    const perPage = Math.min(
+      100,
+      Math.max(1, parseInt((req.query.per_page as string) || "25", 10)),
+    );
+    const status = req.query.status as string | undefined;
+    const offset = (page - 1) * perPage;
+
+    try {
+      let countQuery = supabase
+        .from("ad_requests")
+        .select("id", { count: "exact", head: true });
+      let dataQuery = supabase
+        .from("ad_requests")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + perPage - 1);
+
+      if (status) {
+        countQuery = countQuery.eq("status", status);
+        dataQuery = dataQuery.eq("status", status);
+      }
+
+      const [countRes, dataRes] = await Promise.all([countQuery, dataQuery]);
+      if (countRes.error) throw countRes.error;
+      if (dataRes.error) throw dataRes.error;
+
+      res.json({
+        success: true,
+        data: {
+          data: dataRes.data ?? [],
+          total: countRes.count ?? 0,
+          page,
+          per_page: perPage,
+        },
+      });
+    } catch (err) {
+      console.error("Admin ad-requests list error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN: PATCH /api/admin/ad-requests/:id
+  // Updates status and/or admin_notes for an ad request.
+  app.patch("/api/admin/ad-requests/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { id } = req.params;
+    const { status, admin_notes } = req.body as {
+      status?: string;
+      admin_notes?: string;
+    };
+
+    const validStatuses = ["pending", "contacted", "approved", "rejected"];
+    if (status && !validStatuses.includes(status)) {
+      res.status(400).json({ success: false, message: "Invalid status." });
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (status !== undefined) updates.status = status;
+    if (admin_notes !== undefined) updates.admin_notes = admin_notes;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ success: false, message: "Nothing to update." });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("ad_requests")
+        .update(updates)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      if (!data) {
+        res
+          .status(404)
+          .json({ success: false, message: "Ad request not found." });
+        return;
+      }
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin ad-request update error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
+  // ADMIN: DELETE /api/admin/ad-requests/:id
+  app.delete("/api/admin/ad-requests/:id", requireAdmin, async (req, res) => {
+    const supabase = getSupabaseAdmin();
+    const { id } = req.params;
+    try {
+      const { error } = await supabase
+        .from("ad_requests")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Admin ad-request delete error:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+
   return app;
 }
 

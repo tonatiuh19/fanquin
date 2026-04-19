@@ -10,6 +10,7 @@ import notificationsReducer from "./slices/notificationsSlice";
 import legalReducer from "./slices/legalSlice";
 import supportReducer from "./slices/supportSlice";
 import adminReducer from "./slices/adminSlice";
+import advertiseReducer from "./slices/advertiseSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     legal: legalReducer,
     support: supportReducer,
     admin: adminReducer,
+    advertise: advertiseReducer,
   },
 });
 

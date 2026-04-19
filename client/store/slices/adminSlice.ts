@@ -18,6 +18,9 @@ import type {
   AdminSendCodeResponse,
   AdminVerifyCodeResponse,
   AdminPerson,
+  AdRequest,
+  AdminAdRequestsResponse,
+  AdminUpdateAdRequestRequest,
 } from "@shared/api";
 import type { RootState } from "../index";
 
@@ -100,6 +103,9 @@ interface AdminState {
   people: AdminPerson[];
   peopleLoading: boolean;
 
+  adRequests: AdminAdRequestsResponse | null;
+  adRequestsLoading: boolean;
+
   error: string | null;
 }
 
@@ -158,6 +164,9 @@ const initialState: AdminState = {
 
   people: [],
   peopleLoading: false,
+
+  adRequests: null,
+  adRequestsLoading: false,
 
   error: null,
 };
@@ -1122,6 +1131,75 @@ export const fetchAdminOtpRequests = createAsyncThunk(
   },
 );
 
+// ── Ad Requests thunks ────────────────────────────────────────────
+
+export const fetchAdminAdRequests = createAsyncThunk(
+  "admin/fetchAdRequests",
+  async (
+    params: { page?: number; per_page?: number; status?: string } = {},
+    { getState, rejectWithValue },
+  ) => {
+    const token = (getState() as RootState).admin.adminToken!;
+    try {
+      const { data } = await axios.get<{
+        success: boolean;
+        data: AdminAdRequestsResponse;
+      }>("/api/admin/ad-requests", {
+        headers: adminHeaders(token),
+        params: {
+          page: params.page ?? 1,
+          per_page: params.per_page ?? 25,
+          ...(params.status ? { status: params.status } : {}),
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message ?? "Failed to load ad requests",
+      );
+    }
+  },
+);
+
+export const updateAdminAdRequest = createAsyncThunk(
+  "admin/updateAdRequest",
+  async (
+    { id, updates }: { id: string; updates: AdminUpdateAdRequestRequest },
+    { getState, rejectWithValue },
+  ) => {
+    const token = (getState() as RootState).admin.adminToken!;
+    try {
+      const { data } = await axios.patch<{ success: boolean; data: AdRequest }>(
+        `/api/admin/ad-requests/${id}`,
+        updates,
+        { headers: adminHeaders(token) },
+      );
+      return data.data;
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message ?? "Failed to update ad request",
+      );
+    }
+  },
+);
+
+export const deleteAdminAdRequest = createAsyncThunk(
+  "admin/deleteAdRequest",
+  async (id: string, { getState, rejectWithValue }) => {
+    const token = (getState() as RootState).admin.adminToken!;
+    try {
+      await axios.delete(`/api/admin/ad-requests/${id}`, {
+        headers: adminHeaders(token),
+      });
+      return id;
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message ?? "Failed to delete ad request",
+      );
+    }
+  },
+);
+
 // ── Slice ────────────────────────────────────────────────────────
 
 const adminSlice = createSlice({
@@ -1595,6 +1673,35 @@ const adminSlice = createSlice({
       .addCase(fetchAdminOtpRequests.rejected, (state, action) => {
         state.otpLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(fetchAdminAdRequests.pending, (state) => {
+        state.adRequestsLoading = true;
+      })
+      .addCase(fetchAdminAdRequests.fulfilled, (state, action) => {
+        state.adRequestsLoading = false;
+        state.adRequests = action.payload;
+      })
+      .addCase(fetchAdminAdRequests.rejected, (state, action) => {
+        state.adRequestsLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateAdminAdRequest.fulfilled, (state, action) => {
+        if (state.adRequests) {
+          const idx = state.adRequests.data.findIndex(
+            (r) => r.id === action.payload.id,
+          );
+          if (idx !== -1) {
+            state.adRequests.data[idx] = action.payload;
+          }
+        }
+      })
+      .addCase(deleteAdminAdRequest.fulfilled, (state, action) => {
+        if (state.adRequests) {
+          state.adRequests.data = state.adRequests.data.filter(
+            (r) => r.id !== action.payload,
+          );
+          state.adRequests.total = Math.max(0, state.adRequests.total - 1);
+        }
       });
   },
 });

@@ -21,6 +21,7 @@ import {
   UserCircle,
   Menu,
   X,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
   { href: "/admin/otp-requests", label: "OTP Audit", icon: KeyRound },
   { href: "/admin/services", label: "Services", icon: Activity },
+  { href: "/admin/ads", label: "Ad Requests", icon: Megaphone },
 ];
 
 export function AdminShell() {

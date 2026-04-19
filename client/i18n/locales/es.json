@@ -21,7 +21,8 @@
       "privateGroups": "Grupos privados",
       "liveMoments": "Momentos en vivo",
       "scoringEngine": "Motor de puntuación",
-      "faq": "FAQ y Soporte"
+      "faq": "FAQ y Soporte",
+      "advertise": "Anúnciate con Nosotros"
     },
     "gamblingDisclaimer": "FanQuin es un juego de predicciones gratuito solo con fines de entretenimiento. Sin dinero real, sin apuestas."
   },
@@ -1240,6 +1241,134 @@
       "description": "Crea un grupo privado, elige tu modo, ajusta las reglas de bonus y comparte un único enlace de invitación.",
       "create": "Crear grupo",
       "home": "Volver al inicio"
+    }
+  },
+  "advertise": {
+    "meta": {
+      "title": "Anuncia en FanQuin",
+      "description": "Llega a una apasionada base de fanáticos del fútbol. Anuncia tu marca durante los momentos más importantes del Mundial."
+    },
+    "hero": {
+      "badge": "Copa del Mundo 2026 · Posicionamiento Premium",
+      "title": "Pon tu marca en el corazón del juego",
+      "description": "FanQuin te conecta con fanáticos del fútbol altamente comprometidos en cada jornada. Nuestra plataforma de predicciones crea momentos de alta atención — perfectos para marcas que quieren ser parte de la acción."
+    },
+    "stats": [
+      {
+        "value": "100K+",
+        "label": "Jugadores activos",
+        "note": "Comprometidos a diario durante el Mundial"
+      },
+      {
+        "value": "64",
+        "label": "Partidos",
+        "note": "FIFA Copa del Mundo 2026 USA/México/Canadá"
+      },
+      {
+        "value": "5×",
+        "label": "Profundidad de sesión",
+        "note": "vs. sitio promedio de noticias deportivas"
+      },
+      {
+        "value": "3 min",
+        "label": "Sesión promedio",
+        "note": "Predicciones y consultas de clasificación"
+      }
+    ],
+    "formats": {
+      "title": "Formatos de anuncio",
+      "items": [
+        {
+          "key": "banner",
+          "label": "Banner Display",
+          "description": "Ubicaciones estratégicas dentro de feeds de marcadores en vivo, páginas de clasificación y hubs de grupos. Alto tiempo de permanencia."
+        },
+        {
+          "key": "sponsored_group",
+          "label": "Grupo Patrocinado",
+          "description": "Tu marca gestiona un grupo público de predicciones — logo, colores y premio compartido con FanQuin."
+        },
+        {
+          "key": "email_marketing",
+          "label": "Email Marketing",
+          "description": "Ubicación de marca en los correos de resumen de jornada de FanQuin — llegando a suscriptores comprometidos en el momento justo."
+        },
+        {
+          "key": "homepage_spotlight",
+          "label": "Destacado en Home",
+          "description": "Tarjeta de ancho completo en la pantalla de inicio de FanQuin, visible para cada visitante durante la campaña."
+        },
+        {
+          "key": "other",
+          "label": "Asociación Personalizada",
+          "description": "Integraciones de podcast, patrocinios de premios, contenido co-branded — hablemos y construyamos algo único."
+        }
+      ]
+    },
+    "why": {
+      "title": "¿Por qué FanQuin?",
+      "items": [
+        {
+          "title": "Audiencia de alta intención",
+          "description": "Los usuarios inician sesión para predecir, no para navegar. Tu marca aparece en un estado mental enfocado y de toma de decisiones."
+        },
+        {
+          "title": "Alcance en momentos de partido",
+          "description": "Las notificaciones y ubicaciones se activan al pitido inicial, en el descanso y al pitido final — cuando la atención está en su punto más alto."
+        },
+        {
+          "title": "Presupuestos flexibles",
+          "description": "Desde una campaña de un solo partido hasta el patrocinio de todo el torneo. Sin mínimos para iniciar la conversación."
+        },
+        {
+          "title": "Resultados medibles",
+          "description": "Informes de clics, uniones a grupos y engagement compartidos semanalmente."
+        }
+      ]
+    },
+    "form": {
+      "title": "Contáctanos",
+      "subtitle": "Cuéntanos sobre tu marca y objetivos de campaña. Nuestro equipo responderá en 24 horas.",
+      "brand_name": "Nombre de marca / empresa",
+      "brand_name_placeholder": "ej. Nike, Coca-Cola",
+      "contact_name": "Tu nombre",
+      "contact_name_placeholder": "Nombre completo",
+      "contact_email": "Correo de trabajo",
+      "contact_email_placeholder": "tú@empresa.com",
+      "contact_phone": "Teléfono (opcional)",
+      "contact_phone_placeholder": "+52 555 000 0000",
+      "website_url": "Sitio web (opcional)",
+      "website_url_placeholder": "https://tusitio.com",
+      "ad_format": "Formato de anuncio preferido",
+      "ad_format_placeholder": "Selecciona un formato",
+      "budget_range": "Presupuesto estimado",
+      "budget_range_placeholder": "Selecciona un rango",
+      "campaign_goal": "Objetivo de campaña",
+      "campaign_goal_placeholder": "¿Qué quieres lograr?",
+      "message": "¿Algo más? (opcional)",
+      "message_placeholder": "Cuéntanos sobre tu cronograma, público objetivo o ideas específicas...",
+      "submit": "Enviar consulta",
+      "submitting": "Enviando...",
+      "budget_ranges": [
+        "Menos de $500",
+        "$500 – $1,000",
+        "$1,000 – $5,000",
+        "$5,000 – $20,000",
+        "$20,000+"
+      ],
+      "campaign_goals": [
+        "Reconocimiento de marca",
+        "Instalaciones de app",
+        "Generación de leads",
+        "Ventas / conversiones",
+        "Engagement / comunidad",
+        "Otro"
+      ],
+      "success_title": "¡Consulta recibida!",
+      "success_body": "Gracias por contactarnos. Revisaremos tu propuesta y te responderemos en 24 horas.",
+      "success_cta": "Volver a FanQuin",
+      "error_required": "Por favor completa todos los campos requeridos.",
+      "error_email": "Por favor ingresa un correo electrónico válido."
     }
   }
 }

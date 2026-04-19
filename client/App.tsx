@@ -50,6 +50,8 @@ import AdminOtpRequests from "./pages/admin/AdminOtpRequests";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPeople from "./pages/admin/AdminPeople";
+import AdminAds from "./pages/admin/AdminAds";
+import AdvertisePage from "./pages/AdvertisePage";
 
 const queryClient = new QueryClient();
 
@@ -134,6 +136,7 @@ const App = () => {
                     element={<LegalDocPage type="terms" />}
                   />
                   <Route path="/faq" element={<FaqPage />} />
+                  <Route path="/advertise" element={<AdvertisePage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
 
@@ -165,6 +168,7 @@ const App = () => {
                     <Route path="/admin/services" element={<AdminServices />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />
                     <Route path="/admin/people" element={<AdminPeople />} />
+                    <Route path="/admin/ads" element={<AdminAds />} />
                   </Route>
                 </Route>
               </Routes>

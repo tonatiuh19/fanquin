@@ -3099,6 +3099,143 @@ paths:
         "401":
           ref: "#/components/schemas/ApiError"
 
+  /advertise:
+    post:
+      tags: [Advertise]
+      summary: Submit an advertising inquiry
+      description: Public endpoint. No auth required. Sends an admin notification email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [brand_name, contact_name, contact_email, ad_format]
+              properties:
+                brand_name:
+                  type: string
+                contact_name:
+                  type: string
+                contact_email:
+                  type: string
+                  format: email
+                contact_phone:
+                  type: string
+                website_url:
+                  type: string
+                ad_format:
+                  type: string
+                  enum:
+                    [
+                      banner,
+                      sponsored_group,
+                      email_marketing,
+                      homepage_spotlight,
+                      other,
+                    ]
+                budget_range:
+                  type: string
+                campaign_goal:
+                  type: string
+                message:
+                  type: string
+      responses:
+        "200":
+          description: Inquiry submitted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+        "400":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/ad-requests:
+    get:
+      tags: [Admin]
+      summary: List ad requests
+      security:
+        - AdminBearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, contacted, approved, rejected]
+      responses:
+        "200":
+          description: Paginated ad requests
+        "401":
+          ref: "#/components/schemas/ApiError"
+
+  /admin/ad-requests/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update an ad request status / notes
+      security:
+        - AdminBearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, contacted, approved, rejected]
+                admin_notes:
+                  type: string
+      responses:
+        "200":
+          description: Updated ad request
+        "400":
+          ref: "#/components/schemas/ApiError"
+        "401":
+          ref: "#/components/schemas/ApiError"
+        "404":
+          ref: "#/components/schemas/ApiError"
+    delete:
+      tags: [Admin]
+      summary: Delete an ad request
+      security:
+        - AdminBearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          ref: "#/components/schemas/ApiSuccess"
+        "401":
+          ref: "#/components/schemas/ApiError"
+
     AdminPerson:
       type: object
       properties:
@@ -3129,6 +3266,60 @@ paths:
           type: string
         is_active:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AdRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brand_name:
+          type: string
+        contact_name:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        contact_phone:
+          type: string
+          nullable: true
+        website_url:
+          type: string
+          nullable: true
+        ad_format:
+          type: string
+          enum:
+            [
+              banner,
+              sponsored_group,
+              email_marketing,
+              homepage_spotlight,
+              other,
+            ]
+        budget_range:
+          type: string
+          nullable: true
+        campaign_goal:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, contacted, approved, rejected]
+        admin_notes:
+          type: string
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time

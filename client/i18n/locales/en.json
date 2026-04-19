@@ -21,7 +21,8 @@
       "privateGroups": "Private groups",
       "liveMoments": "Live moments",
       "scoringEngine": "Scoring engine",
-      "faq": "FAQ & Support"
+      "faq": "FAQ & Support",
+      "advertise": "Advertise with Us"
     },
     "gamblingDisclaimer": "FanQuin is a free-to-play prediction game for entertainment purposes only. No real money, no wagering."
   },
@@ -1239,6 +1240,134 @@
       "description": "Create a private group, pick your mode, tune the bonus rules, and share a single invite link.",
       "create": "Create a group",
       "home": "Back to home"
+    }
+  },
+  "advertise": {
+    "meta": {
+      "title": "Advertise on FanQuin",
+      "description": "Reach a passionate football fan base. Advertise your brand during the biggest moments of the World Cup."
+    },
+    "hero": {
+      "badge": "World Cup 2026 · Premium Placement",
+      "title": "Put your brand at the heart of the game",
+      "description": "FanQuin connects you with dedicated football fans who are deeply engaged every matchday. Our prediction platform creates high-attention moments — perfect for brands that want to be part of the action."
+    },
+    "stats": [
+      {
+        "value": "100K+",
+        "label": "Active players",
+        "note": "Engaged daily during World Cup"
+      },
+      {
+        "value": "64",
+        "label": "Matches",
+        "note": "FIFA World Cup 2026 USA/Mexico/Canada"
+      },
+      {
+        "value": "5×",
+        "label": "Session depth",
+        "note": "vs. average sports news site"
+      },
+      {
+        "value": "3 min",
+        "label": "Avg. session",
+        "note": "Prediction & leaderboard checks"
+      }
+    ],
+    "formats": {
+      "title": "Ad formats",
+      "items": [
+        {
+          "key": "banner",
+          "label": "Display Banner",
+          "description": "Strategic placements inside live score feeds, leaderboard pages, and group hubs. High dwell time."
+        },
+        {
+          "key": "sponsored_group",
+          "label": "Sponsored Group",
+          "description": "Your brand runs a public prediction group — logo, colours, and prize pool co-branded with FanQuin."
+        },
+        {
+          "key": "email_marketing",
+          "label": "Email Marketing",
+          "description": "Branded placement in FanQuin's matchday digest emails — reaching engaged subscribers at exactly the right moment."
+        },
+        {
+          "key": "homepage_spotlight",
+          "label": "Homepage Spotlight",
+          "description": "Full-width feature card on the FanQuin home screen, visible to every visitor during the campaign window."
+        },
+        {
+          "key": "other",
+          "label": "Custom Partnership",
+          "description": "Podcast integrations, prize sponsorships, co-branded content — let's talk and build something unique."
+        }
+      ]
+    },
+    "why": {
+      "title": "Why FanQuin?",
+      "items": [
+        {
+          "title": "High-intent audience",
+          "description": "Users log in to predict, not to scroll. Your brand appears in a focused, decision-making mindset."
+        },
+        {
+          "title": "Match-moment reach",
+          "description": "Notifications and placements fire at kickoff, half-time, and final whistle — when attention peaks."
+        },
+        {
+          "title": "Flexible budgets",
+          "description": "From a single match campaign to a full tournament sponsorship. No minimums to start the conversation."
+        },
+        {
+          "title": "Measurable results",
+          "description": "Click-through, group joins, and engagement reports shared weekly."
+        }
+      ]
+    },
+    "form": {
+      "title": "Get in touch",
+      "subtitle": "Tell us about your brand and campaign goals. Our team will reply within 24 hours.",
+      "brand_name": "Brand / company name",
+      "brand_name_placeholder": "e.g. Nike, Coca-Cola",
+      "contact_name": "Your name",
+      "contact_name_placeholder": "Full name",
+      "contact_email": "Work email",
+      "contact_email_placeholder": "you@company.com",
+      "contact_phone": "Phone (optional)",
+      "contact_phone_placeholder": "+1 555 000 0000",
+      "website_url": "Website (optional)",
+      "website_url_placeholder": "https://yourwebsite.com",
+      "ad_format": "Preferred ad format",
+      "ad_format_placeholder": "Select a format",
+      "budget_range": "Estimated budget",
+      "budget_range_placeholder": "Select a range",
+      "campaign_goal": "Campaign goal",
+      "campaign_goal_placeholder": "What do you want to achieve?",
+      "message": "Anything else? (optional)",
+      "message_placeholder": "Tell us about your timeline, target audience, or any specific ideas...",
+      "submit": "Send my inquiry",
+      "submitting": "Sending...",
+      "budget_ranges": [
+        "Under $500",
+        "$500 – $1,000",
+        "$1,000 – $5,000",
+        "$5,000 – $20,000",
+        "$20,000+"
+      ],
+      "campaign_goals": [
+        "Brand awareness",
+        "App installs",
+        "Lead generation",
+        "Sales / conversions",
+        "Engagement / community",
+        "Other"
+      ],
+      "success_title": "Inquiry received!",
+      "success_body": "Thanks for reaching out. We'll review your brief and get back to you within 24 hours.",
+      "success_cta": "Back to FanQuin",
+      "error_required": "Please fill in all required fields.",
+      "error_email": "Please enter a valid email address."
     }
   }
 }

@@ -105,6 +105,7 @@ export function AppShell() {
     { label: t("footer.links.liveMoments"), to: "/live" },
     { label: t("footer.links.scoringEngine"), to: "/scoring" },
     { label: t("footer.links.faq"), to: "/faq" },
+    { label: t("footer.links.advertise"), to: "/advertise" },
   ];
 
   const toggleLang = async () => {

@@ -2065,6 +2065,7 @@ Key state fields: `adminToken`, `isAuthenticated`, `adminProfile`, `loginStep`, 
 | Notifications        | `/admin/notifications` | Paginated list. Send bulk notifications — leave `user_ids` empty to target all users                                              |
 | OTP Audit            | `/admin/otp-requests`  | Read-only log of all OTP send/verify attempts with email, IP, and timestamps                                                      |
 | **Services**         | `/admin/services`      | Real-time health monitoring of external integrations (see §13.6)                                                                  |
+| **Ad Requests**      | `/admin/ads`           | All advertising inquiries submitted via `/advertise`. Filter by status, view details, update workflow status, add admin notes.    |
 
 ### 13.6 Services Monitoring
 
@@ -2082,7 +2083,69 @@ The Services page (`AdminServices.tsx`) displays an animated status dot (green p
 
 ### 13.7 Navigation
 
-`admin-shell.tsx` provides the sidebar layout with the following nav items: Dashboard, Users, Competitions, Matches, Groups, Predictions, Venues, Notifications, OTP Audit, Services. Logout dispatches `adminLogout()` and clears `localStorage`.
+`admin-shell.tsx` provides the sidebar layout with the following nav items: Dashboard, Users, Competitions, Matches, Groups, Predictions, Venues, Notifications, OTP Audit, Services, Ad Requests. Logout dispatches `adminLogout()` and clears `localStorage`.
+
+---
+
+## 14. Advertise with Us
+
+### 14.1 Overview
+
+FanQuin provides a self-serve advertising inquiry page at `/advertise`. The page is publicly accessible (no login required) and allows brands and advertisers to submit a campaign brief. The admin is notified by email for each new submission and can manage inquiries from the admin panel.
+
+### 14.2 Public Page (`/advertise`)
+
+- Route: `/advertise` — wrapped in `AppShell`, no auth required
+- Footer link: `Advertise with Us` (keyed as `footer.links.advertise` in both locale files)
+- Features: animated hero with stats bar, clickable ad-format cards that pre-fill the form, "Why FanQuin?" value-prop section, full inquiry form with Formik + Yup validation
+- Form fields: brand name*, contact name*, email*, phone, website, ad format*, budget range, campaign goal, message
+- On submit: dispatches `submitAdRequest` thunk → `POST /api/advertise`
+- On success: shows a success state with a return-to-home CTA
+
+### 14.3 API Endpoints
+
+| Method | Path                         | Auth   | Description                                  |
+| ------ | ---------------------------- | ------ | -------------------------------------------- |
+| POST   | `/api/advertise`             | Public | Create an ad request, notify admin via email |
+| GET    | `/api/admin/ad-requests`     | Admin  | List all ad requests (paginated, filterable) |
+| PATCH  | `/api/admin/ad-requests/:id` | Admin  | Update status / admin notes                  |
+| DELETE | `/api/admin/ad-requests/:id` | Admin  | Hard-delete an ad request                    |
+
+**Admin email notification** fires on every new submission. Configure `ADMIN_NOTIFY_EMAIL` in `.env` (falls back to `RESEND_FROM`).
+
+### 14.4 Database
+
+Migration: `database/migrations/20260419_000000_ad_requests.sql`
+
+Table: `public.ad_requests`
+
+| Column          | Type                | Notes                                                                   |
+| --------------- | ------------------- | ----------------------------------------------------------------------- |
+| `id`            | uuid PK             | `gen_random_uuid()`                                                     |
+| `brand_name`    | text NOT NULL       |                                                                         |
+| `contact_name`  | text NOT NULL       |                                                                         |
+| `contact_email` | text NOT NULL       |                                                                         |
+| `contact_phone` | text nullable       |                                                                         |
+| `website_url`   | text nullable       |                                                                         |
+| `ad_format`     | `ad_format` enum    | banner / sponsored_group / email_marketing / homepage_spotlight / other |
+| `budget_range`  | text nullable       |                                                                         |
+| `campaign_goal` | text nullable       |                                                                         |
+| `message`       | text nullable       |                                                                         |
+| `status`        | `ad_request_status` | pending / contacted / approved / rejected (default: pending)            |
+| `admin_notes`   | text nullable       | Internal notes visible only in admin panel                              |
+| `ip_address`    | inet nullable       | Submitter IP for audit                                                  |
+| `created_at`    | timestamptz         |                                                                         |
+| `updated_at`    | timestamptz         | Auto-updated via trigger                                                |
+
+### 14.5 Redux State
+
+Slice: `client/store/slices/advertiseSlice.ts` → registered as `state.advertise`
+
+Fields: `submitting`, `submitted`, `error`
+
+Admin state extension in `adminSlice.ts`: `adRequests`, `adRequestsLoading`
+
+Admin thunks: `fetchAdminAdRequests`, `updateAdminAdRequest`, `deleteAdminAdRequest`
 
 ---
 

@@ -807,3 +807,58 @@ export interface AdminUpdatePersonRequest {
   locale?: string;
   is_active?: boolean;
 }
+
+// ── Advertise with Us ─────────────────────────────────────────
+
+export type AdFormat =
+  | "banner"
+  | "sponsored_group"
+  | "email_marketing"
+  | "homepage_spotlight"
+  | "other";
+
+export type AdRequestStatus = "pending" | "contacted" | "approved" | "rejected";
+
+export interface CreateAdRequestRequest {
+  brand_name: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone?: string;
+  website_url?: string;
+  ad_format: AdFormat;
+  budget_range?: string;
+  campaign_goal?: string;
+  message?: string;
+}
+
+export interface AdRequest {
+  id: string;
+  brand_name: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string | null;
+  website_url: string | null;
+  ad_format: AdFormat;
+  budget_range: string | null;
+  campaign_goal: string | null;
+  message: string | null;
+  status: AdRequestStatus;
+  admin_notes: string | null;
+  ip_address: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CreateAdRequestResponse = ApiSuccess<{ id: string }>;
+
+export interface AdminAdRequestsResponse {
+  data: AdRequest[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface AdminUpdateAdRequestRequest {
+  status?: AdRequestStatus;
+  admin_notes?: string;
+}
