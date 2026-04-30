@@ -82,6 +82,25 @@ function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Look up a Supabase auth user ID by email via a direct DB RPC.
+ * auth.admin.listUsers() is unreliable on this Supabase instance
+ * (returns "Database error finding users"). The RPC queries auth.users
+ * directly with SECURITY DEFINER.
+ * Requires migration 20260429_000004_auth_lookup_rpc.sql.
+ */
+async function findAuthUserByEmail(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  email: string,
+): Promise<{ id: string; email: string } | null> {
+  const { data: userId, error } = await supabase.rpc(
+    "get_auth_user_id_by_email",
+    { p_email: email.trim().toLowerCase() },
+  );
+  if (error || !userId) return null;
+  return { id: userId as string, email: email.trim().toLowerCase() };
+}
+
 // Returns the ISO week number (1-53) for a given date.
 function getISOWeek(date: Date): number {
   const d = new Date(
@@ -1308,7 +1327,7 @@ const requireAuth: RequestHandler = async (
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, username, display_name, first_name, last_name, phone, country, avatar_url, locale, created_at",
+      "id, username, display_name, first_name, last_name, phone, country, avatar_url, locale, created_at, deactivated_at",
     )
     .eq("id", session.user_id)
     .single();
@@ -1317,6 +1336,13 @@ const requireAuth: RequestHandler = async (
     res
       .status(401)
       .json({ success: false, message: "User profile not found." });
+    return;
+  }
+
+  if (profile.deactivated_at) {
+    res
+      .status(403)
+      .json({ success: false, message: "Account has been deactivated." });
     return;
   }
 
@@ -1361,9 +1387,12 @@ export function createApp() {
         return;
       }
       const supabase = getSupabaseAdmin();
-      const { data: listData } = await supabase.auth.admin.listUsers();
-      const exists = (listData?.users ?? []).some((u) => u.email === email);
-      res.json({ success: true, exists });
+      const { data: exists } = await supabase.rpc("auth_user_exists_by_email", {
+        p_email: email,
+      });
+      // Prevent browser/CDN caching — existence can change between requests
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ success: true, exists: !!exists });
     } catch (err) {
       res.status(500).json({
         success: false,
@@ -1487,9 +1516,7 @@ export function createApp() {
       });
 
       // Look up the user to personalise the email (if they already exist)
-      const { data: existingAuth } = await supabase.auth.admin.listUsers();
-      const allUsers = existingAuth?.users ?? [];
-      const existingUser = allUsers.find((u) => u.email === normalizedEmail);
+      const existingUser = await findAuthUserByEmail(supabase, normalizedEmail);
 
       let displayName = "";
       let userLocale = "es";
@@ -1570,47 +1597,60 @@ export function createApp() {
       const normalizedEmail = identifier.trim().toLowerCase();
       const supabase = getSupabaseAdmin();
 
-      // Fetch the latest valid OTP request
-      const { data: otpRow, error: otpErr } = await supabase
-        .from("otp_requests")
-        .select("id, code_hash, attempt_count, is_used, expires_at")
-        .eq("identifier", normalizedEmail)
-        .eq("is_used", false)
-        .gt("expires_at", new Date().toISOString())
-        .lt("attempt_count", 5)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      // ── APPLE APP STORE REVIEW BYPASS ─────────────────────────
+      // test@fanquin.com always authenticates with code "123456".
+      // This satisfies Apple's requirement for a demo account that
+      // works without receiving a live email/SMS OTP.
+      const APPLE_TEST_EMAIL = "test@fanquin.com";
+      const APPLE_TEST_CODE = "123456";
+      const isAppleTestBypass =
+        normalizedEmail === APPLE_TEST_EMAIL &&
+        String(code).trim() === APPLE_TEST_CODE;
+      // ──────────────────────────────────────────────────────────
 
-      if (otpErr || !otpRow) {
-        res.status(401).json({
-          success: false,
-          message: "No valid code found. Please request a new one.",
-        });
-        return;
-      }
+      if (!isAppleTestBypass) {
+        // Fetch the latest valid OTP request
+        const { data: otpRow, error: otpErr } = await supabase
+          .from("otp_requests")
+          .select("id, code_hash, attempt_count, is_used, expires_at")
+          .eq("identifier", normalizedEmail)
+          .eq("is_used", false)
+          .gt("expires_at", new Date().toISOString())
+          .lt("attempt_count", 5)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
 
-      // Verify bcrypt
-      const codeMatch = await bcrypt.compare(
-        String(code).trim(),
-        otpRow.code_hash,
-      );
-      if (!codeMatch) {
-        // Increment attempt counter
+        if (otpErr || !otpRow) {
+          res.status(401).json({
+            success: false,
+            message: "No valid code found. Please request a new one.",
+          });
+          return;
+        }
+
+        // Verify bcrypt
+        const codeMatch = await bcrypt.compare(
+          String(code).trim(),
+          otpRow.code_hash,
+        );
+        if (!codeMatch) {
+          // Increment attempt counter
+          await supabase
+            .from("otp_requests")
+            .update({ attempt_count: otpRow.attempt_count + 1 })
+            .eq("id", otpRow.id);
+
+          res.status(401).json({ success: false, message: "Invalid code." });
+          return;
+        }
+
+        // Mark OTP as used
         await supabase
           .from("otp_requests")
-          .update({ attempt_count: otpRow.attempt_count + 1 })
+          .update({ is_used: true, verified_at: new Date().toISOString() })
           .eq("id", otpRow.id);
-
-        res.status(401).json({ success: false, message: "Invalid code." });
-        return;
       }
-
-      // Mark OTP as used
-      await supabase
-        .from("otp_requests")
-        .update({ is_used: true, verified_at: new Date().toISOString() })
-        .eq("id", otpRow.id);
 
       // Upsert Supabase auth user
       const { data: authData, error: authError } =
@@ -1627,9 +1667,7 @@ export function createApp() {
         authError?.message?.includes("already exists")
       ) {
         // User already exists — look them up
-        const { data: listData } = await supabase.auth.admin.listUsers();
-        const allAuthUsers = listData?.users ?? [];
-        const existing = allAuthUsers.find((u) => u.email === normalizedEmail);
+        const existing = await findAuthUserByEmail(supabase, normalizedEmail);
         if (!existing) {
           res.status(500).json({
             success: false,
@@ -2009,6 +2047,173 @@ export function createApp() {
       }
     },
   );
+
+  // ──────────────────────────────────────────────────────────────
+  // DELETE /api/profile  (auth required)
+  // Soft-deactivates the authenticated user's own account.
+  // Sets deactivated_at + deactivation_reason and revokes all
+  // active sessions. The profile row is NOT deleted.
+  // ──────────────────────────────────────────────────────────────
+  app.delete(
+    "/api/profile",
+    requireAuth,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { reason } = req.body as { reason?: string };
+        const supabase = getSupabaseAdmin();
+
+        // Mark account as deactivated
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            deactivated_at: new Date().toISOString(),
+            deactivation_reason: reason?.trim() ?? null,
+          })
+          .eq("id", req.userId!);
+
+        if (profileError) throw profileError;
+
+        // Revoke all active sessions for this user
+        await supabase
+          .from("user_sessions")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("user_id", req.userId!)
+          .is("revoked_at", null);
+
+        res.json({ success: true, data: { deactivated: true } });
+      } catch (err) {
+        res.status(500).json({
+          success: false,
+          message: "Failed to deactivate account.",
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────────────────
+  // POST /api/account/deactivate  (public — OTP verified)
+  // Allows a user to deactivate their account without an active
+  // session. Flow: email → OTP → deactivate.
+  // ──────────────────────────────────────────────────────────────
+  app.post("/api/account/deactivate", async (req, res) => {
+    try {
+      const { identifier, code, reason } = req.body as {
+        identifier?: string;
+        code?: string;
+        reason?: string;
+      };
+
+      if (!identifier || !code) {
+        res.status(400).json({
+          success: false,
+          message: "identifier and code are required.",
+        });
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const normalizedEmail = identifier.trim().toLowerCase();
+      if (!emailRegex.test(normalizedEmail)) {
+        res
+          .status(400)
+          .json({ success: false, message: "Invalid email address." });
+        return;
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      // Verify OTP
+      const { data: otpRow, error: otpErr } = await supabase
+        .from("otp_requests")
+        .select("id, code_hash, attempt_count, is_used, expires_at")
+        .eq("identifier", normalizedEmail)
+        .eq("is_used", false)
+        .gt("expires_at", new Date().toISOString())
+        .lt("attempt_count", 5)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (otpErr || !otpRow) {
+        res.status(401).json({
+          success: false,
+          message: "No valid code found. Please request a new one.",
+        });
+        return;
+      }
+
+      const codeMatch = await bcrypt.compare(
+        String(code).trim(),
+        otpRow.code_hash,
+      );
+      if (!codeMatch) {
+        await supabase
+          .from("otp_requests")
+          .update({ attempt_count: otpRow.attempt_count + 1 })
+          .eq("id", otpRow.id);
+        res.status(401).json({ success: false, message: "Invalid code." });
+        return;
+      }
+
+      // Mark OTP used
+      await supabase
+        .from("otp_requests")
+        .update({ is_used: true, verified_at: new Date().toISOString() })
+        .eq("id", otpRow.id);
+
+      // Resolve the user profile
+      const authUser = await findAuthUserByEmail(supabase, normalizedEmail);
+      if (!authUser) {
+        res.status(404).json({ success: false, message: "Account not found." });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, deactivated_at")
+        .eq("id", authUser.id)
+        .single();
+
+      if (!profile) {
+        res.status(404).json({ success: false, message: "Account not found." });
+        return;
+      }
+
+      if (profile.deactivated_at) {
+        res
+          .status(409)
+          .json({ success: false, message: "Account is already deactivated." });
+        return;
+      }
+
+      // Deactivate
+      const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({
+          deactivated_at: new Date().toISOString(),
+          deactivation_reason: reason?.trim() ?? null,
+        })
+        .eq("id", authUser.id);
+
+      if (updateErr) throw updateErr;
+
+      // Revoke all active sessions
+      await supabase
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("user_id", authUser.id)
+        .is("revoked_at", null);
+
+      res.json({ success: true, data: { deactivated: true } });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to deactivate account.",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
 
   // ──────────────────────────────────────────────────────────────
   // GET /api/groups  (auth required)

@@ -22,7 +22,8 @@
       "liveMoments": "Live moments",
       "scoringEngine": "Scoring engine",
       "faq": "FAQ & Support",
-      "advertise": "Advertise with Us"
+      "advertise": "Advertise with Us",
+      "deactivate": "Deactivate account"
     },
     "gamblingDisclaimer": "FanQuin is a free-to-play prediction game for entertainment purposes only. No real money, no wagering."
   },
@@ -766,7 +767,18 @@
     "saveChanges": "Save changes",
     "saved": "Saved!",
     "saveError": "Failed to save. Please try again.",
-    "memberSince": "Member since {{date}}"
+    "memberSince": "Member since {{date}}",
+    "dangerZone": "Danger zone",
+    "deactivateTitle": "Deactivate account",
+    "deactivateDescription": "Deactivating your account will sign you out from all devices. Your data is kept safe and an admin can reactivate it if you change your mind.",
+    "deactivateButton": "Deactivate my account",
+    "deactivateDialogTitle": "Deactivate your account?",
+    "deactivateDialogDescription": "You will be signed out immediately. Your groups and predictions will remain but you will not be able to sign back in.",
+    "deactivateReasonLabel": "Reason (optional)",
+    "deactivateReasonPlaceholder": "Tell us why you're leaving…",
+    "deactivateConfirm": "Yes, deactivate my account",
+    "deactivateCancel": "Cancel",
+    "deactivateError": "Something went wrong. Please try again."
   },
   "myGroups": {
     "badge": "Your groups",
@@ -871,6 +883,37 @@
         "label": "Clean Sheet",
         "hint": "+pts if user correctly predicts which team (or neither) keeps a clean sheet."
       }
+    }
+  },
+  "rulesModal": {
+    "title": "Group Rules",
+    "baseScoringLabel": "Base scoring",
+    "exactScore": "Exact score",
+    "correctWinner": "Correct winner / draw",
+    "correctDiff": "Correct goal difference",
+    "streakLabel": "Streak bonus",
+    "streakDesc": "Get {{n}} correct predictions in a row to earn +{{pts}} pts per match on top of base points.",
+    "bonusLabel": "Bonus predictions",
+    "eloLabel": "ELO Rating",
+    "eloDesc": "Your rank is influenced by win/loss ELO after each match.",
+    "livesLabel": "Survivor Lives",
+    "livesDesc": "You have {{n}} lives. A wrong prediction costs one life.",
+    "snakeHint": "Teams are assigned via a snake draft — the pick order reverses each round so no one always picks first.",
+    "timerHint": "Predictions lock when the match kicks off. Draft picks have a 60-second timer with auto-pick fallback.",
+    "gotIt": "Got it, let's go!",
+    "viewRules": "Rules",
+    "draft": {
+      "snake": "Snake draft",
+      "random": "Random draft",
+      "balanced_tier": "Balanced draft"
+    },
+    "modeDesc": {
+      "casual": "A relaxed mode for fun. Lower stakes, simple scoring — great for first-timers.",
+      "friends": "Slightly higher points and tighter rules. Perfect for a group of friends who take it seriously.",
+      "league": "Full league experience with ELO rankings, weekly leaderboard resets, and competitive scoring.",
+      "competitive": "The most intense mode — survivor lives, ELO swings, and top-tier points for nail-biting moments.",
+      "global": "Open-world scoring with upset bonuses. Upsets are worth the most here.",
+      "ownership": "Teams earn points for you every time they play. No prediction required — just own the right teams."
     }
   },
   "notifications": {
@@ -1369,5 +1412,43 @@
       "error_required": "Please fill in all required fields.",
       "error_email": "Please enter a valid email address."
     }
+  },
+  "deactivatePage": {
+    "meta": {
+      "title": "Deactivate Account · FanQuin",
+      "description": "Deactivate your FanQuin account."
+    },
+    "badge": "Account management",
+    "title": "Deactivate your account",
+    "subtitle": "We’ll verify your identity with a one-time code before proceeding.",
+    "stepEmail": {
+      "label": "Your email address",
+      "placeholder": "you@example.com",
+      "invalid": "Please enter a valid email address.",
+      "notFound": "No account found with that email.",
+      "continue": "Send verification code"
+    },
+    "stepOtp": {
+      "sent": "We sent a 6-digit code to {{email}}.",
+      "label": "One-time code",
+      "invalid": "Please enter the complete 6-digit code.",
+      "wrong": "Incorrect code. Please try again.",
+      "verify": "Verify",
+      "changeEmail": "Use a different email"
+    },
+    "stepReason": {
+      "title": "One last step",
+      "description": "Tell us why you’re leaving (optional). Your data is kept safe and an admin can reactivate your account if you change your mind.",
+      "label": "Reason (optional)",
+      "placeholder": "Tell us why you’re leaving…",
+      "confirm": "Deactivate my account",
+      "back": "Go back"
+    },
+    "success": {
+      "title": "Account deactivated",
+      "description": "Your account has been deactivated. You will no longer be able to sign in. If you change your mind, contact us at privacidad@fanquin.com.",
+      "cta": "Back to home"
+    },
+    "error": "Something went wrong. Please try again."
   }
 }

@@ -8,7 +8,7 @@ leoProfanity.loadDictionary("en");
 leoProfanity.loadDictionary("es");
 import axios from "axios";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setAuth } from "@/store/slices/authSlice";
+import { setAuth, deactivateAccount } from "@/store/slices/authSlice";
 import type { UserProfile } from "@shared/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { getCountries } from "react-phone-number-input";
 import type { Country as CountryCode } from "react-phone-number-input";
-import { Loader2, UserCircle, Save, CheckCircle2, LogOut } from "lucide-react";
+import {
+  Loader2,
+  UserCircle,
+  Save,
+  CheckCircle2,
+  LogOut,
+  AlertTriangle,
+} from "lucide-react";
 import { useState } from "react";
 import { clearAuth } from "@/store/slices/authSlice";
 
@@ -42,6 +61,9 @@ export default function ProfilePage() {
     (s) => s.auth.sessionToken ?? localStorage.getItem("fanquin_session"),
   );
   const [saved, setSaved] = useState(false);
+  const [deactivateReason, setDeactivateReason] = useState("");
+  const [deactivateError, setDeactivateError] = useState(false);
+  const deactivating = useAppSelector((s) => s.auth.deactivating);
 
   useEffect(() => {
     if (!sessionToken) navigate("/");
@@ -330,6 +352,95 @@ export default function ProfilePage() {
           <LogOut className="h-4 w-4" />
           {t("nav.signOut")}
         </button>
+      </div>
+
+      {/* Danger zone */}
+      <div className="mt-6 rounded-[1.4rem] border border-rose-500/25 bg-rose-500/5 p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-rose-400" />
+          <h2 className="font-display text-base font-semibold text-rose-400">
+            {t("profile.dangerZone")}
+          </h2>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-white">
+            {t("profile.deactivateTitle")}
+          </p>
+          <p className="mt-1 text-xs text-foreground/50">
+            {t("profile.deactivateDescription")}
+          </p>
+        </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="rounded-full border-rose-500/40 bg-transparent text-sm font-semibold text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/60"
+            >
+              {t("profile.deactivateButton")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-[hsl(var(--surface))] border border-white/10 rounded-[1.4rem]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">
+                {t("profile.deactivateDialogTitle")}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-foreground/60">
+                {t("profile.deactivateDialogDescription")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-1.5 py-2">
+              <Label className="text-xs text-foreground/80">
+                {t("profile.deactivateReasonLabel")}
+              </Label>
+              <Textarea
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+                placeholder={t("profile.deactivateReasonPlaceholder")}
+                rows={3}
+                maxLength={500}
+                className="rounded-xl border-white/15 bg-white/5 text-white placeholder:text-foreground/30 focus:border-rose-500/50 resize-none"
+              />
+            </div>
+            {deactivateError && (
+              <p className="text-xs text-rose-400">
+                {t("profile.deactivateError")}
+              </p>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setDeactivateReason("");
+                  setDeactivateError(false);
+                }}
+                className="rounded-full border-white/15 bg-transparent text-foreground/70 hover:bg-white/5"
+              >
+                {t("profile.deactivateCancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setDeactivateError(false);
+                  const result = await dispatch(
+                    deactivateAccount(deactivateReason.trim() || undefined),
+                  );
+                  if (deactivateAccount.rejected.match(result)) {
+                    setDeactivateError(true);
+                  } else {
+                    navigate("/");
+                  }
+                }}
+                disabled={deactivating}
+                className="rounded-full bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40"
+              >
+                {deactivating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {t("profile.deactivateConfirm")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

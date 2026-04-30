@@ -1,0 +1,594 @@
+-- Live schema pulled from Supabase on 2026-04-29
+-- Project: drasfkzbpklkwzyjutzg (fanquin)
+
+-- TABLE: ad_requests
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   brand_name                               text                           NOT NULL
+--   contact_name                             text                           NOT NULL
+--   contact_email                            text                           NOT NULL
+--   contact_phone                            text                           NULL
+--   website_url                              text                           NULL
+--   ad_format                                USER-DEFINED                   NOT NULL DEFAULT 'banner'::ad_format
+--   budget_range                             text                           NULL
+--   campaign_goal                            text                           NULL
+--   message                                  text                           NULL
+--   status                                   USER-DEFINED                   NOT NULL DEFAULT 'pending'::ad_request_status
+--   admin_notes                              text                           NULL
+--   ip_address                               inet                           NULL
+--   created_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   [PRIMARY KEY] ad_requests_pkey: id
+--   [INDEX] idx_ad_requests_created_at: CREATE INDEX idx_ad_requests_created_at ON public.ad_requests USING btree (created_at DESC)
+--   [INDEX] idx_ad_requests_status: CREATE INDEX idx_ad_requests_status ON public.ad_requests USING btree (status)
+
+-- TABLE: admin_sessions
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   admin_user_id                            uuid                           NOT NULL
+--   token_hash                               text                           NOT NULL
+--   expires_at                               timestamp with time zone       NOT NULL
+--   revoked_at                               timestamp with time zone       NULL
+--   ip_address                               inet                           NULL
+--   user_agent                               text                           NULL
+--   created_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   [FOREIGN KEY] admin_sessions_admin_user_id_fkey: admin_user_id
+--   [PRIMARY KEY] admin_sessions_pkey: id
+--   [UNIQUE] admin_sessions_token_hash_key: token_hash
+--   [INDEX] admin_sessions_admin_user_id_idx: CREATE INDEX admin_sessions_admin_user_id_idx ON public.admin_sessions USING btree (admin_user_id)
+--   [INDEX] admin_sessions_token_hash_idx: CREATE INDEX admin_sessions_token_hash_idx ON public.admin_sessions USING btree (token_hash)
+--   [INDEX] admin_sessions_token_hash_key: CREATE UNIQUE INDEX admin_sessions_token_hash_key ON public.admin_sessions USING btree (token_hash)
+
+-- TABLE: admin_users
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   email                                    text                           NOT NULL
+--   username                                 text                           NOT NULL
+--   display_name                             text                           NULL
+--   first_name                               text                           NULL
+--   last_name                                text                           NULL
+--   phone                                    text                           NULL
+--   country                                  text                           NULL
+--   locale                                   text                           NOT NULL DEFAULT 'en'::text
+--   is_active                                boolean                        NOT NULL DEFAULT true
+--   created_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   [PRIMARY KEY] admin_users_pkey: id
+--   [UNIQUE] admin_users_email_key: email
+--   [UNIQUE] admin_users_username_key: username
+--   [INDEX] admin_users_email_key: CREATE UNIQUE INDEX admin_users_email_key ON public.admin_users USING btree (email)
+--   [INDEX] admin_users_username_key: CREATE UNIQUE INDEX admin_users_username_key ON public.admin_users USING btree (username)
+
+-- TABLE: boosts
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   boost_type                               USER-DEFINED                   NOT NULL
+--   match_id                                 uuid                           NULL
+--   applied_at                               timestamp with time zone       NULL
+--   expires_at                               timestamp with time zone       NULL
+--   is_used                                  boolean                        NULL DEFAULT false
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] boosts_group_id_fkey: group_id
+--   [FOREIGN KEY] boosts_match_id_fkey: match_id
+--   [FOREIGN KEY] boosts_user_id_fkey: user_id
+--   [PRIMARY KEY] boosts_pkey: id
+--   [INDEX] boosts_user_id_group_id_is_used_idx: CREATE INDEX boosts_user_id_group_id_is_used_idx ON public.boosts USING btree (user_id, group_id, is_used)
+
+-- TABLE: bracket_matchups
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   bracket_id                               uuid                           NULL
+--   player_a_id                              uuid                           NULL
+--   player_b_id                              uuid                           NULL
+--   player_a_pts                             integer                        NULL DEFAULT 0
+--   player_b_pts                             integer                        NULL DEFAULT 0
+--   winner_id                                uuid                           NULL
+--   next_matchup_id                          uuid                           NULL
+--   position                                 integer                        NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] bracket_matchups_bracket_id_fkey: bracket_id
+--   [FOREIGN KEY] bracket_matchups_next_matchup_id_fkey: next_matchup_id
+--   [FOREIGN KEY] bracket_matchups_player_a_id_fkey: player_a_id
+--   [FOREIGN KEY] bracket_matchups_player_b_id_fkey: player_b_id
+--   [FOREIGN KEY] bracket_matchups_winner_id_fkey: winner_id
+--   [PRIMARY KEY] bracket_matchups_pkey: id
+--   [INDEX] bracket_matchups_bracket_id_idx: CREATE INDEX bracket_matchups_bracket_id_idx ON public.bracket_matchups USING btree (bracket_id)
+
+-- TABLE: brackets
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   name                                     text                           NOT NULL
+--   round                                    integer                        NOT NULL DEFAULT 1
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] brackets_group_id_fkey: group_id
+--   [PRIMARY KEY] brackets_pkey: id
+
+-- TABLE: competitions
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   name                                     text                           NOT NULL
+--   short_name                               text                           NULL
+--   type                                     USER-DEFINED                   NOT NULL
+--   season                                   text                           NOT NULL
+--   starts_at                                timestamp with time zone       NULL
+--   ends_at                                  timestamp with time zone       NULL
+--   is_active                                boolean                        NULL DEFAULT true
+--   logo_url                                 text                           NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   external_id                              integer                        NULL
+--   last_synced_at                           timestamp with time zone       NULL
+--   is_test                                  boolean                        NOT NULL DEFAULT false
+--   [PRIMARY KEY] competitions_pkey: id
+--   [INDEX] idx_competitions_external_id: CREATE INDEX idx_competitions_external_id ON public.competitions USING btree (external_id)
+--   [INDEX] idx_competitions_is_test: CREATE INDEX idx_competitions_is_test ON public.competitions USING btree (is_test)
+
+-- TABLE: daily_challenge_entries
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   challenge_id                             uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   answer                                   jsonb                          NULL
+--   pts_earned                               integer                        NULL DEFAULT 0
+--   submitted_at                             timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] daily_challenge_entries_challenge_id_fkey: challenge_id
+--   [FOREIGN KEY] daily_challenge_entries_user_id_fkey: user_id
+--   [PRIMARY KEY] daily_challenge_entries_pkey: id
+--   [UNIQUE] daily_challenge_entries_challenge_id_user_id_key: challenge_id
+--   [UNIQUE] daily_challenge_entries_challenge_id_user_id_key + user_id
+--   [INDEX] daily_challenge_entries_challenge_id_user_id_idx: CREATE INDEX daily_challenge_entries_challenge_id_user_id_idx ON public.daily_challenge_entries USING btree (challenge_id, user_id)
+--   [INDEX] daily_challenge_entries_challenge_id_user_id_key: CREATE UNIQUE INDEX daily_challenge_entries_challenge_id_user_id_key ON public.daily_challenge_entries USING btree (challenge_id, user_id)
+
+-- TABLE: daily_challenges
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   competition_id                           uuid                           NULL
+--   title                                    text                           NOT NULL
+--   description                              text                           NULL
+--   challenge_date                           date                           NOT NULL
+--   bonus_pts                                integer                        NULL DEFAULT 5
+--   is_active                                boolean                        NULL DEFAULT true
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] daily_challenges_competition_id_fkey: competition_id
+--   [PRIMARY KEY] daily_challenges_pkey: id
+--   [UNIQUE] daily_challenges_competition_id_challenge_date_key: competition_id
+--   [UNIQUE] daily_challenges_competition_id_challenge_date_key + challenge_date
+--   [INDEX] daily_challenges_competition_id_challenge_date_idx: CREATE INDEX daily_challenges_competition_id_challenge_date_idx ON public.daily_challenges USING btree (competition_id, challenge_date)
+--   [INDEX] daily_challenges_competition_id_challenge_date_key: CREATE UNIQUE INDEX daily_challenges_competition_id_challenge_date_key ON public.daily_challenges USING btree (competition_id, challenge_date)
+
+-- TABLE: draft_picks
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NOT NULL
+--   user_id                                  uuid                           NOT NULL
+--   team_id                                  uuid                           NOT NULL
+--   pick_number                              integer                        NOT NULL
+--   round                                    integer                        NOT NULL
+--   auto_picked                              boolean                        NULL DEFAULT false
+--   picked_at                                timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] draft_picks_group_id_fkey: group_id
+--   [FOREIGN KEY] draft_picks_team_id_fkey: team_id
+--   [FOREIGN KEY] draft_picks_user_id_fkey: user_id
+--   [PRIMARY KEY] draft_picks_pkey: id
+--   [UNIQUE] draft_picks_group_id_pick_number_key: pick_number
+--   [UNIQUE] draft_picks_group_id_pick_number_key + group_id
+--   [UNIQUE] draft_picks_group_id_team_id_key: group_id
+--   [UNIQUE] draft_picks_group_id_team_id_key + team_id
+--   [INDEX] draft_picks_group_id_pick_number_idx: CREATE INDEX draft_picks_group_id_pick_number_idx ON public.draft_picks USING btree (group_id, pick_number)
+--   [INDEX] draft_picks_group_id_pick_number_key: CREATE UNIQUE INDEX draft_picks_group_id_pick_number_key ON public.draft_picks USING btree (group_id, pick_number)
+--   [INDEX] draft_picks_group_id_team_id_key: CREATE UNIQUE INDEX draft_picks_group_id_team_id_key ON public.draft_picks USING btree (group_id, team_id)
+--   [INDEX] draft_picks_group_id_user_id_idx: CREATE INDEX draft_picks_group_id_user_id_idx ON public.draft_picks USING btree (group_id, user_id)
+
+-- TABLE: draft_sessions
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NOT NULL
+--   member_order                             ARRAY                          NOT NULL
+--   current_pick                             integer                        NOT NULL DEFAULT 0
+--   total_picks                              integer                        NOT NULL
+--   pick_deadline                            timestamp with time zone       NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] draft_sessions_group_id_fkey: group_id
+--   [PRIMARY KEY] draft_sessions_pkey: id
+--   [UNIQUE] draft_sessions_group_id_key: group_id
+--   [INDEX] draft_sessions_group_id_idx: CREATE INDEX draft_sessions_group_id_idx ON public.draft_sessions USING btree (group_id)
+--   [INDEX] draft_sessions_group_id_key: CREATE UNIQUE INDEX draft_sessions_group_id_key ON public.draft_sessions USING btree (group_id)
+
+-- TABLE: elo_history
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   match_id                                 uuid                           NULL
+--   week_number                              integer                        NULL
+--   elo_before                               integer                        NOT NULL
+--   elo_after                                integer                        NOT NULL
+--   delta                                    integer                        NULL
+--   recorded_at                              timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] elo_history_group_id_fkey: group_id
+--   [FOREIGN KEY] elo_history_match_id_fkey: match_id
+--   [FOREIGN KEY] elo_history_user_id_fkey: user_id
+--   [PRIMARY KEY] elo_history_pkey: id
+--   [INDEX] elo_history_group_id_user_id_idx: CREATE INDEX elo_history_group_id_user_id_idx ON public.elo_history USING btree (group_id, user_id)
+
+-- TABLE: group_members
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   role                                     text                           NULL DEFAULT 'member'::text
+--   total_points                             integer                        NULL DEFAULT 0
+--   prediction_pts                           integer                        NULL DEFAULT 0
+--   ownership_pts                            integer                        NULL DEFAULT 0
+--   current_streak                           integer                        NULL DEFAULT 0
+--   best_streak                              integer                        NULL DEFAULT 0
+--   weekly_pts                               integer                        NULL DEFAULT 0
+--   elo_rating                               integer                        NULL DEFAULT 1000
+--   survivor_lives                           integer                        NULL DEFAULT 1
+--   is_eliminated                            boolean                        NULL DEFAULT false
+--   rank                                     integer                        NULL
+--   joined_at                                timestamp with time zone       NULL DEFAULT now()
+--   auto_pick                                boolean                        NOT NULL DEFAULT false
+--   [FOREIGN KEY] group_members_group_id_fkey: group_id
+--   [FOREIGN KEY] group_members_user_id_fkey: user_id
+--   [PRIMARY KEY] group_members_pkey: id
+--   [UNIQUE] group_members_group_id_user_id_key: user_id
+--   [UNIQUE] group_members_group_id_user_id_key + group_id
+--   [INDEX] group_members_group_id_total_points_idx: CREATE INDEX group_members_group_id_total_points_idx ON public.group_members USING btree (group_id, total_points DESC)
+--   [INDEX] group_members_group_id_user_id_key: CREATE UNIQUE INDEX group_members_group_id_user_id_key ON public.group_members USING btree (group_id, user_id)
+--   [INDEX] group_members_user_id_idx: CREATE INDEX group_members_user_id_idx ON public.group_members USING btree (user_id)
+
+-- TABLE: groups
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   name                                     text                           NOT NULL
+--   invite_code                              text                           NOT NULL DEFAULT substr(md5((random())::text), 1, 8)
+--   competition_id                           uuid                           NULL
+--   mode                                     USER-DEFINED                   NOT NULL DEFAULT 'friends'::group_mode
+--   draft_type                               USER-DEFINED                   NULL DEFAULT 'snake'::draft_type
+--   owner_id                                 uuid                           NULL
+--   max_members                              integer                        NULL DEFAULT 50
+--   scoring_config                           jsonb                          NULL DEFAULT '{"elo_k_factor": 32, "team_win_pts": 4, "team_goal_pts": 1, "survivor_lives": 1, "upset_base_pts": 5, "exact_score_pts": 5, "streak_bonus_pts": 2, "correct_winner_pts": 3, "goal_difference_pts": 2, "team_clean_sheet_pts": 3, "weekly_reset_enabled": true, "streak_bonus_threshold": 3}'::jsonb
+--   is_active                                boolean                        NULL DEFAULT true
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NULL DEFAULT now()
+--   status                                   USER-DEFINED                   NOT NULL DEFAULT 'waiting'::group_status
+--   draft_started_at                         timestamp with time zone       NULL
+--   started_at                               timestamp with time zone       NULL
+--   is_test                                  boolean                        NOT NULL DEFAULT false
+--   bonus_criteria                           jsonb                          NOT NULL DEFAULT '{"enabled": [], "btts_pts": 2, "ft_winner_pts": 2, "ht_winner_pts": 2, "clean_sheet_pts": 1, "total_goals_over_pts": 2, "total_goals_threshold": 2.5}'::jsonb
+--   [FOREIGN KEY] groups_competition_id_fkey: competition_id
+--   [FOREIGN KEY] groups_owner_id_fkey: owner_id
+--   [PRIMARY KEY] groups_pkey: id
+--   [UNIQUE] groups_invite_code_key: invite_code
+--   [INDEX] groups_invite_code_key: CREATE UNIQUE INDEX groups_invite_code_key ON public.groups USING btree (invite_code)
+--   [INDEX] idx_groups_is_test: CREATE INDEX idx_groups_is_test ON public.groups USING btree (is_test)
+
+-- TABLE: leaderboard_snapshots
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   week_number                              integer                        NOT NULL
+--   rank                                     integer                        NOT NULL
+--   total_points                             integer                        NOT NULL
+--   prediction_pts                           integer                        NOT NULL
+--   ownership_pts                            integer                        NOT NULL
+--   snapshot_at                              timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] leaderboard_snapshots_group_id_fkey: group_id
+--   [FOREIGN KEY] leaderboard_snapshots_user_id_fkey: user_id
+--   [PRIMARY KEY] leaderboard_snapshots_pkey: id
+
+-- TABLE: legal_documents
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   type                                     text                           NOT NULL
+--   version                                  text                           NOT NULL DEFAULT '1.0'::text
+--   title                                    text                           NOT NULL
+--   content                                  text                           NOT NULL
+--   jurisdiction                             text                           NOT NULL DEFAULT 'MX'::text
+--   effective_date                           date                           NOT NULL
+--   is_active                                boolean                        NOT NULL DEFAULT false
+--   created_at                               timestamp with time zone       NOT NULL DEFAULT now()
+--   [PRIMARY KEY] legal_documents_pkey: id
+--   [INDEX] legal_documents_active_type_idx: CREATE UNIQUE INDEX legal_documents_active_type_idx ON public.legal_documents USING btree (type) WHERE (is_active = true)
+
+-- TABLE: matches
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   competition_id                           uuid                           NULL
+--   home_team_id                             uuid                           NULL
+--   away_team_id                             uuid                           NULL
+--   stage                                    text                           NULL
+--   match_date                               timestamp with time zone       NOT NULL
+--   prediction_lock                          timestamp with time zone       NULL
+--   home_score                               integer                        NULL
+--   away_score                               integer                        NULL
+--   status                                   USER-DEFINED                   NULL DEFAULT 'scheduled'::match_status
+--   upset_multiplier                         numeric                        NULL DEFAULT 1.0
+--   home_win_pick_pct                        numeric                        NULL
+--   away_win_pick_pct                        numeric                        NULL
+--   draw_pick_pct                            numeric                        NULL
+--   total_picks                              integer                        NULL DEFAULT 0
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   venue_id                                 uuid                           NULL
+--   match_number                             integer                        NULL
+--   external_id                              integer                        NULL
+--   last_synced_at                           timestamp with time zone       NULL
+--   ht_score_home                            integer                        NULL
+--   ht_score_away                            integer                        NULL
+--   [FOREIGN KEY] matches_away_team_id_fkey: away_team_id
+--   [FOREIGN KEY] matches_competition_id_fkey: competition_id
+--   [FOREIGN KEY] matches_home_team_id_fkey: home_team_id
+--   [FOREIGN KEY] matches_venue_id_fkey: venue_id
+--   [PRIMARY KEY] matches_pkey: id
+--   [INDEX] idx_matches_external_id: CREATE INDEX idx_matches_external_id ON public.matches USING btree (external_id)
+--   [INDEX] matches_competition_id_match_date_idx: CREATE INDEX matches_competition_id_match_date_idx ON public.matches USING btree (competition_id, match_date)
+--   [INDEX] matches_status_idx: CREATE INDEX matches_status_idx ON public.matches USING btree (status)
+
+-- TABLE: notifications
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   user_id                                  uuid                           NULL
+--   type                                     text                           NOT NULL
+--   title                                    text                           NOT NULL
+--   body                                     text                           NULL
+--   metadata                                 jsonb                          NULL
+--   is_read                                  boolean                        NULL DEFAULT false
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] notifications_user_id_fkey: user_id
+--   [PRIMARY KEY] notifications_pkey: id
+--   [INDEX] notifications_user_id_is_read_created_at_idx: CREATE INDEX notifications_user_id_is_read_created_at_idx ON public.notifications USING btree (user_id, is_read, created_at DESC)
+
+-- TABLE: otp_requests
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   identifier                               text                           NOT NULL
+--   delivery_method                          text                           NOT NULL
+--   code_hash                                text                           NOT NULL
+--   expires_at                               timestamp with time zone       NOT NULL DEFAULT (now() + '00:10:00'::interval)
+--   verified_at                              timestamp with time zone       NULL
+--   attempt_count                            integer                        NULL DEFAULT 0
+--   is_used                                  boolean                        NULL DEFAULT false
+--   ip_address                               inet                           NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [PRIMARY KEY] otp_requests_pkey: id
+--   [INDEX] otp_requests_expires_at_idx: CREATE INDEX otp_requests_expires_at_idx ON public.otp_requests USING btree (expires_at) WHERE (NOT is_used)
+--   [INDEX] otp_requests_identifier_created_at_idx: CREATE INDEX otp_requests_identifier_created_at_idx ON public.otp_requests USING btree (identifier, created_at DESC)
+
+-- TABLE: predictions
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   match_id                                 uuid                           NULL
+--   predicted_home                           integer                        NOT NULL
+--   predicted_away                           integer                        NOT NULL
+--   result                                   USER-DEFINED                   NULL DEFAULT 'pending'::prediction_result
+--   points_earned                            integer                        NULL DEFAULT 0
+--   upset_pts                                integer                        NULL DEFAULT 0
+--   submitted_at                             timestamp with time zone       NULL DEFAULT now()
+--   details                                  jsonb                          NOT NULL DEFAULT '{}'::jsonb
+--   bonus_pts                                integer                        NOT NULL DEFAULT 0
+--   [FOREIGN KEY] predictions_group_id_fkey: group_id
+--   [FOREIGN KEY] predictions_match_id_fkey: match_id
+--   [FOREIGN KEY] predictions_user_id_fkey: user_id
+--   [PRIMARY KEY] predictions_pkey: id
+--   [UNIQUE] predictions_group_id_user_id_match_id_key: match_id
+--   [UNIQUE] predictions_group_id_user_id_match_id_key + user_id
+--   [UNIQUE] predictions_group_id_user_id_match_id_key + group_id
+--   [INDEX] idx_predictions_details: CREATE INDEX idx_predictions_details ON public.predictions USING gin (details)
+--   [INDEX] predictions_group_id_match_id_idx: CREATE INDEX predictions_group_id_match_id_idx ON public.predictions USING btree (group_id, match_id)
+--   [INDEX] predictions_group_id_user_id_match_id_key: CREATE UNIQUE INDEX predictions_group_id_user_id_match_id_key ON public.predictions USING btree (group_id, user_id, match_id)
+--   [INDEX] predictions_user_id_group_id_idx: CREATE INDEX predictions_user_id_group_id_idx ON public.predictions USING btree (user_id, group_id)
+
+-- TABLE: profiles
+-- Columns:
+--   id                                       uuid                           NOT NULL
+--   username                                 text                           NOT NULL
+--   display_name                             text                           NULL
+--   avatar_url                               text                           NULL
+--   locale                                   text                           NULL DEFAULT 'en'::text
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NULL DEFAULT now()
+--   first_name                               text                           NULL
+--   last_name                                text                           NULL
+--   phone                                    text                           NULL
+--   country                                  text                           NULL
+--   deactivated_at                           timestamp with time zone       NULL
+--   deactivation_reason                      text                           NULL
+--   [FOREIGN KEY] profiles_id_fkey: id
+--   [PRIMARY KEY] profiles_pkey: id
+--   [UNIQUE] profiles_username_key: username
+--   [INDEX] idx_profiles_deactivated_at: CREATE INDEX idx_profiles_deactivated_at ON public.profiles USING btree (deactivated_at) WHERE (deactivated_at IS NOT NULL)
+--   [INDEX] profiles_username_key: CREATE UNIQUE INDEX profiles_username_key ON public.profiles USING btree (username)
+
+-- TABLE: rivalries
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   player_a_id                              uuid                           NULL
+--   player_b_id                              uuid                           NULL
+--   week_number                              integer                        NOT NULL
+--   competition_id                           uuid                           NULL
+--   player_a_pts                             integer                        NULL DEFAULT 0
+--   player_b_pts                             integer                        NULL DEFAULT 0
+--   winner_id                                uuid                           NULL
+--   status                                   USER-DEFINED                   NULL DEFAULT 'active'::rivalry_status
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] rivalries_competition_id_fkey: competition_id
+--   [FOREIGN KEY] rivalries_group_id_fkey: group_id
+--   [FOREIGN KEY] rivalries_player_a_id_fkey: player_a_id
+--   [FOREIGN KEY] rivalries_player_b_id_fkey: player_b_id
+--   [FOREIGN KEY] rivalries_winner_id_fkey: winner_id
+--   [PRIMARY KEY] rivalries_pkey: id
+--   [UNIQUE] rivalries_group_id_player_a_id_player_b_id_week_number_key: week_number
+--   [UNIQUE] rivalries_group_id_player_a_id_player_b_id_week_number_key + group_id
+--   [UNIQUE] rivalries_group_id_player_a_id_player_b_id_week_number_key + player_a_id
+--   [UNIQUE] rivalries_group_id_player_a_id_player_b_id_week_number_key + player_b_id
+--   [INDEX] rivalries_group_id_player_a_id_player_b_id_week_number_key: CREATE UNIQUE INDEX rivalries_group_id_player_a_id_player_b_id_week_number_key ON public.rivalries USING btree (group_id, player_a_id, player_b_id, week_number)
+--   [INDEX] rivalries_group_id_week_number_idx: CREATE INDEX rivalries_group_id_week_number_idx ON public.rivalries USING btree (group_id, week_number)
+
+-- TABLE: streak_events
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   streak_length                            integer                        NOT NULL
+--   broken                                   boolean                        NULL DEFAULT false
+--   occurred_at                              timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] streak_events_group_id_fkey: group_id
+--   [FOREIGN KEY] streak_events_user_id_fkey: user_id
+--   [PRIMARY KEY] streak_events_pkey: id
+
+-- TABLE: support_cases
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   user_id                                  uuid                           NOT NULL
+--   category                                 USER-DEFINED                   NOT NULL DEFAULT 'other'::support_case_category
+--   subject                                  text                           NOT NULL
+--   message                                  text                           NOT NULL
+--   status                                   USER-DEFINED                   NOT NULL DEFAULT 'open'::support_case_status
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   updated_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] support_cases_user_id_fkey: user_id
+--   [PRIMARY KEY] support_cases_pkey: id
+--   [INDEX] idx_support_cases_created: CREATE INDEX idx_support_cases_created ON public.support_cases USING btree (created_at DESC)
+--   [INDEX] idx_support_cases_status: CREATE INDEX idx_support_cases_status ON public.support_cases USING btree (status)
+--   [INDEX] idx_support_cases_user_id: CREATE INDEX idx_support_cases_user_id ON public.support_cases USING btree (user_id)
+
+-- TABLE: survivor_entries
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   round_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   survived                                 boolean                        NULL
+--   lives_remaining                          integer                        NULL DEFAULT 1
+--   eliminated_at                            timestamp with time zone       NULL
+--   [FOREIGN KEY] survivor_entries_group_id_fkey: group_id
+--   [FOREIGN KEY] survivor_entries_round_id_fkey: round_id
+--   [FOREIGN KEY] survivor_entries_user_id_fkey: user_id
+--   [PRIMARY KEY] survivor_entries_pkey: id
+--   [UNIQUE] survivor_entries_round_id_user_id_key: user_id
+--   [UNIQUE] survivor_entries_round_id_user_id_key + round_id
+--   [INDEX] survivor_entries_group_id_user_id_idx: CREATE INDEX survivor_entries_group_id_user_id_idx ON public.survivor_entries USING btree (group_id, user_id)
+--   [INDEX] survivor_entries_round_id_user_id_key: CREATE UNIQUE INDEX survivor_entries_round_id_user_id_key ON public.survivor_entries USING btree (round_id, user_id)
+
+-- TABLE: survivor_rounds
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   round_number                             integer                        NOT NULL
+--   week_number                              integer                        NOT NULL
+--   started_at                               timestamp with time zone       NULL
+--   ended_at                                 timestamp with time zone       NULL
+--   [FOREIGN KEY] survivor_rounds_group_id_fkey: group_id
+--   [PRIMARY KEY] survivor_rounds_pkey: id
+--   [UNIQUE] survivor_rounds_group_id_round_number_key: group_id
+--   [UNIQUE] survivor_rounds_group_id_round_number_key + round_number
+--   [INDEX] survivor_rounds_group_id_round_number_key: CREATE UNIQUE INDEX survivor_rounds_group_id_round_number_key ON public.survivor_rounds USING btree (group_id, round_number)
+
+-- TABLE: team_match_events
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   match_id                                 uuid                           NULL
+--   team_id                                  uuid                           NULL
+--   goals_scored                             integer                        NULL DEFAULT 0
+--   clean_sheet                              boolean                        NULL DEFAULT false
+--   won                                      boolean                        NULL DEFAULT false
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] team_match_events_match_id_fkey: match_id
+--   [FOREIGN KEY] team_match_events_team_id_fkey: team_id
+--   [PRIMARY KEY] team_match_events_pkey: id
+--   [UNIQUE] team_match_events_match_id_team_id_key: team_id
+--   [UNIQUE] team_match_events_match_id_team_id_key + match_id
+--   [INDEX] team_match_events_match_id_idx: CREATE INDEX team_match_events_match_id_idx ON public.team_match_events USING btree (match_id)
+--   [INDEX] team_match_events_match_id_team_id_key: CREATE UNIQUE INDEX team_match_events_match_id_team_id_key ON public.team_match_events USING btree (match_id, team_id)
+--   [INDEX] team_match_events_team_id_idx: CREATE INDEX team_match_events_team_id_idx ON public.team_match_events USING btree (team_id)
+
+-- TABLE: team_ownership
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   group_id                                 uuid                           NULL
+--   user_id                                  uuid                           NULL
+--   team_id                                  uuid                           NULL
+--   draft_pick                               integer                        NULL
+--   wins_pts                                 integer                        NULL DEFAULT 0
+--   goals_pts                                integer                        NULL DEFAULT 0
+--   clean_sheet_pts                          integer                        NULL DEFAULT 0
+--   total_pts                                integer                        NULL DEFAULT 0
+--   assigned_at                              timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] team_ownership_group_id_fkey: group_id
+--   [FOREIGN KEY] team_ownership_team_id_fkey: team_id
+--   [FOREIGN KEY] team_ownership_user_id_fkey: user_id
+--   [PRIMARY KEY] team_ownership_pkey: id
+--   [UNIQUE] team_ownership_group_id_team_id_key: team_id
+--   [UNIQUE] team_ownership_group_id_team_id_key + group_id
+--   [INDEX] team_ownership_group_id_team_id_idx: CREATE INDEX team_ownership_group_id_team_id_idx ON public.team_ownership USING btree (group_id, team_id)
+--   [INDEX] team_ownership_group_id_team_id_key: CREATE UNIQUE INDEX team_ownership_group_id_team_id_key ON public.team_ownership USING btree (group_id, team_id)
+--   [INDEX] team_ownership_group_id_user_id_idx: CREATE INDEX team_ownership_group_id_user_id_idx ON public.team_ownership USING btree (group_id, user_id)
+
+-- TABLE: teams
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   competition_id                           uuid                           NULL
+--   name                                     text                           NOT NULL
+--   short_name                               text                           NULL
+--   country_code                             text                           NULL
+--   flag_url                                 text                           NULL
+--   tier                                     integer                        NULL DEFAULT 1
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   group_label                              text                           NULL
+--   is_placeholder                           boolean                        NULL DEFAULT false
+--   external_id                              integer                        NULL
+--   [FOREIGN KEY] teams_competition_id_fkey: competition_id
+--   [PRIMARY KEY] teams_pkey: id
+--   [INDEX] idx_teams_external_id: CREATE INDEX idx_teams_external_id ON public.teams USING btree (external_id)
+
+-- TABLE: user_sessions
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   user_id                                  uuid                           NOT NULL
+--   token_hash                               text                           NOT NULL
+--   delivery_method                          text                           NULL
+--   device_info                              jsonb                          NULL
+--   ip_address                               inet                           NULL
+--   last_seen_at                             timestamp with time zone       NULL DEFAULT now()
+--   expires_at                               timestamp with time zone       NOT NULL DEFAULT (now() + '30 days'::interval)
+--   revoked_at                               timestamp with time zone       NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [FOREIGN KEY] user_sessions_user_id_fkey: user_id
+--   [PRIMARY KEY] user_sessions_pkey: id
+--   [UNIQUE] user_sessions_token_hash_key: token_hash
+--   [INDEX] user_sessions_expires_at_idx: CREATE INDEX user_sessions_expires_at_idx ON public.user_sessions USING btree (expires_at) WHERE (revoked_at IS NULL)
+--   [INDEX] user_sessions_token_hash_idx: CREATE INDEX user_sessions_token_hash_idx ON public.user_sessions USING btree (token_hash)
+--   [INDEX] user_sessions_token_hash_key: CREATE UNIQUE INDEX user_sessions_token_hash_key ON public.user_sessions USING btree (token_hash)
+--   [INDEX] user_sessions_user_id_idx: CREATE INDEX user_sessions_user_id_idx ON public.user_sessions USING btree (user_id) WHERE (revoked_at IS NULL)
+
+-- TABLE: venues
+-- Columns:
+--   id                                       uuid                           NOT NULL DEFAULT gen_random_uuid()
+--   name                                     text                           NOT NULL
+--   city                                     text                           NOT NULL
+--   country                                  text                           NOT NULL
+--   country_code                             text                           NULL
+--   capacity                                 integer                        NULL
+--   latitude                                 numeric                        NULL
+--   longitude                                numeric                        NULL
+--   created_at                               timestamp with time zone       NULL DEFAULT now()
+--   [PRIMARY KEY] venues_pkey: id
+
+
+-- FUNCTIONS:
+-- auth_user_exists_by_email (SECURITY DEFINER)
+-- check_otp_rate_limit (SECURITY DEFINER)
+-- cleanup_expired_otp_requests (SECURITY DEFINER)
+-- get_auth_user_id_by_email (SECURITY DEFINER)
+-- handle_new_user (SECURITY DEFINER)
+-- handle_updated_at (SECURITY INVOKER)
+-- update_ad_requests_updated_at (SECURITY INVOKER)
+-- verify_otp_code (SECURITY DEFINER)

@@ -1,6 +1,6 @@
 # FanQuin — Product System Reference
 
-> **Version:** 1.0 · **Last updated:** 2026-04-14  
+> **Version:** 1.1 · **Last updated:** 2026-04-29  
 > **Status:** Production-ready  
 > **Audience:** Designers, frontend engineers, backend engineers, AI agents
 
@@ -477,22 +477,24 @@ Unauthenticated mobile nav: Home, Hub, Groups (redirects to sign-in).
 
 #### Route Structure
 
-| Path                     | Component      | Auth Required | Description                              |
-| ------------------------ | -------------- | ------------- | ---------------------------------------- |
-| `/`                      | `Index`        | No            | Landing / home page                      |
-| `/groups/world-cup-crew` | `GroupHub`     | No            | Marketing demo hub                       |
-| `/groups/new`            | `CreateGroup`  | No            | Group creation wizard                    |
-| `/join/:code`            | `JoinPage`     | No            | Join group via invite code               |
-| `/groups`                | `MyGroups`     | **Yes**       | User's joined groups                     |
-| `/groups/:id`            | `GroupPage`    | **Yes**       | Individual group leaderboard/predictions |
-| `/groups/:id/draft`      | `DraftPage`    | **Yes**       | Live snake draft room                    |
-| `/profile`               | `ProfilePage`  | **Yes**       | User profile editor                      |
-| `/live`                  | `LivePage`     | **Yes**       | Live match predictions                   |
-| `/scoring`               | `ScoringPage`  | No            | Scoring rules explainer                  |
-| `/privacy`               | `LegalDocPage` | No            | Privacy policy                           |
-| `/terms`                 | `LegalDocPage` | No            | Terms of service                         |
-| `/faq`                   | `FaqPage`      | No            | FAQ & Support                            |
-| `*`                      | `NotFound`     | No            | 404 page                                 |
+| Path                     | Component        | Auth Required | Description                                      |
+| ------------------------ | ---------------- | ------------- | ------------------------------------------------ |
+| `/`                      | `Index`          | No            | Landing / home page                              |
+| `/groups/world-cup-crew` | `GroupHub`       | No            | Marketing demo hub                               |
+| `/groups/new`            | `CreateGroup`    | No            | Group creation wizard                            |
+| `/join/:code`            | `JoinPage`       | No            | Join group via invite code                       |
+| `/groups`                | `MyGroups`       | **Yes**       | User's joined groups                             |
+| `/groups/:id`            | `GroupPage`      | **Yes**       | Individual group leaderboard/predictions         |
+| `/groups/:id/draft`      | `DraftPage`      | **Yes**       | Live snake draft room                            |
+| `/profile`               | `ProfilePage`    | **Yes**       | User profile editor                              |
+| `/live`                  | `LivePage`       | **Yes**       | Live match predictions                           |
+| `/scoring`               | `ScoringPage`    | No            | Scoring rules explainer                          |
+| `/privacy`               | `LegalDocPage`   | No            | Privacy policy                                   |
+| `/terms`                 | `LegalDocPage`   | No            | Terms of service                                 |
+| `/faq`                   | `FaqPage`        | No            | FAQ & Support                                    |
+| `/advertise`             | `AdvertisePage`  | No            | Advertising inquiry form                         |
+| `/deactivate`            | `DeactivatePage` | No            | Self-service account deactivation (OTP-verified) |
+| `*`                      | `NotFound`       | No            | 404 page                                         |
 
 #### Auth Guard
 
@@ -804,19 +806,21 @@ Row Level Security (RLS) is enabled on all tables. Mutations use the service rol
 
 Extends `auth.users`. Primary user identity record.
 
-| Column         | Type        | Constraints                     | Description             |
-| -------------- | ----------- | ------------------------------- | ----------------------- |
-| `id`           | uuid        | PK, FK → auth.users(id) CASCADE | User ID                 |
-| `username`     | text        | UNIQUE NOT NULL                 | URL-safe display handle |
-| `display_name` | text        | —                               | Full display name       |
-| `first_name`   | text        | —                               | Given name              |
-| `last_name`    | text        | —                               | Family name             |
-| `phone`        | text        | —                               | Phone number (E.164)    |
-| `country`      | text        | —                               | ISO 3166-1 alpha-2      |
-| `avatar_url`   | text        | —                               | Profile image URL       |
-| `locale`       | text        | DEFAULT 'en'                    | UI language preference  |
-| `created_at`   | timestamptz | DEFAULT now()                   |                         |
-| `updated_at`   | timestamptz | DEFAULT now()                   |                         |
+| Column                | Type        | Constraints                     | Description                                |
+| --------------------- | ----------- | ------------------------------- | ------------------------------------------ |
+| `id`                  | uuid        | PK, FK → auth.users(id) CASCADE | User ID                                    |
+| `username`            | text        | UNIQUE NOT NULL                 | URL-safe display handle                    |
+| `display_name`        | text        | —                               | Full display name                          |
+| `first_name`          | text        | —                               | Given name                                 |
+| `last_name`           | text        | —                               | Family name                                |
+| `phone`               | text        | —                               | Phone number (E.164)                       |
+| `country`             | text        | —                               | ISO 3166-1 alpha-2                         |
+| `avatar_url`          | text        | —                               | Profile image URL                          |
+| `locale`              | text        | DEFAULT 'en'                    | UI language preference                     |
+| `deactivated_at`      | timestamptz | —                               | Set on self-deactivation; `null` = active  |
+| `deactivation_reason` | text        | —                               | Optional free-text reason supplied by user |
+| `created_at`          | timestamptz | DEFAULT now()                   |                                            |
+| `updated_at`          | timestamptz | DEFAULT now()                   |                                            |
 
 **RLS:** `SELECT` public; `INSERT`/`UPDATE` own row only.
 
@@ -1440,12 +1444,30 @@ function MyComponent() {
 
 ---
 
-### 7.5 Profile Endpoints
+### 7.5 Profile & Account Endpoints
 
-| Method  | Path           | Auth | Description                |
-| ------- | -------------- | ---- | -------------------------- |
-| `GET`   | `/api/profile` | Yes  | Get current user's profile |
-| `PATCH` | `/api/profile` | Yes  | Update profile fields      |
+| Method   | Path                      | Auth   | Description                                             |
+| -------- | ------------------------- | ------ | ------------------------------------------------------- |
+| `GET`    | `/api/profile`            | Yes    | Get current user's profile                              |
+| `PATCH`  | `/api/profile`            | Yes    | Update profile fields                                   |
+| `DELETE` | `/api/profile`            | Yes    | Soft-deactivate the authenticated user's account        |
+| `POST`   | `/api/account/deactivate` | **No** | Deactivate account via OTP (public — no session needed) |
+
+**`DELETE /api/profile`** — body optional:
+
+```json
+{ "reason": "I no longer use FanQuin" }
+```
+
+Sets `deactivated_at = now()` and `deactivation_reason` on the profile, then revokes all active sessions. The profile row is **not deleted** (data retained for compliance/recovery). Once deactivated, `requireAuth` returns `403` until an admin clears `deactivated_at`.
+
+**`POST /api/account/deactivate`** — public endpoint for the `/deactivate` page (app deep-link):
+
+```json
+{ "identifier": "user@example.com", "code": "123456", "reason": "optional" }
+```
+
+Flow: client calls `GET /api/auth/check-email` → `POST /api/auth/send-code` → this endpoint. The OTP is verified and consumed in one call; no session is created. Returns `409` if already deactivated.
 
 **`PATCH /api/profile`** — all fields optional:
 
@@ -1911,7 +1933,17 @@ Email templates in `api/index.ts` have their own separate `emailCopy` object (no
 - `.env` files and `*.{crt,pem}` files explicitly denied from Vite dev server `fs` access
 - No sensitive values committed to repository
 
-### 11.5 OWASP Top 10 Compliance
+### 11.5 Special / Reserved Accounts
+
+| Email              | Purpose                          | Auth Bypass                                    |
+| ------------------ | -------------------------------- | ---------------------------------------------- |
+| `test@fanquin.com` | Apple App Store review account   | OTP code `123456` always accepted (hardcoded)  |
+| `demo@fanquin.com` | Local development / demo testing | Normal OTP flow (dev `debug_code` in response) |
+
+> **Apple review account**: Created by migration `20260429_000002_apple_review_test_user.sql`. Profile: Hugo Sanchez, MX. The static bypass is in `handleVerifyCode` in `api/index.ts` — **never remove it** without first updating the App Store review credentials.
+> See [docs/APPLE_SUBMISSION.md](APPLE_SUBMISSION.md) for the full App Store submission guide.
+
+### 11.6 OWASP Top 10 Compliance
 
 | Risk                          | Mitigation                                                                    |
 | ----------------------------- | ----------------------------------------------------------------------------- |
@@ -2097,7 +2129,7 @@ FanQuin provides a self-serve advertising inquiry page at `/advertise`. The page
 
 - Route: `/advertise` — wrapped in `AppShell`, no auth required
 - Footer link: `Advertise with Us` (keyed as `footer.links.advertise` in both locale files)
-- Features: animated hero with stats bar, clickable ad-format cards that pre-fill the form, "Why FanQuin?" value-prop section, full inquiry form with Formik + Yup validation
+- Features: full-viewport video background hero (Pexels #34686032, autoPlay/muted/loop, with preview thumbnail as poster fallback) with dark gradient overlay, stats bar, clickable ad-format cards that pre-fill the form, "Why FanQuin?" value-prop section, full inquiry form with Formik + Yup validation
 - Form fields: brand name*, contact name*, email*, phone, website, ad format*, budget range, campaign goal, message
 - On submit: dispatches `submitAdRequest` thunk → `POST /api/advertise`
 - On success: shows a success state with a return-to-home CTA
@@ -2115,7 +2147,10 @@ FanQuin provides a self-serve advertising inquiry page at `/advertise`. The page
 
 ### 14.4 Database
 
-Migration: `database/migrations/20260419_000000_ad_requests.sql`
+Migrations:
+
+- `database/migrations/20260419_000000_ad_requests.sql` — creates enum types, table, trigger, indexes, enables RLS
+- `database/migrations/20260419_000001_ad_format_rename_push_to_email_marketing.sql` — renames the `push_notification` enum value to `email_marketing` (run this on databases where the first migration was already deployed with the old value)
 
 Table: `public.ad_requests`
 

@@ -10,12 +10,14 @@ interface AuthState {
   sessionToken: string | null;
   userProfile: UserProfile | null;
   profileLoading: boolean;
+  deactivating: boolean;
 }
 
 const initialState: AuthState = {
   sessionToken: localStorage.getItem("fanquin_session"),
   userProfile: null,
   profileLoading: false,
+  deactivating: false,
 };
 
 // ── Thunks ───────────────────────────────────────────────────────
@@ -34,6 +36,26 @@ export const bootstrapAuth = createAsyncThunk(
       return data.data;
     } catch {
       return rejectWithValue("session expired");
+    }
+  },
+);
+
+export const deactivateAccount = createAsyncThunk(
+  "auth/deactivateAccount",
+  async (reason: string | undefined, { getState, rejectWithValue }) => {
+    const token = (getState() as RootState).auth.sessionToken;
+    try {
+      const { data } = await axios.delete<{ success: boolean }>(
+        "/api/profile",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { reason: reason ?? null },
+        },
+      );
+      if (!data.success) return rejectWithValue("deactivation failed");
+      return true;
+    } catch {
+      return rejectWithValue("deactivation failed");
     }
   },
 );
@@ -89,6 +111,18 @@ const authSlice = createSlice({
         state.sessionToken = null;
         state.userProfile = null;
         localStorage.removeItem("fanquin_session");
+      })
+      .addCase(deactivateAccount.pending, (state) => {
+        state.deactivating = true;
+      })
+      .addCase(deactivateAccount.fulfilled, (state) => {
+        state.deactivating = false;
+        state.sessionToken = null;
+        state.userProfile = null;
+        localStorage.removeItem("fanquin_session");
+      })
+      .addCase(deactivateAccount.rejected, (state) => {
+        state.deactivating = false;
       });
   },
 });

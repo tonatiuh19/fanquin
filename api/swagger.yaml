@@ -1640,7 +1640,110 @@ paths:
                         $ref: "#/components/schemas/UserProfile"
         "400":
           $ref: "#/components/schemas/ApiError"
+        "400":
+          $ref: "#/components/schemas/ApiError"
         "401":
+          $ref: "#/components/schemas/ApiError"
+
+    delete:
+      tags: [Profile]
+      summary: Deactivate the authenticated user's own account
+      description: |
+        Soft-deactivates the account by setting `deactivated_at` on the profile
+        and revoking all active sessions. The profile row is retained for
+        compliance and recovery. The user cannot sign in again until an admin
+        reactivates the account.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional reason the user provides for deactivating.
+                  maxLength: 500
+      responses:
+        "200":
+          description: Account deactivated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          deactivated:
+                            type: boolean
+        "401":
+          $ref: "#/components/schemas/ApiError"
+        "500":
+          $ref: "#/components/schemas/ApiError"
+
+  # ── Account (public) ─────────────────────────────────────────
+  /account/deactivate:
+    post:
+      tags: [Profile]
+      summary: Deactivate account via OTP (public — no session required)
+      description: |
+        Allows a user to deactivate their own account without an active session.
+        Intended for app deep-links (`/deactivate`).
+        Flow: the client first calls `GET /auth/check-email` (account must exist),
+        then `POST /auth/send-code` to issue the OTP, then calls this endpoint
+        with the email + code to complete deactivation.
+        The OTP is consumed (marked `is_used`) by this request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, code]
+              properties:
+                identifier:
+                  type: string
+                  format: email
+                  description: The email address of the account to deactivate.
+                code:
+                  type: string
+                  description: The 6-digit OTP sent to the email.
+                  minLength: 6
+                  maxLength: 6
+                reason:
+                  type: string
+                  description: Optional reason the user provides.
+                  maxLength: 500
+      responses:
+        "200":
+          description: Account deactivated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          deactivated:
+                            type: boolean
+        "400":
+          $ref: "#/components/schemas/ApiError"
+        "401":
+          $ref: "#/components/schemas/ApiError"
+        "404":
+          $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Account already deactivated
+          $ref: "#/components/schemas/ApiError"
+        "500":
           $ref: "#/components/schemas/ApiError"
 
   # ── Groups ───────────────────────────────────────────────────

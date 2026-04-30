@@ -356,6 +356,12 @@ export function AppShell() {
                 Términos
               </Link>
               <Link
+                to="/deactivate"
+                className="text-xs text-foreground/25 hover:text-foreground/60 transition"
+              >
+                {t("footer.links.deactivate")}
+              </Link>
+              <Link
                 to="/admin/login"
                 className="text-xs text-foreground/10 hover:text-foreground/40 transition"
                 aria-label="Back Office"

@@ -52,6 +52,7 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import AdminPeople from "./pages/admin/AdminPeople";
 import AdminAds from "./pages/admin/AdminAds";
 import AdvertisePage from "./pages/AdvertisePage";
+import DeactivatePage from "./pages/DeactivatePage";
 
 const queryClient = new QueryClient();
 
@@ -137,6 +138,7 @@ const App = () => {
                   />
                   <Route path="/faq" element={<FaqPage />} />
                   <Route path="/advertise" element={<AdvertisePage />} />
+                  <Route path="/deactivate" element={<DeactivatePage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
 

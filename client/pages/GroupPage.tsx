@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchGroupById } from "@/store/slices/groupsSlice";
 import { fetchSurvivor, clearSurvivor } from "@/store/slices/survivorSlice";
+import { GroupRulesModal } from "@/components/fanquin/GroupRulesModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ import {
   Heart,
   BarChart2,
   Skull,
+  BookOpen,
 } from "lucide-react";
 import axios from "axios";
 import type {
@@ -108,6 +110,9 @@ export default function GroupPage() {
   const [copied, setCopied] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+
+  // Rules modal state
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -369,6 +374,15 @@ export default function GroupPage() {
                   {t("groupPage.startGroup")}
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRulesOpen(true)}
+                className="rounded-full border border-white/10 text-foreground/60 hover:text-white"
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                {t("rulesModal.viewRules")}
+              </Button>
               {isOwner && (
                 <Button
                   variant="ghost"
@@ -552,6 +566,11 @@ export default function GroupPage() {
                           )}
                         </p>
                         <p className="text-xs text-foreground/40">
+                          {entry.username && (
+                            <span className="mr-1.5 text-foreground/30">
+                              @{entry.username}
+                            </span>
+                          )}
                           {t("groupPage.streak", { n: entry.current_streak })}
                         </p>
                         {/* Owned teams */}
@@ -785,6 +804,15 @@ export default function GroupPage() {
           </div>
         </div>
       </div>
+
+      {/* Rules modal */}
+      {currentGroup && (
+        <GroupRulesModal
+          open={rulesOpen}
+          onClose={() => setRulesOpen(false)}
+          group={currentGroup}
+        />
+      )}
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
