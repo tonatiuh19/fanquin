@@ -210,20 +210,6 @@ export interface JoinGroupRequest {
   invite_code: string;
 }
 
-// ── Leaderboard ────────────────────────────────────────────────
-export interface LeaderboardEntry {
-  rank: number;
-  user_id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  total_points: number;
-  prediction_pts: number;
-  ownership_pts: number;
-  current_streak: number;
-  elo_rating: number;
-}
-
 // ── Predictions ────────────────────────────────────────────────
 export interface SubmitPredictionRequest {
   group_id: string;
@@ -261,12 +247,30 @@ export interface TeamOwnership {
   user_id: string;
   username: string;
   display_name: string | null;
-  team: Team;
+  team: Team | null;
   draft_pick: number | null;
   total_pts: number;
   wins_pts: number;
   goals_pts: number;
   clean_sheet_pts: number;
+}
+
+// ── Leaderboard ────────────────────────────────────────────────
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  total_points: number;
+  prediction_pts: number;
+  ownership_pts: number;
+  current_streak: number;
+  elo_rating?: number;
+  is_eliminated?: boolean;
+  survivor_lives?: number | null;
 }
 
 // ── Group Members ──────────────────────────────────────────────

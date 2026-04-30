@@ -51,18 +51,20 @@ const MODE_COLOR: Record<string, string> = {
 };
 
 // Default scoring values mirroring API scoringDefaults
-const MODE_SCORING: Record<
-  string,
-  {
-    exact: number;
-    winner: number;
-    diff: number;
-    streak: number;
-    streakAt: number;
-    elo: number | null;
-    lives: number | null;
-  }
-> = {
+interface ModeScoring {
+  exact: number;
+  winner: number;
+  diff: number;
+  streak: number;
+  streakAt: number;
+  elo: number | null;
+  lives: number | null;
+  teamWin: number;
+  teamGoal: number;
+  teamClean: number;
+}
+
+const MODE_SCORING: Record<string, ModeScoring> = {
   casual: {
     exact: 4,
     winner: 2,
@@ -71,6 +73,9 @@ const MODE_SCORING: Record<
     streakAt: 3,
     elo: null,
     lives: null,
+    teamWin: 3,
+    teamGoal: 1,
+    teamClean: 2,
   },
   friends: {
     exact: 5,
@@ -80,6 +85,9 @@ const MODE_SCORING: Record<
     streakAt: 3,
     elo: null,
     lives: null,
+    teamWin: 4,
+    teamGoal: 1,
+    teamClean: 3,
   },
   league: {
     exact: 6,
@@ -89,6 +97,9 @@ const MODE_SCORING: Record<
     streakAt: 3,
     elo: 32,
     lives: null,
+    teamWin: 5,
+    teamGoal: 1,
+    teamClean: 3,
   },
   competitive: {
     exact: 7,
@@ -98,24 +109,33 @@ const MODE_SCORING: Record<
     streakAt: 3,
     elo: 24,
     lives: 3,
+    teamWin: 5,
+    teamGoal: 1,
+    teamClean: 3,
   },
   global: {
     exact: 5,
     winner: 3,
     diff: 2,
-    streak: 2,
-    streakAt: 3,
-    eo: null,
-    lives: null,
-  } as any,
+    streak: 3,
+    streakAt: 4,
+    elo: 16,
+    lives: 1,
+    teamWin: 4,
+    teamGoal: 1,
+    teamClean: 3,
+  },
   ownership: {
-    exact: 4,
-    winner: 2,
-    diff: 1,
-    streak: 1,
+    exact: 0,
+    winner: 0,
+    diff: 0,
+    streak: 2,
     streakAt: 3,
     elo: null,
     lives: null,
+    teamWin: 6,
+    teamGoal: 2,
+    teamClean: 4,
   },
 };
 
@@ -156,7 +176,32 @@ function ScoreRow({
 export function GroupRulesModal({ open, onClose, group }: Props) {
   const { t } = useTranslation();
 
-  const scoring = MODE_SCORING[group.mode] ?? MODE_SCORING["casual"];
+  const def = MODE_SCORING[group.mode] ?? MODE_SCORING.casual;
+  const cfg = (group.scoring_config ?? {}) as Record<string, number | boolean>;
+
+  function cfgNum(key: string, fallback: number): number {
+    const v = cfg[key];
+    return typeof v === "number" ? v : fallback;
+  }
+
+  const isOwnership = group.mode === "ownership";
+  const isSurvivorMode =
+    group.mode === "competitive" || group.mode === "global";
+
+  const eloK = cfgNum("elo_k_factor", def.elo ?? 0);
+  const scoring = {
+    exact: cfgNum("exact_score_pts", def.exact),
+    winner: cfgNum("correct_winner_pts", def.winner),
+    diff: cfgNum("goal_difference_pts", def.diff),
+    streak: cfgNum("streak_bonus_pts", def.streak),
+    streakAt: cfgNum("streak_bonus_threshold", def.streakAt),
+    elo: eloK > 0 ? eloK : null,
+    lives: isSurvivorMode ? cfgNum("survivor_lives", def.lives ?? 1) : null,
+    teamWin: cfgNum("team_win_pts", def.teamWin),
+    teamGoal: cfgNum("team_goal_pts", def.teamGoal),
+    teamClean: cfgNum("team_clean_sheet_pts", def.teamClean),
+  };
+
   const modeColor = MODE_COLOR[group.mode] ?? MODE_COLOR["casual"];
   const modeIcon = MODE_ICON[group.mode] ?? <Star className="h-4 w-4" />;
 
@@ -202,27 +247,54 @@ export function GroupRulesModal({ open, onClose, group }: Props) {
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
-          {/* Base scoring */}
+          {/* Base prediction scoring — hidden for ownership mode */}
+          {!isOwnership && (
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-foreground/40">
+                {t("rulesModal.baseScoringLabel")}
+              </p>
+              <div className="space-y-1.5">
+                <ScoreRow
+                  highlight
+                  icon={<Target className="h-4 w-4 text-brand" />}
+                  label={t("rulesModal.exactScore")}
+                  value={scoring.exact}
+                />
+                <ScoreRow
+                  icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                  label={t("rulesModal.correctWinner")}
+                  value={scoring.winner}
+                />
+                <ScoreRow
+                  icon={<TrendingUp className="h-4 w-4 text-sky-400" />}
+                  label={t("rulesModal.correctDiff")}
+                  value={scoring.diff}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Team scoring */}
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-foreground/40">
-              {t("rulesModal.baseScoringLabel")}
+              {t("rulesModal.teamScoringLabel")}
             </p>
             <div className="space-y-1.5">
               <ScoreRow
-                highlight
-                icon={<Target className="h-4 w-4 text-brand" />}
-                label={t("rulesModal.exactScore")}
-                value={scoring.exact}
+                highlight={isOwnership}
+                icon={<Shield className="h-4 w-4 text-orange-400" />}
+                label={t("rulesModal.teamWin")}
+                value={scoring.teamWin}
+              />
+              <ScoreRow
+                icon={<Zap className="h-4 w-4 text-amber-400" />}
+                label={t("rulesModal.teamGoal")}
+                value={scoring.teamGoal}
               />
               <ScoreRow
                 icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />}
-                label={t("rulesModal.correctWinner")}
-                value={scoring.winner}
-              />
-              <ScoreRow
-                icon={<TrendingUp className="h-4 w-4 text-sky-400" />}
-                label={t("rulesModal.correctDiff")}
-                value={scoring.diff}
+                label={t("rulesModal.teamCleanSheet")}
+                value={scoring.teamClean}
               />
             </div>
           </div>

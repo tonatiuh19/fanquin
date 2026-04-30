@@ -564,6 +564,12 @@ components:
         display_name:
           type: string
           nullable: true
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
         avatar_url:
           type: string
           format: uri
@@ -578,6 +584,11 @@ components:
           type: integer
         elo_rating:
           type: integer
+        is_eliminated:
+          type: boolean
+        survivor_lives:
+          type: integer
+          nullable: true
 
     # ── Team Ownership ────────────────────────────────────────────
     TeamOwnership:

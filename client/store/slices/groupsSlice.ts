@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
-import type { Group } from "@shared/api";
+import type { Group, LeaderboardEntry, TeamOwnership } from "@shared/api";
 import type { RootState } from "../index";
 
 // ── Thunks ────────────────────────────────────────────────────────
@@ -43,6 +43,48 @@ export const fetchGroupById = createAsyncThunk(
   },
 );
 
+export const fetchLeaderboard = createAsyncThunk(
+  "groups/fetchLeaderboard",
+  async (groupId: string, { getState, rejectWithValue }) => {
+    const token =
+      (getState() as RootState).auth.sessionToken ??
+      localStorage.getItem("fanquin_session");
+    if (!token) return rejectWithValue("not authenticated");
+    try {
+      const { data } = await axios.get<{
+        success: boolean;
+        data: LeaderboardEntry[];
+      }>(`/api/groups/${groupId}/leaderboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data.data;
+    } catch {
+      return rejectWithValue("Failed to load leaderboard");
+    }
+  },
+);
+
+export const fetchGroupOwnership = createAsyncThunk(
+  "groups/fetchOwnership",
+  async (groupId: string, { getState, rejectWithValue }) => {
+    const token =
+      (getState() as RootState).auth.sessionToken ??
+      localStorage.getItem("fanquin_session");
+    if (!token) return rejectWithValue("not authenticated");
+    try {
+      const { data } = await axios.get<{
+        success: boolean;
+        data: TeamOwnership[];
+      }>(`/api/groups/${groupId}/ownership`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data.data;
+    } catch {
+      return rejectWithValue("Failed to load ownership");
+    }
+  },
+);
+
 // ── State ─────────────────────────────────────────────────────────
 
 interface GroupsState {
@@ -50,6 +92,10 @@ interface GroupsState {
   myGroupsLoading: boolean;
   currentGroup: Group | null;
   currentGroupLoading: boolean;
+  leaderboard: LeaderboardEntry[];
+  leaderboardLoading: boolean;
+  ownedTeams: TeamOwnership[];
+  ownedTeamsLoading: boolean;
   error: string | null;
 }
 
@@ -58,6 +104,10 @@ const initialState: GroupsState = {
   myGroupsLoading: false,
   currentGroup: null,
   currentGroupLoading: false,
+  leaderboard: [],
+  leaderboardLoading: false,
+  ownedTeams: [],
+  ownedTeamsLoading: false,
   error: null,
 };
 
@@ -69,6 +119,10 @@ const groupsSlice = createSlice({
   reducers: {
     clearCurrentGroup(state) {
       state.currentGroup = null;
+    },
+    clearGroupData(state) {
+      state.leaderboard = [];
+      state.ownedTeams = [];
     },
   },
   extraReducers: (builder) => {
@@ -96,9 +150,29 @@ const groupsSlice = createSlice({
       .addCase(fetchGroupById.rejected, (state, action) => {
         state.currentGroupLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(fetchLeaderboard.pending, (state) => {
+        state.leaderboardLoading = true;
+      })
+      .addCase(fetchLeaderboard.fulfilled, (state, action) => {
+        state.leaderboard = action.payload;
+        state.leaderboardLoading = false;
+      })
+      .addCase(fetchLeaderboard.rejected, (state) => {
+        state.leaderboardLoading = false;
+      })
+      .addCase(fetchGroupOwnership.pending, (state) => {
+        state.ownedTeamsLoading = true;
+      })
+      .addCase(fetchGroupOwnership.fulfilled, (state, action) => {
+        state.ownedTeams = action.payload;
+        state.ownedTeamsLoading = false;
+      })
+      .addCase(fetchGroupOwnership.rejected, (state) => {
+        state.ownedTeamsLoading = false;
       });
   },
 });
 
-export const { clearCurrentGroup } = groupsSlice.actions;
+export const { clearCurrentGroup, clearGroupData } = groupsSlice.actions;
 export default groupsSlice.reducer;

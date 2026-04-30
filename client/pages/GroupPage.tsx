@@ -3,6 +3,11 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchGroupById } from "@/store/slices/groupsSlice";
+import {
+  fetchLeaderboard,
+  fetchGroupOwnership,
+  clearGroupData,
+} from "@/store/slices/groupsSlice";
 import { fetchSurvivor, clearSurvivor } from "@/store/slices/survivorSlice";
 import { GroupRulesModal } from "@/components/fanquin/GroupRulesModal";
 import { Button } from "@/components/ui/button";
@@ -73,29 +78,18 @@ const DEFAULT_BONUS_CRITERIA: BonusCriteria = {
   clean_sheet_pts: 1,
 };
 
-interface LeaderboardEntry {
-  rank: number;
-  user_id: string;
-  username: string;
-  display_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  total_points: number;
-  prediction_pts: number;
-  ownership_pts: number;
-  current_streak: number;
-  elo_rating?: number;
-  is_eliminated?: boolean;
-  survivor_lives?: number;
-}
-
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const { currentGroup, currentGroupLoading } = useAppSelector((s) => s.groups);
+  const {
+    currentGroup,
+    currentGroupLoading,
+    leaderboard,
+    leaderboardLoading,
+    ownedTeams,
+  } = useAppSelector((s) => s.groups);
   const userProfile = useAppSelector((s) => s.auth.userProfile);
   const { data: survivorData, loading: survivorLoading } = useAppSelector(
     (s) => s.survivor,
@@ -104,9 +98,6 @@ export default function GroupPage() {
     (s) => s.auth.sessionToken ?? localStorage.getItem("fanquin_session"),
   );
 
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [lbLoading, setLbLoading] = useState(false);
-  const [ownedTeams, setOwnedTeams] = useState<OwnedTeam[]>([]);
   const [copied, setCopied] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -125,9 +116,13 @@ export default function GroupPage() {
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   useEffect(() => {
-    if (id) dispatch(fetchGroupById(id));
+    if (id) {
+      dispatch(fetchGroupById(id));
+      dispatch(fetchLeaderboard(id));
+    }
     return () => {
       dispatch(clearSurvivor());
+      dispatch(clearGroupData());
     };
   }, [dispatch, id]);
 
@@ -142,31 +137,11 @@ export default function GroupPage() {
   }, [dispatch, id, currentGroup?.status, currentGroup?.mode]);
 
   useEffect(() => {
-    if (!id || !sessionToken) return;
-    setLbLoading(true);
-    axios
-      .get<{ success: boolean; data: LeaderboardEntry[] }>(
-        `/api/groups/${id}/leaderboard`,
-        { headers: { Authorization: `Bearer ${sessionToken}` } },
-      )
-      .then((res) => setLeaderboard(res.data.data ?? []))
-      .catch(() => setLeaderboard([]))
-      .finally(() => setLbLoading(false));
-  }, [id, sessionToken]);
-
-  useEffect(() => {
-    if (!id || !sessionToken || !currentGroup) return;
+    if (!id || !currentGroup) return;
     if (currentGroup.status !== "active") return;
-    // Only fetch ownership when the group has gone through a draft
-    if (!currentGroup.draft_type || currentGroup.draft_type === null) return;
-    axios
-      .get<{ success: boolean; data: OwnedTeam[] }>(
-        `/api/groups/${id}/ownership`,
-        { headers: { Authorization: `Bearer ${sessionToken}` } },
-      )
-      .then((res) => setOwnedTeams(res.data.data ?? []))
-      .catch(() => setOwnedTeams([]));
-  }, [id, sessionToken, currentGroup?.status, currentGroup?.draft_type]);
+    if (!currentGroup.draft_type) return;
+    dispatch(fetchGroupOwnership(id));
+  }, [dispatch, id, currentGroup?.status, currentGroup?.draft_type]);
 
   const inviteLink = currentGroup
     ? `${window.location.origin}/join/${currentGroup.invite_code}`
@@ -500,7 +475,7 @@ export default function GroupPage() {
               </h2>
             </div>
 
-            {lbLoading ? (
+            {leaderboardLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-12 rounded-xl bg-white/5" />
